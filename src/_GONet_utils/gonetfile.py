@@ -4,6 +4,7 @@ import os, PIL, operator
 from PIL import Image
 from PIL.ExifTags import TAGS
 import numpy as np
+from enum import Enum, auto
 
 def cast(v):
     '''
@@ -23,6 +24,14 @@ def cast(v):
         return v
     else: return v
 
+class FileType(Enum):
+    """GONet file types."""
+
+    SCIENCE = auto()
+    FLAT = auto()
+    BIAS = auto()
+    DARK = auto()
+
 class GONetFile:
 
     RAW_FILE_OFFSET = 18711040
@@ -34,15 +43,16 @@ class GONetFile:
     PIXEL_PER_COLUMN=3040
     USED_LINE_BYTES=int(PIXEL_PER_LINE*12/8)
 
-    def __init__(self, filename: str, red: np.ndarray, green: np.ndarray, blue: np.ndarray, meta: dict) -> None:
+    def __init__(self, filename: str, red: np.ndarray, green: np.ndarray, blue: np.ndarray, meta: dict, filetype: FileType) -> None:
         self._filename = filename
         self._red = red
         self._green = green
         self._blue = blue
         self._meta = meta
+        self._filetype = filetype
 
     @property
-    def filename(self) -> np.ndarray:
+    def filename(self) -> str:
         return self._filename
 
     @property
@@ -58,8 +68,12 @@ class GONetFile:
         return self._blue
 
     @property
-    def meta(self) -> np.ndarray:
+    def meta(self) -> dict:
         return self._meta
+    
+    @property
+    def filetype(self) -> FileType:
+        return self._filetype
 
     def write_to_jpeg(self, outname:str) -> None:
         jpeg = Image.open(self.filename)
@@ -73,7 +87,7 @@ class GONetFile:
         raise NotImplementedError()
 
     @classmethod
-    def from_file(cls, filepath: str) -> GONetFile:
+    def from_file(cls, filepath: str, filetype: FileType = FileType.SCIENCE) -> GONetFile:
         if not os.path.isfile(filepath):
             raise FileNotFoundError(f'Could not find file {filepath}.')
         if filepath.split('.')[-1] in ['tiff','TIFF','tif','TIF']:
@@ -88,7 +102,8 @@ class GONetFile:
             red = parsed_data[0],
             green = parsed_data[1],
             blue = parsed_data[2],
-            meta = parsed_meta
+            meta = parsed_meta,
+            filetype = filetype
         )
 
     @staticmethod
