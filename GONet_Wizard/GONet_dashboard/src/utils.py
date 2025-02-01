@@ -41,11 +41,11 @@ def plot_scatter(x_label, y_label, sun_altitude, moon_altitude, moon_illuminatio
     filters = []
 
     if sun_altitude is not None:
-        filters.append(np.array(all_data["sunaltaz"]) < float(sun_altitude))
+        filters.append(np.array(all_data["sunaltaz"]) <= float(sun_altitude))
     if moon_altitude is not None:
-        filters.append(np.logical_or(np.array(all_data["moonaltaz"]) < float(moon_altitude), np.array(all_data["moon_illumination"]) < float(moon_illumination)))
+        filters.append(np.logical_or(np.array(all_data["moonaltaz"]) <= float(moon_altitude), np.array(all_data["moon_illumination"]) <= float(moon_illumination)))
     if coco is not None:
-        filters.append(np.array(all_data["condition_code"]) < int(coco))
+        filters.append(np.array(all_data["condition_code"]) <= int(coco))
 
     total_filter = np.full(len(all_data['channel']), True)
     for f in filters:

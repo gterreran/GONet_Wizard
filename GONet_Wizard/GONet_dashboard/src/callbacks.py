@@ -49,7 +49,7 @@ def load(_):
                     for label in labels['gen']:
                         if label not in img:continue
                         if label == "date":
-                            data[label].append(datetime.datetime.fromisoformat(img[label]).astimezone(env.CHICAGO_TZ))
+                            data[label].append(datetime.datetime.fromisoformat(img[label]).astimezone(env.LOCAL_TZ))
                         else:
                             data[label].append(img[label])
                     for label in labels['fit']:
@@ -90,8 +90,7 @@ def plot(x_label, y_label, _, filters, show_filtered_points, fold_switch, fig, a
     if x_label is None or y_label is None:
         return no_update
 
-    print(ctx.triggered_id)
-    if fig is not None:    
+    if fig is not None:
         # Showing/hiding filtered data
         if ctx.triggered_id == 'show-filtered-data-switch':
             if len([img for img in fig['data'] if img['filtered']])==0:
@@ -116,24 +115,33 @@ def plot(x_label, y_label, _, filters, show_filtered_points, fold_switch, fig, a
                         fig['data'][i]['hidden'] = True
                         if 'line' in fig['data'][i]['marker']:
                             fig['data'][i]['marker']['line']['width']=0
+                            
+
             return utils.sort_figure(fig)
 
-        # Adding/removing filtered data
+        # Showing/hiding filtered data
         if ctx.triggered_id == 'filters':
             if x_label in labels['gen'] and y_label in labels['gen']:
                 return no_update
-            # Adding a filter
+            # Showing filtered data
             for to_be_plotted_f in filters:
                 if to_be_plotted_f not in set([img['channel'] for img in fig['data']]):
                     fig = utils.plot_scatter(x_label, y_label, sun_altitude, moon_altitude, moon_illumination, coco, all_data, labels, [to_be_plotted_f], fig, show_filtered_points, fold_switch)
                     if big_point_idx is not None:
                         fig = utils.plot_big_points(all_data, big_point_idx, x_label, y_label, fig, fold_switch)
                     return utils.sort_figure(fig)
-            # Removing a filter
+            # Hiding filtered data
             for i,img in reversed(list(enumerate(fig['data']))):
                 if img['channel'] not in filters:
                     fig['data'].pop(i)
                 return utils.sort_figure(fig)
+        
+        # If I get here, it means that a figure exists, but I'm probably activating or deactivating a filter
+        # So let's keep the axis ranges
+
+        if 'range' in fig['layout']['xaxis']:
+            xaxis_range = fig['layout']['xaxis']['range']
+            yaxis_range = fig['layout']['yaxis']['range']
         
 
     fig = {
@@ -143,6 +151,13 @@ def plot(x_label, y_label, _, filters, show_filtered_points, fold_switch, fig, a
             'yaxis': {'title': {'text': y_label}}
         }
     }
+
+    if ctx.triggered_id in ['switch']:
+        try:
+            fig['layout']['xaxis']['range'] = xaxis_range[:]
+            fig['layout']['yaxis']['range'] = yaxis_range[:]
+        except:
+            pass
 
     if sun_switch:
         sun_altitude = float(sun_altitude)
@@ -231,8 +246,8 @@ def info(clickdata, fig, data, x_label, y_label, fold_switch):
     Output("switch", 'data', allow_duplicate=True),
     #---------------------
     Input("sun-switch", 'on'),
+    Input("sun-altitude",'value'),
     #---------------------
-    State("sun-altitude",'value'),
     State("sun-altitude",'placeholder'),
     #---------------------
     prevent_initial_call=True
@@ -243,7 +258,7 @@ def set_sun_defaults(switch, value, placeholder):
         if value is None:
             return placeholder, True
         else:
-            return no_update, True
+            return value, True
     else:
         return no_update, False
 
@@ -254,21 +269,21 @@ def set_sun_defaults(switch, value, placeholder):
     Output("switch", 'data', allow_duplicate=True),
     #---------------------
     Input("moon-switch", 'on'),
+    Input("moon-altitude",'value'),
+    Input("moon-illumination",'value'),
     #---------------------
-    State("moon-altitude",'value'),
     State("moon-altitude",'placeholder'),
-    State("moon-illumination",'value'),
     State("moon-illumination",'placeholder'),
     #---------------------
     prevent_initial_call=True
 )
-def set_moon_defaults(switch, value1, placeholder1, value2, placeholder2):
+def set_moon_defaults(switch, value1, value2, placeholder1, placeholder2):
     utils.debug()
     if switch:
         if value1 is None or value2 is None:
             return placeholder1, placeholder2, True
         else:
-            return no_update, no_update, True
+            return value1, value2, True
     else:
         return no_update, no_update, False
 
@@ -278,18 +293,34 @@ def set_moon_defaults(switch, value1, placeholder1, value2, placeholder2):
     Output("switch", 'data'),
     #---------------------
     Input("condition-code-switch", 'on'),
+    Input("condition-code", 'value'),
     #---------------------
-    State("condition-code",'value'),
     State("condition-code",'placeholder'),
     #---------------------
     prevent_initial_call=True
 )
-def set_coco_defaults(switch, value, placeholder):
+def change_coco(switch, value, placeholder):
     utils.debug()
     if switch:
         if value is None:
             return placeholder, True
         else:
-            return no_update, True
+            return value, True
     else:
         return no_update, False
+    
+@app.callback(
+    Output("fold-time-switch",'disabled'),
+    Output("fold-time-switch",'on'),
+    #---------------------
+    Input("x-axis-dropdown",'value'),
+    #---------------------
+    prevent_initial_call=True
+)
+def activate_fold_switch(x_label):
+    utils.debug()
+
+    if x_label == 'date':
+        return False, False
+    else:
+        return True, False

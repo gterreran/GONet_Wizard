@@ -30,7 +30,7 @@ layout = html.Div([
     ]),
     html.Div(id='filter-container', children=[
         html.Div(id = "folder-container", children=[
-            daq.BooleanSwitch(id='fold-time-switch', on=False, style={'display': 'inline-block'}),
+            daq.BooleanSwitch(id='fold-time-switch', on=False, style={'display': 'inline-block'}, disabled=True),
             html.Div("Fold time axis", id='fold-time-label', style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px',}),
         ]),
         html.Div(id = "shower-container", children=[
