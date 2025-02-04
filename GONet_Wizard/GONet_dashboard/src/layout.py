@@ -9,13 +9,14 @@ layout = html.Div([
     dcc.Store(id='data-json'),
     dcc.Store(id='labels'),
     dcc.Store(id='big-points'),
+    dcc.Store(id='active-filters', data=[]),
     html.Div(id='top-container',children=[
         html.Div(
             dcc.Graph(id="main-plot"),#, figure= px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])),
             style={'width': '80%','display': 'inline-block'}
         ),
         html.Div([
-            dcc.Checklist(id="filters", options=[{"label": c, "value": c} for c in env.CHANNELS], value=['green']),
+            dcc.Checklist(id="channels", options=[{"label": c, "value": c} for c in env.CHANNELS], value=['green']),
             html.Div([
                 "X-axis",
                 dcc.Dropdown(id="x-axis-dropdown"),
@@ -28,7 +29,7 @@ layout = html.Div([
         style={'width': '20%','display': 'inline-block'}
         )
     ]),
-    html.Div(id='filter-container', children=[
+    html.Div(id='big-filter-container', children=[
         html.Div(id = "folder-container", children=[
             daq.BooleanSwitch(id='fold-time-switch', on=False, style={'display': 'inline-block'}, disabled=True),
             html.Div("Fold time axis", id='fold-time-label', style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px',}),
@@ -37,24 +38,8 @@ layout = html.Div([
             daq.BooleanSwitch(id='show-filtered-data-switch', on=True, style={'display': 'inline-block'}),
             html.Div("Show filtered data", id='show-filtered-data-label', style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px',}),
         ]),
-        html.Div(id = "sun-altitude-container", children=[
-            daq.BooleanSwitch(id='sun-switch', on=False, style={'display': 'inline-block'}),
-            html.Div("Sun Altitude <=", id='sun-altitude-label', style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px',}),
-            dcc.Input(id="sun-altitude", type="number", debounce=True, placeholder="-18", style={'display': 'inline-block'})
-        ]),
-        html.Div(id="moon-container", children=[
-            daq.BooleanSwitch(id='moon-switch', on=False, labelPosition="right", style={'display': 'inline-block'}),
-            html.Div("Moon Altitude <=", id='moon-altitude-label', style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px',}),
-            dcc.Input(id="moon-altitude", type="number", debounce=True, placeholder="0", style={'display': 'inline-block'}),
-            html.Div('OR',style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px',}),
-            html.Div("Moon Illumination <=", id='moon-illumination-label', style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px',}),
-            dcc.Input(id="moon-illumination", type="number", debounce=True, placeholder="0.2", style={'display': 'inline-block'})
-        ]),
-        html.Div(id = "condition-code-container", children=[
-            daq.BooleanSwitch(id='condition-code-switch', on=False, labelPosition="right", style={'display': 'inline-block'}),
-            html.Div("Condition Code <=", id='condition-code-label', style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px',}),
-            dcc.Input(id="condition-code", type="number", debounce=True, placeholder="2", style={'display': 'inline-block'})
-        ])
+        html.Button('Add filter', id='add-filter', n_clicks=0),
+        html.Div(id='custom-filter-container', children=[])
     ]),
     html.Div(id='bottom-container',children=[
         dcc.Graph(id="gonet-image",style={'width': '40%', 'display': 'inline-block'}),

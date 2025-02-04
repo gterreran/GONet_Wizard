@@ -1,4 +1,4 @@
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output, State, ALL, MATCH
 from .server import app
 import os, json, datetime
 from . import env
@@ -7,6 +7,8 @@ from dash import no_update, ctx
 import numpy as np
 from dash import html
 from GONet_utils import GONetFile
+import dash_daq as daq
+from dash import dcc, html
 
 #upload image and storing the data.
 @app.callback(
@@ -66,8 +68,8 @@ def load(_):
     #---------------------
     Input("x-axis-dropdown",'value'),
     Input("y-axis-dropdown",'value'),
-    Input("switch", 'data'),
-    Input("filters",'value'),
+    Input("active-filters",'data'),
+    Input("channels",'value'),
     Input("show-filtered-data-switch", 'on'),
     Input("fold-time-switch",'on'),
     #---------------------
@@ -75,16 +77,9 @@ def load(_):
     State("data-json",'data'),
     State("labels",'data'),
     State("big-points",'data'),
-    State("sun-switch", 'on'),
-    State("moon-switch", 'on'),
-    State("condition-code-switch", 'on'),
-    State("sun-altitude",'value'),
-    State("moon-altitude",'value'),
-    State("moon-illumination",'value'),
-    State("condition-code",'value'),
     prevent_initial_call=True
 )
-def plot(x_label, y_label, _, filters, show_filtered_points, fold_switch, fig, all_data, labels, big_point_idx, sun_switch, moon_switch, coco_switch, sun_altitude, moon_altitude, moon_illumination, coco):
+def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_switch, fig, all_data, labels, big_point_idx):
     utils.debug()
 
     if x_label is None or y_label is None:
@@ -120,19 +115,19 @@ def plot(x_label, y_label, _, filters, show_filtered_points, fold_switch, fig, a
             return utils.sort_figure(fig)
 
         # Showing/hiding filtered data
-        if ctx.triggered_id == 'filters':
+        if ctx.triggered_id == 'channels':
             if x_label in labels['gen'] and y_label in labels['gen']:
                 return no_update
             # Showing filtered data
-            for to_be_plotted_f in filters:
+            for to_be_plotted_f in channels:
                 if to_be_plotted_f not in set([img['channel'] for img in fig['data']]):
-                    fig = utils.plot_scatter(x_label, y_label, sun_altitude, moon_altitude, moon_illumination, coco, all_data, labels, [to_be_plotted_f], fig, show_filtered_points, fold_switch)
+                    fig = utils.plot_scatter(x_label, y_label, all_data, labels, [to_be_plotted_f], fig, active_filters, show_filtered_points, fold_switch)
                     if big_point_idx is not None:
                         fig = utils.plot_big_points(all_data, big_point_idx, x_label, y_label, fig, fold_switch)
                     return utils.sort_figure(fig)
             # Hiding filtered data
             for i,img in reversed(list(enumerate(fig['data']))):
-                if img['channel'] not in filters:
+                if img['channel'] not in channels:
                     fig['data'].pop(i)
                 return utils.sort_figure(fig)
         
@@ -159,23 +154,8 @@ def plot(x_label, y_label, _, filters, show_filtered_points, fold_switch, fig, a
         except:
             pass
 
-    if sun_switch:
-        sun_altitude = float(sun_altitude)
-    else:
-        sun_altitude = None
 
-    if moon_switch:
-        moon_altitude = float(moon_altitude)
-        moon_illumination = float(moon_illumination)
-    else:
-        moon_altitude = None
-        moon_illumination = None
-
-    if coco_switch:
-        coco = int(coco)
-    else:
-        coco = None
-    fig = utils.plot_scatter(x_label, y_label, sun_altitude, moon_altitude, moon_illumination, coco, all_data, labels, filters, fig, show_filtered_points, fold_switch)
+    fig = utils.plot_scatter(x_label, y_label, all_data, labels, channels, fig, active_filters, show_filtered_points, fold_switch)
 
     if big_point_idx is not None:
         fig = utils.plot_big_points(all_data, big_point_idx, x_label, y_label, fig, fold_switch)
@@ -236,78 +216,8 @@ def info(clickdata, fig, data, x_label, y_label, fold_switch):
 
     outfig['data'].append({'x': c_x, 'y': c_y, 'type': 'scatter', 'mode': 'lines', 'marker': {'color':'rgba(0, 0, 0, 1)', 'symbol': 'circle'}})
 
-        
-
     return outfig, fig, table, real_idx
 
-
-@app.callback(
-    Output("sun-altitude",'value'),
-    Output("switch", 'data', allow_duplicate=True),
-    #---------------------
-    Input("sun-switch", 'on'),
-    Input("sun-altitude",'value'),
-    #---------------------
-    State("sun-altitude",'placeholder'),
-    #---------------------
-    prevent_initial_call=True
-)
-def set_sun_defaults(switch, value, placeholder):
-    utils.debug()
-    if switch:
-        if value is None:
-            return placeholder, True
-        else:
-            return value, True
-    else:
-        return no_update, False
-
-
-@app.callback(
-    Output("moon-altitude",'value'),
-    Output("moon-illumination",'value'),
-    Output("switch", 'data', allow_duplicate=True),
-    #---------------------
-    Input("moon-switch", 'on'),
-    Input("moon-altitude",'value'),
-    Input("moon-illumination",'value'),
-    #---------------------
-    State("moon-altitude",'placeholder'),
-    State("moon-illumination",'placeholder'),
-    #---------------------
-    prevent_initial_call=True
-)
-def set_moon_defaults(switch, value1, value2, placeholder1, placeholder2):
-    utils.debug()
-    if switch:
-        if value1 is None or value2 is None:
-            return placeholder1, placeholder2, True
-        else:
-            return value1, value2, True
-    else:
-        return no_update, no_update, False
-
-
-@app.callback(
-    Output("condition-code",'value'),
-    Output("switch", 'data'),
-    #---------------------
-    Input("condition-code-switch", 'on'),
-    Input("condition-code", 'value'),
-    #---------------------
-    State("condition-code",'placeholder'),
-    #---------------------
-    prevent_initial_call=True
-)
-def change_coco(switch, value, placeholder):
-    utils.debug()
-    if switch:
-        if value is None:
-            return placeholder, True
-        else:
-            return value, True
-    else:
-        return no_update, False
     
 @app.callback(
     Output("fold-time-switch",'disabled'),
@@ -324,3 +234,93 @@ def activate_fold_switch(x_label):
         return False, False
     else:
         return True, False
+    
+
+@app.callback(
+    Output("custom-filter-container",'children'),
+    #---------------------
+    Input("add-filter",'n_clicks'),
+    #---------------------
+    State("custom-filter-container",'children'),
+    State("x-axis-dropdown",'options'),
+    #---------------------
+    prevent_initial_call=True
+)
+def add_filter(_, filter_div, labels):
+    utils.debug()
+
+    n_filter = len(filter_div)
+
+    new_filter = html.Div(id = {"type":'filter-container', "index":n_filter}, children=[
+                html.Div(id = {"type":'first-filter-container', "index":n_filter}, children=[
+                    daq.BooleanSwitch(id={"type":'filter-switch', "index":n_filter}, on=False, style={'display': 'inline-block'}),
+                    dcc.Dropdown(id={"type":'filter-dropdown', "index":n_filter}, options=labels, style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px', 'width':'200px'}),
+                    dcc.Dropdown(id={"type":'filter-operator', "index":n_filter}, options=['<','<=','=','!=','=>','>'], value = '<=', style={'display': 'inline-block', 'margin-left':'5px', 'margin-right':'5px', 'width':'40px'}),
+                    dcc.Input(id={"type":'filter-value', "index":n_filter}, type="text", debounce=True, value=-18, style={'display': 'inline-block'})
+                ], style={'display': 'inline-block'}),
+                html.Div(id = {"type":'second-filter-container', "index":n_filter}, children=[
+                    html.Button('Add OR filter', id = {"type":'add-or-filter', "index":n_filter}, n_clicks=0),
+                ], style={'display': 'inline-block', 'margin-left':'15px'})
+            ])
+
+    filter_div.append(new_filter)
+    return filter_div
+
+@app.callback(
+    Output({"type": "second-filter-container", "index": MATCH}, 'children'),
+    #---------------------
+    Input({"type": "add-or-filter", "index": MATCH}, 'n_clicks'),
+    #---------------------
+    State({"type": "add-or-filter", "index": MATCH}, 'id'),
+    State("x-axis-dropdown",'options'),
+    #---------------------
+    prevent_initial_call=True
+)
+def add_or_filter(_, id, labels):
+    utils.debug()
+    
+    idx = id['index']
+
+    new_filter = [
+        html.Div('OR',style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px',}),
+        dcc.Dropdown(id={"type":'second-filter-dropdown', "index":idx}, options=labels, style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px', 'width':'200px'}),
+        dcc.Dropdown(id={"type":'second-filter-operator', "index":idx}, options=['<','<=','=','!=','=>','>'], value = '<=', style={'display': 'inline-block', 'margin-left':'5px', 'margin-right':'5px', 'width':'40px'}),
+        dcc.Input(id={"type":'second-filter-value', "index":idx}, type="text", debounce=True, value=0, style={'display': 'inline-block'})
+    ]
+
+    return new_filter
+
+
+@app.callback(
+    Output("active-filters",'data'),
+    #---------------------
+    Input({"type": "filter-switch", "index": ALL}, 'on'),
+    Input({"type": "filter-dropdown", "index": ALL}, 'value'),
+    Input({"type": "filter-operator", "index": ALL}, 'value'),
+    Input({"type": "filter-value", "index": ALL}, 'value'),
+    Input({"type": "second-filter-dropdown", "index": ALL}, 'value'),
+    Input({"type": "second-filter-operator", "index": ALL}, 'value'),
+    Input({"type": "second-filter-value", "index": ALL}, 'value'),
+    #---------------------
+    State({"type": "second-filter-value", "index": ALL}, 'id'),
+    State("active-filters",'data'),
+    #---------------------
+    prevent_initial_call=True
+)
+def update_filters(switches, labels, ops, values, second_labels, second_ops, second_values, second_ids, filters_before):
+    utils.debug()
+
+    active_filters=[]
+
+    for i,s in enumerate(switches):
+        if s and labels[i] is not None and values[i] is not None:
+            active_filters.append({'label': labels[i], 'operator': ops[i], 'value': values[i]})
+            for j,id in enumerate(second_ids):
+                if id['index'] == i and second_labels[j] is not None and second_values[j] is not None:
+                    active_filters[-1]['secondary'] = {'label': second_labels[j], 'operator': second_ops[j], 'value': second_values[j]}
+
+
+    if filters_before != active_filters:
+        return active_filters
+    else:
+        return no_update
