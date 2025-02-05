@@ -70,8 +70,11 @@ def plot_scatter(x_label, y_label, all_data, channels, fig, active_filters, show
             else:
                 time.append('2025-01-02T'+t.split('T')[1])
         x_data = np.array(time)
+        fig['layout']['xaxis']['tickformat'] = "%H:%M"
     else:
         x_data = np.array(all_data[x_label])
+        # if 'tickformat' in fig['layout']['xaxis']:
+        #     del fig['layout']['xaxis']['tickformat']
     y_data = np.array(all_data[y_label])
     real_idx = np.array(all_data['idx'])
 
