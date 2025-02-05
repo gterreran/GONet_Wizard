@@ -256,7 +256,7 @@ def add_filter(_, filter_div, labels):
                     daq.BooleanSwitch(id={"type":'filter-switch', "index":n_filter}, on=False, style={'display': 'inline-block'}),
                     dcc.Dropdown(id={"type":'filter-dropdown', "index":n_filter}, options=labels, style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px', 'width':'200px'}),
                     dcc.Dropdown(id={"type":'filter-operator', "index":n_filter}, options=['<','<=','=','!=','=>','>'], value = '<=', style={'display': 'inline-block', 'margin-left':'5px', 'margin-right':'5px', 'width':'40px'}),
-                    dcc.Input(id={"type":'filter-value', "index":n_filter}, type="text", debounce=True, value=-18, style={'display': 'inline-block'})
+                    dcc.Input(id={"type":'filter-value', "index":n_filter}, type="text", debounce=True, style={'display': 'inline-block'})
                 ], style={'display': 'inline-block'}),
                 html.Div(id = {"type":'second-filter-container', "index":n_filter}, children=[
                     html.Button('Add OR filter', id = {"type":'add-or-filter', "index":n_filter}, n_clicks=0),
@@ -292,22 +292,53 @@ def add_or_filter(_, id, labels):
 
 
 @app.callback(
+    Output({"type": "filter-value", "index": MATCH}, 'value'),
+    #---------------------
+    Input({"type": "filter-dropdown", "index": MATCH}, 'value'),
+    #---------------------
+    prevent_initial_call=True
+)
+def update_main_filters_label(label):
+    utils.debug()
+    
+    if label in env.DEFAULT_FILTER_VALUES:
+        return env.DEFAULT_FILTER_VALUES[label]
+    else:
+        return None
+
+@app.callback(
+    Output({"type": "second-filter-value", "index": MATCH}, 'value'),
+    #---------------------
+    Input({"type": "second-filter-dropdown", "index": MATCH}, 'value'),
+    #---------------------
+    prevent_initial_call=True
+)
+def update_secondary_filters_label(label):
+    utils.debug()
+    
+    if label in env.DEFAULT_FILTER_VALUES:
+        return env.DEFAULT_FILTER_VALUES[label]
+    else:
+        return None
+    
+
+@app.callback(
     Output("active-filters",'data'),
     #---------------------
     Input({"type": "filter-switch", "index": ALL}, 'on'),
-    Input({"type": "filter-dropdown", "index": ALL}, 'value'),
     Input({"type": "filter-operator", "index": ALL}, 'value'),
     Input({"type": "filter-value", "index": ALL}, 'value'),
-    Input({"type": "second-filter-dropdown", "index": ALL}, 'value'),
     Input({"type": "second-filter-operator", "index": ALL}, 'value'),
     Input({"type": "second-filter-value", "index": ALL}, 'value'),
     #---------------------
+    State({"type": "filter-dropdown", "index": ALL}, 'value'),
+    State({"type": "second-filter-dropdown", "index": ALL}, 'value'),
     State({"type": "second-filter-value", "index": ALL}, 'id'),
     State("active-filters",'data'),
     #---------------------
     prevent_initial_call=True
 )
-def update_filters(switches, labels, ops, values, second_labels, second_ops, second_values, second_ids, filters_before):
+def update_filters(switches, ops, values, second_ops, second_values, labels, second_labels, second_ids, filters_before):
     utils.debug()
 
     active_filters=[]
