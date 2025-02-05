@@ -167,6 +167,7 @@ def plot_big_points(data, idx_big_point, x_label, y_label, fig, fold_switch):
                 }
             },
             'channel': img['channel'],
+            'showlegend': False,
             'filtered': img['filtered'],
             'hidden':img['hidden'],
             'big_point': True

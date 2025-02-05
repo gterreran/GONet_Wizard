@@ -199,7 +199,7 @@ def info(clickdata, fig, data, x_label, y_label, fold_switch):
     filename = env.ROOT_EXT + night + '/Horizontal/' + filename
 
     go = GONetFile.from_file(filename)
-    outfig = {'data':[{'z':getattr(go,original_channel), 'type': 'heatmap'}]}
+    outfig = {'data':[{'z':getattr(go,original_channel), 'type': 'heatmap'}], 'layout':{'showlegend': False}}
     del go
 
     # Overplotting extraction region

@@ -5,7 +5,7 @@ with open("README.md", "r") as inp:
 
 setup(
     name="GONet_wizard",
-    version="0.4.3",
+    version="0.4.4",
     description="Tools and methods to handle GONet data.",
     long_description=long_description,
     long_description_content_type="text/markdown",
