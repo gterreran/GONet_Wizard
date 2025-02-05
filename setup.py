@@ -1,22 +1,22 @@
 from setuptools import find_packages, setup
 
-with open("GONet_Wizard/README.md", "r") as inp:
+with open("README.md", "r") as inp:
     long_description = inp.read()
 
 setup(
     name="GONet_wizard",
-    version="0.3.5",
+    version="0.4.4",
     description="Tools and methods to handle GONet data.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/gterreran/GONet",
+    url="https://github.com/gterreran/GONet_Wizard",
     author="Giacomo Terreran",
     author_email="gterreran@adlerplanetarium.org",
     license="MIT",
     package_dir={"": "GONet_Wizard"},
     packages=find_packages(where='GONet_Wizard'),
     entry_points = {
-        'console_scripts': [ 'GONet_dashboard=dashboard.src.run_app:main']
+        'console_scripts': [ 'GONet_dashboard=GONet_dashboard:run']
         },
     classifiers=[
         "License :: OSI Approved :: MIT License",

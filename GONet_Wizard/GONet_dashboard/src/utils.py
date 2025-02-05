@@ -1,6 +1,16 @@
 import inspect, datetime
 import numpy as np
 from . import env
+import operator
+
+op = {
+    '<': operator.lt ,
+    '<=': operator.le ,
+    '=': operator.eq ,
+    '!=': operator.ne ,
+    '=>': operator.ge ,
+    '>': operator.gt ,
+}
 
 def debug():
     '''
@@ -30,9 +40,9 @@ def sort_figure(fig):
     return fig
 
 
-def plot_scatter(x_label, y_label, sun_altitude, moon_altitude, moon_illumination, coco, all_data, labels, channels, fig, show_filtered_points, fold_switch):
+def plot_scatter(x_label, y_label, all_data, channels, fig, active_filters, show_filtered_points, fold_switch):
     channel_filter = {}
-    if x_label in labels['gen'] and y_label in labels['gen']:
+    if x_label in env.LABELS['gen'] and y_label in env.LABELS['gen']:
         channel_filter['gen'] = np.array(all_data['channel']) == 'red'
     else:
         for c in channels:
@@ -40,12 +50,13 @@ def plot_scatter(x_label, y_label, sun_altitude, moon_altitude, moon_illuminatio
     
     filters = []
 
-    if sun_altitude is not None:
-        filters.append(np.array(all_data["sunaltaz"]) < float(sun_altitude))
-    if moon_altitude is not None:
-        filters.append(np.logical_or(np.array(all_data["moonaltaz"]) < float(moon_altitude), np.array(all_data["moon_illumination"]) < float(moon_illumination)))
-    if coco is not None:
-        filters.append(np.array(all_data["condition_code"]) < int(coco))
+    for f in active_filters:
+        if 'secondary' not in f:
+            filters.append(op[f['operator']](np.array(all_data[f['label']]),type(all_data[f['label']][0])(f['value'])))
+        else:
+            filters.append(np.logical_or(op[f['operator']](np.array(all_data[f['label']]),type(all_data[f['label']][0])(f['value'])), op[f['secondary']['operator']](np.array(all_data[f['secondary']['label']]),type(all_data[f['secondary']['label']][0])(f['secondary']['value']))))
+    # if moon_altitude is not None:
+    #     filters.append(np.logical_or(np.array(all_data["moonaltaz"]) <= float(moon_altitude), np.array(all_data["moon_illumination"]) <= float(moon_illumination)))
 
     total_filter = np.full(len(all_data['channel']), True)
     for f in filters:
@@ -59,8 +70,11 @@ def plot_scatter(x_label, y_label, sun_altitude, moon_altitude, moon_illuminatio
             else:
                 time.append('2025-01-02T'+t.split('T')[1])
         x_data = np.array(time)
+        fig['layout']['xaxis']['tickformat'] = "%H:%M"
     else:
         x_data = np.array(all_data[x_label])
+        # if 'tickformat' in fig['layout']['xaxis']:
+        #     del fig['layout']['xaxis']['tickformat']
     y_data = np.array(all_data[y_label])
     real_idx = np.array(all_data['idx'])
 
@@ -153,6 +167,7 @@ def plot_big_points(data, idx_big_point, x_label, y_label, fig, fold_switch):
                 }
             },
             'channel': img['channel'],
+            'showlegend': False,
             'filtered': img['filtered'],
             'hidden':img['hidden'],
             'big_point': True
