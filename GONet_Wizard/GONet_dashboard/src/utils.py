@@ -40,9 +40,9 @@ def sort_figure(fig):
     return fig
 
 
-def plot_scatter(x_label, y_label, all_data, labels, channels, fig, active_filters, show_filtered_points, fold_switch):
+def plot_scatter(x_label, y_label, all_data, channels, fig, active_filters, show_filtered_points, fold_switch):
     channel_filter = {}
-    if x_label in labels['gen'] and y_label in labels['gen']:
+    if x_label in env.LABELS['gen'] and y_label in env.LABELS['gen']:
         channel_filter['gen'] = np.array(all_data['channel']) == 'red'
     else:
         for c in channels:

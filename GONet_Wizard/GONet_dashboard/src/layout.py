@@ -4,10 +4,7 @@ from . import env
 
 
 layout = html.Div([
-    html.Div(id='dummy'),
-    dcc.Store(id='switch'),
     dcc.Store(id='data-json'),
-    dcc.Store(id='labels'),
     dcc.Store(id='big-points'),
     dcc.Store(id='active-filters', data=[]),
     html.Div(id='top-container',children=[

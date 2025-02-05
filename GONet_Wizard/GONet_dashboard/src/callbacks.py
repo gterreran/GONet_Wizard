@@ -13,17 +13,15 @@ from dash import dcc, html
 #upload image and storing the data.
 @app.callback(
     Output('data-json', 'data'),
-    Output('labels', 'data'),
     Output("x-axis-dropdown",'options'),
     Output("y-axis-dropdown",'options'),
     #---------------------
-    Input("dummy",'children')
+    Input("top-container",'children')
 )
 def load(_):
     utils.debug()
 
     data = {'night':[], 'idx':[], 'channel':[]}
-    labels = {}
 
     image_idx = -1
 
@@ -34,11 +32,11 @@ def load(_):
         with open(json_file) as inp:
             night_dict = json.load(inp)
             if len(data['night'])==0:
-                labels['gen'] = [l for l in night_dict[0] if l not in env.CHANNELS]
-                labels['gen'] = labels['gen'] + ['blue-green', 'green-red', 'blue-red']
-                data={**data, **{l:[] for l in labels['gen']}}
-                labels['fit'] = [l for l in night_dict[0]['red']]
-                data={**data, **{l:[] for l in labels['fit']}}
+                env.LABELS['gen'] = [l for l in night_dict[0] if l not in env.CHANNELS]
+                env.LABELS['gen'] = env.LABELS['gen'] + ['blue-green', 'green-red', 'blue-red']
+                data={**data, **{l:[] for l in env.LABELS['gen']}}
+                env.LABELS['fit'] = [l for l in night_dict[0]['red']]
+                data={**data, **{l:[] for l in env.LABELS['fit']}}
             for img in night_dict:
                 image_idx += 1
                 for c in env.CHANNELS:
@@ -48,19 +46,19 @@ def load(_):
                     data['blue-green'].append(img['blue']['mean']/img['green']['mean'])
                     data['green-red'].append(img['green']['mean']/img['red']['mean'])
                     data['blue-red'].append(img['blue']['mean']/img['red']['mean'])
-                    for label in labels['gen']:
+                    for label in env.LABELS['gen']:
                         if label not in img:continue
                         if label == "date":
                             data[label].append(datetime.datetime.fromisoformat(img[label]).astimezone(env.LOCAL_TZ))
                         else:
                             data[label].append(img[label])
-                    for label in labels['fit']:
+                    for label in env.LABELS['fit']:
                         data[label].append(img[c][label])
 
-    labels_dropdown = [{"label": l, "value": l} for l in labels['gen'] if l != 'filename']
-    labels_dropdown = labels_dropdown + [{"label": l, "value": l} for l in labels['fit']]
+    labels_dropdown = [{"label": l, "value": l} for l in env.LABELS['gen'] if l != 'filename']
+    labels_dropdown = labels_dropdown + [{"label": l, "value": l} for l in env.LABELS['fit']]
 
-    return data, labels, labels_dropdown, labels_dropdown
+    return data, labels_dropdown, labels_dropdown
 
 
 @app.callback(
@@ -75,11 +73,10 @@ def load(_):
     #---------------------
     State("main-plot",'figure'),
     State("data-json",'data'),
-    State("labels",'data'),
     State("big-points",'data'),
     prevent_initial_call=True
 )
-def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_switch, fig, all_data, labels, big_point_idx):
+def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_switch, fig, all_data, big_point_idx):
     utils.debug()
 
     if x_label is None or y_label is None:
@@ -116,12 +113,12 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
 
         # Showing/hiding filtered data
         if ctx.triggered_id == 'channels':
-            if x_label in labels['gen'] and y_label in labels['gen']:
+            if x_label in env.LABELS['gen'] and y_label in env.LABELS['gen']:
                 return no_update
             # Showing filtered data
             for to_be_plotted_f in channels:
                 if to_be_plotted_f not in set([img['channel'] for img in fig['data']]):
-                    fig = utils.plot_scatter(x_label, y_label, all_data, labels, [to_be_plotted_f], fig, active_filters, show_filtered_points, fold_switch)
+                    fig = utils.plot_scatter(x_label, y_label, all_data, [to_be_plotted_f], fig, active_filters, show_filtered_points, fold_switch)
                     if big_point_idx is not None:
                         fig = utils.plot_big_points(all_data, big_point_idx, x_label, y_label, fig, fold_switch)
                     return utils.sort_figure(fig)
@@ -147,7 +144,7 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
         }
     }
 
-    if ctx.triggered_id in ['switch']:
+    if ctx.triggered_id in ['active-filters']:
         try:
             fig['layout']['xaxis']['range'] = xaxis_range[:]
             fig['layout']['yaxis']['range'] = yaxis_range[:]
@@ -155,7 +152,7 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
             pass
 
 
-    fig = utils.plot_scatter(x_label, y_label, all_data, labels, channels, fig, active_filters, show_filtered_points, fold_switch)
+    fig = utils.plot_scatter(x_label, y_label, all_data, channels, fig, active_filters, show_filtered_points, fold_switch)
 
     if big_point_idx is not None:
         fig = utils.plot_big_points(all_data, big_point_idx, x_label, y_label, fig, fold_switch)
@@ -176,6 +173,7 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
     State("x-axis-dropdown",'value'),
     State("y-axis-dropdown",'value'),
     State("fold-time-switch",'on'),
+    #---------------------
     prevent_initial_call=True
 )
 def info(clickdata, fig, data, x_label, y_label, fold_switch):

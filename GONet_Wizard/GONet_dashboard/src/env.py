@@ -14,3 +14,5 @@ DEFAULT_FILTER_VALUES = {
     'moon_illumination': 0.2,
     'condition_code': 2,
 }
+
+LABELS = {'gen':[], 'fit':[]}
