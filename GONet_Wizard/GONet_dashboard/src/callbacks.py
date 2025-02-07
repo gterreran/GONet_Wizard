@@ -198,23 +198,23 @@ def info(clickdata, fig, data, fold_switch):
 
     filename = env.ROOT_EXT + night + '/Horizontal/' + filename
 
-    go = GONetFile.from_file(filename)
-    outfig = {'data':[{'z':getattr(go,original_channel), 'type': 'heatmap'}], 'layout':{'showlegend': False}}
-    del go
+    # go = GONetFile.from_file(filename)
+    # outfig = {'data':[{'z':getattr(go,original_channel), 'type': 'heatmap'}], 'layout':{'showlegend': False}}
+    # del go
 
-    # Overplotting extraction region
-    # Center
-    outfig['data'].append({'x': [data['center_x'][real_idx]], 'y': [data['center_y'][real_idx]], 'type': 'scatter', 'mode': 'markers', 'marker': {'color':'rgba(0, 0, 0, 1)', 'symbol': 'circle'}})
+    # # Overplotting extraction region
+    # # Center
+    # outfig['data'].append({'x': [data['center_x'][real_idx]], 'y': [data['center_y'][real_idx]], 'type': 'scatter', 'mode': 'markers', 'marker': {'color':'rgba(0, 0, 0, 1)', 'symbol': 'circle'}})
 
-    #Circle
-    c_x, c_y = [],[]
-    for ang in np.linspace(0,2*np.pi,25):
-        c_x.append(data['center_x'][real_idx]+data['extraction_radius'][real_idx]*np.cos(ang))
-        c_y.append(data['center_y'][real_idx]+data['extraction_radius'][real_idx]*np.sin(ang))
+    # #Circle
+    # c_x, c_y = [],[]
+    # for ang in np.linspace(0,2*np.pi,25):
+    #     c_x.append(data['center_x'][real_idx]+data['extraction_radius'][real_idx]*np.cos(ang))
+    #     c_y.append(data['center_y'][real_idx]+data['extraction_radius'][real_idx]*np.sin(ang))
 
-    outfig['data'].append({'x': c_x, 'y': c_y, 'type': 'scatter', 'mode': 'lines', 'marker': {'color':'rgba(0, 0, 0, 1)', 'symbol': 'circle'}})
+    # outfig['data'].append({'x': c_x, 'y': c_y, 'type': 'scatter', 'mode': 'lines', 'marker': {'color':'rgba(0, 0, 0, 1)', 'symbol': 'circle'}})
 
-    return outfig, fig, table, real_idx
+    return no_update, fig, table, real_idx
 
     
 @app.callback(
