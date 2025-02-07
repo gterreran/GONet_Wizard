@@ -14,7 +14,7 @@ import dash_daq as daq
     Output("x-axis-dropdown",'options'),
     Output("y-axis-dropdown",'options'),
     #---------------------
-    Input("top-container",'children')
+    Input("load-data",'n_clicks')
 )
 def load(_):
     utils.debug()
