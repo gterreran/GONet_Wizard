@@ -30,7 +30,6 @@ setup(
         'python-dateutil',
         'dash==2.18.2',
         'dash_daq',
-        'jupyter-dash',
     ],
     extras_require={
         "dev": ["pytest>=7.0", "twine>=4.0.2"],

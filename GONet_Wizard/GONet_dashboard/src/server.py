@@ -1,5 +1,5 @@
 from flask import Flask
-from jupyter_dash import JupyterDash
+from dash import Dash
 
 server = Flask('GONet_dashboard')
-app = JupyterDash(server=server)
+app = Dash(server=server)
