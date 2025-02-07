@@ -2,6 +2,7 @@ import inspect, datetime
 import numpy as np
 from . import env
 import operator
+from dash import html
 
 op = {
     '<': operator.lt ,
@@ -39,10 +40,15 @@ def sort_figure(fig):
     fig['data'] = new_order[:]
     return fig
 
+def get_labels(fig):
+    return {'x': fig['layout']['xaxis']['title']['text'], 'y': fig['layout']['yaxis']['title']['text']}
 
-def plot_scatter(x_label, y_label, all_data, channels, fig, active_filters, show_filtered_points, fold_switch):
+def plot_scatter(all_data, channels, fig, active_filters, show_filtered_points, fold_switch):
+
+    labels = get_labels(fig)
+
     channel_filter = {}
-    if x_label in env.LABELS['gen'] and y_label in env.LABELS['gen']:
+    if labels['x'] in env.LABELS['gen'] and labels['y'] in env.LABELS['gen']:
         channel_filter['gen'] = np.array(all_data['channel']) == 'red'
     else:
         for c in channels:
@@ -55,16 +61,14 @@ def plot_scatter(x_label, y_label, all_data, channels, fig, active_filters, show
             filters.append(op[f['operator']](np.array(all_data[f['label']]),type(all_data[f['label']][0])(f['value'])))
         else:
             filters.append(np.logical_or(op[f['operator']](np.array(all_data[f['label']]),type(all_data[f['label']][0])(f['value'])), op[f['secondary']['operator']](np.array(all_data[f['secondary']['label']]),type(all_data[f['secondary']['label']][0])(f['secondary']['value']))))
-    # if moon_altitude is not None:
-    #     filters.append(np.logical_or(np.array(all_data["moonaltaz"]) <= float(moon_altitude), np.array(all_data["moon_illumination"]) <= float(moon_illumination)))
 
     total_filter = np.full(len(all_data['channel']), True)
     for f in filters:
         total_filter = np.logical_and(total_filter,f)
 
-    if x_label == 'date' and fold_switch:
+    if labels['x'] == 'date' and fold_switch:
         time = []
-        for t in all_data[x_label]:
+        for t in all_data[labels['x']]:
             if datetime.datetime.fromisoformat(t).time()>env.DAY_START:
                 time.append('2025-01-01T'+t.split('T')[1])
             else:
@@ -72,16 +76,16 @@ def plot_scatter(x_label, y_label, all_data, channels, fig, active_filters, show
         x_data = np.array(time)
         fig['layout']['xaxis']['tickformat'] = "%H:%M"
     else:
-        x_data = np.array(all_data[x_label])
+        x_data = np.array(all_data[labels['x']])
         # if 'tickformat' in fig['layout']['xaxis']:
         #     del fig['layout']['xaxis']['tickformat']
-    y_data = np.array(all_data[y_label])
+    y_data = np.array(all_data[labels['y']])
     real_idx = np.array(all_data['idx'])
 
     for c in channel_filter:
         selected_data_filter = np.logical_and(total_filter, channel_filter[c])
         fig['data'].append({
-            'hovertemplate': x_label+'=%{x}<br>'+y_label+'=%{y}',
+            'hovertemplate': labels['x']+'=%{x}<br>'+labels['y']+'=%{y}',
             'x': x_data[selected_data_filter],
             'y': y_data[selected_data_filter],
             'type': 'scatter',
@@ -100,7 +104,7 @@ def plot_scatter(x_label, y_label, all_data, channels, fig, active_filters, show
         filtered_out_data = np.logical_and(~total_filter, channel_filter[c])
         if len(x_data[filtered_out_data])>0:
             fig['data'].append({
-                'hovertemplate': x_label+'=%{x}<br>'+y_label+'=%{y}',
+                'hovertemplate': labels['x']+'=%{x}<br>'+labels['y']+'=%{y}',
                 'x': x_data[filtered_out_data],
                 'y': y_data[filtered_out_data],
                 'type': 'scatter',
@@ -119,7 +123,9 @@ def plot_scatter(x_label, y_label, all_data, channels, fig, active_filters, show
 
     return fig
 
-def plot_big_points(data, idx_big_point, x_label, y_label, fig, fold_switch):
+def plot_big_points(data, idx_big_point, fig, fold_switch):
+
+    labels = get_labels(fig)
 
     # Big point in main figure
     big_point_figs = []
@@ -143,10 +149,10 @@ def plot_big_points(data, idx_big_point, x_label, y_label, fig, fold_switch):
 
         selected_data_filter = np.logical_and(points, np.array(data['channel']) == channel)
 
-        x_data = np.array(data[x_label])[selected_data_filter]
-        y_data = np.array(data[y_label])[selected_data_filter]
+        x_data = np.array(data[labels['x']])[selected_data_filter]
+        y_data = np.array(data[labels['y']])[selected_data_filter]
 
-        if x_label == 'date' and fold_switch:
+        if labels['x'] == 'date' and fold_switch:
             if datetime.datetime.fromisoformat(x_data[0]).time()>env.DAY_START:
                 x_data = ['2025-01-01T'+x_data[0].split('T')[1]]
             else:
@@ -177,3 +183,38 @@ def plot_big_points(data, idx_big_point, x_label, y_label, fig, fold_switch):
 
     return fig
 
+def get_stats(fig):
+
+    labels = get_labels(fig)
+
+    data_figs = {img['channel']:img for img in fig['data'] if not img['filtered'] and not img['big_point']}
+
+    stats_table = {}
+
+    for axis in ['x','y']:
+        stats_table[axis] = []
+        try:
+            if labels[axis] in env.LABELS['gen']:
+                stats_table[axis].append({'label':labels[axis]})
+                if 'gen' in data_figs:
+                    m = np.mean(data_figs['gen'][axis])
+                    s = np.std(data_figs['gen'][axis])
+                else:
+                    m = np.mean(data_figs[list(data_figs.keys())[0]][axis])
+                    s = np.std(data_figs[list(data_figs.keys())[0]][axis])
+
+                stats_table[axis][-1]['value'] = f"{m:.2f} ± {s:.2f}"
+
+            else:
+                for c in env.CHANNELS:
+                    if c in data_figs:
+                        stats_table[axis].append({
+                            'label': f"{labels[axis]}_{c}",
+                            'value': f"{np.mean(data_figs[c][axis]):.2f} ± {np.std(data_figs[c][axis]):.2f}"
+                        })
+        except np.core._exceptions._UFuncNoLoopError:
+            stats_table[axis]=[]
+
+    formatted_stats_table = [html.Tr([html.Td(el[val],style={'width':'200px','border':'1px solid black'}) for el in stats_table[axis] for val in ['label', 'value']], style={'border':'1px solid black'}) for axis in ['x', 'y']]
+
+    return formatted_stats_table

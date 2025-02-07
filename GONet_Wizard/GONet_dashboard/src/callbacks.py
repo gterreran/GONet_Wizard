@@ -3,12 +3,10 @@ from .server import app
 import os, json, datetime
 from . import env
 from . import utils
-from dash import no_update, ctx
+from dash import no_update, ctx, dcc, html
 import numpy as np
-from dash import html
 from GONet_utils import GONetFile
 import dash_daq as daq
-from dash import dcc, html
 
 #upload image and storing the data.
 @app.callback(
@@ -63,6 +61,7 @@ def load(_):
 
 @app.callback(
     Output("main-plot",'figure', allow_duplicate=True),
+    Output("stats-table", 'children'),
     #---------------------
     Input("x-axis-dropdown",'value'),
     Input("y-axis-dropdown",'value'),
@@ -80,13 +79,13 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
     utils.debug()
 
     if x_label is None or y_label is None:
-        return no_update
+        return no_update, no_update
 
     if fig is not None:
         # Showing/hiding filtered data
         if ctx.triggered_id == 'show-filtered-data-switch':
             if len([img for img in fig['data'] if img['filtered']])==0:
-                return no_update
+                return no_update, no_update
             # Showing
             if show_filtered_points:
                 for i,img in reversed(list(enumerate(fig['data']))):
@@ -109,24 +108,24 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
                             fig['data'][i]['marker']['line']['width']=0
                             
 
-            return utils.sort_figure(fig)
+            return utils.sort_figure(fig), no_update
 
-        # Showing/hiding filtered data
+        # Adding/removing channel data
         if ctx.triggered_id == 'channels':
             if x_label in env.LABELS['gen'] and y_label in env.LABELS['gen']:
-                return no_update
-            # Showing filtered data
+                return no_update, no_update
+            # Adding channel
             for to_be_plotted_f in channels:
                 if to_be_plotted_f not in set([img['channel'] for img in fig['data']]):
-                    fig = utils.plot_scatter(x_label, y_label, all_data, [to_be_plotted_f], fig, active_filters, show_filtered_points, fold_switch)
+                    fig = utils.plot_scatter(all_data, [to_be_plotted_f], fig, active_filters, show_filtered_points, fold_switch)
                     if big_point_idx is not None:
-                        fig = utils.plot_big_points(all_data, big_point_idx, x_label, y_label, fig, fold_switch)
-                    return utils.sort_figure(fig)
-            # Hiding filtered data
+                        fig = utils.plot_big_points(all_data, big_point_idx, fig, fold_switch)
+                    return utils.sort_figure(fig), utils.get_stats(fig)
+            # Removing channel
             for i,img in reversed(list(enumerate(fig['data']))):
                 if img['channel'] not in channels:
                     fig['data'].pop(i)
-                return utils.sort_figure(fig)
+                return utils.sort_figure(fig), utils.get_stats(fig)
         
         # If I get here, it means that a figure exists, but I'm probably activating or deactivating a filter
         # So let's keep the axis ranges
@@ -151,13 +150,12 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
         except:
             pass
 
-
-    fig = utils.plot_scatter(x_label, y_label, all_data, channels, fig, active_filters, show_filtered_points, fold_switch)
+    fig = utils.plot_scatter(all_data, channels, fig, active_filters, show_filtered_points, fold_switch)
 
     if big_point_idx is not None:
-        fig = utils.plot_big_points(all_data, big_point_idx, x_label, y_label, fig, fold_switch)
+        fig = utils.plot_big_points(all_data, big_point_idx, fig, fold_switch)
 
-    return fig
+    return fig, utils.get_stats(fig)
         
 
 @app.callback(
@@ -170,13 +168,11 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
     #---------------------
     State("main-plot",'figure'),
     State("data-json",'data'),
-    State("x-axis-dropdown",'value'),
-    State("y-axis-dropdown",'value'),
     State("fold-time-switch",'on'),
     #---------------------
     prevent_initial_call=True
 )
-def info(clickdata, fig, data, x_label, y_label, fold_switch):
+def info(clickdata, fig, data, fold_switch):
     utils.debug()
     plot_index = clickdata['points'][0]['curveNumber']
     idx = fig['data'][plot_index]['idx'][clickdata['points'][0]['pointIndex']]
@@ -187,7 +183,7 @@ def info(clickdata, fig, data, x_label, y_label, fold_switch):
     real_idx = np.argmax([np.logical_and(points, np.array(data['channel']) == original_channel)])
     
     # Plotting big point
-    fig = utils.plot_big_points(data, real_idx, x_label, y_label, fig, fold_switch)
+    fig = utils.plot_big_points(data, real_idx, fig, fold_switch)
 
     # Info table
     table = [html.Tr([html.Td(el),html.Td(data[el][real_idx])]) for el in data]
@@ -353,3 +349,49 @@ def update_filters(switches, ops, values, second_ops, second_values, labels, sec
         return active_filters
     else:
         return no_update
+
+@app.callback(
+    Output("download-json", 'data'),
+    #---------------------
+    Input("export-data", 'n_clicks'),
+    #---------------------
+    State("main-plot",'figure'),
+    State("data-json",'data'),
+    # State("channels",'value'),
+    #---------------------
+    prevent_initial_call=True
+)
+def export_data(_, fig, data):#, channels):
+    utils.debug()
+
+    json_out = []
+
+    # The indexes will be the same for all the channels
+    # So I take the indexes from only one of them
+    idx_list = [img['idx'] for img in fig['data'] if not img['filtered'] and not img['big_point']][0]
+
+    # Converting the list into a numpy array only once here so that I can
+    # use np.where later multiple times
+    data_idx = np.array(data['idx'])
+    data_channel = np.array(data['channel'])
+
+    for i in idx_list:
+        out_dict = {}
+        # `data` will have 3 entries with the same idx (one per channel)
+        # so `matching_idx` will be a list of 3 elements.
+        # Taking just the first to fetch the labels unrelated to the channel
+        matching_idx = np.argwhere(data_idx == i)[0][0]
+
+        for label in ['filename','night'] + env.LABELS['gen']:
+            if label == 'idx': continue
+            out_dict[label] = data[label][matching_idx]
+        
+        for c in env.CHANNELS:
+            out_dict[c]={}
+            matching_idx_and_channel = np.argwhere((data_idx == i) & (data_channel==c))[0][0]
+            for label in env.LABELS['fit']:
+                out_dict[c][label] = data[label][matching_idx_and_channel]
+
+        json_out.append(out_dict)
+
+    return dict(content=json.dumps(json_out, indent=4), filename="filtered_data.json")

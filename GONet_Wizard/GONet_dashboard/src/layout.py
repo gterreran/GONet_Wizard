@@ -14,7 +14,7 @@ layout = dcc.Loading(
         dcc.Store(id='active-filters', data=[]),
         html.Div(id='top-container',children=[
             html.Div(
-                dcc.Graph(id="main-plot"),#, figure= px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])),
+                dcc.Graph(id="main-plot"),
                 style={'width': '80%','display': 'inline-block'}
             ),
             html.Div([
@@ -30,6 +30,11 @@ layout = dcc.Loading(
             ],
             style={'width': '20%','display': 'inline-block'}
             )
+        ]),
+        html.Div(id='stats-container', children=[
+            html.Table(id="stats-table", style={'border':'1px solid black'}),
+            html.Button('Export current data', id='export-data', n_clicks=0),
+            dcc.Download(id="download-json")
         ]),
         html.Div(id='big-filter-container', children=[
             html.Div(id = "folder-container", children=[
