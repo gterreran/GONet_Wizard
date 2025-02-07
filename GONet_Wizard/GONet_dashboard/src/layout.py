@@ -4,7 +4,6 @@ from . import env
 
 
 layout = html.Div([
-    html.Button('Load data', id='load-data', n_clicks=0),
     dcc.Store(id='data-json'),
     dcc.Store(id='big-points'),
     dcc.Store(id='active-filters', data=[]),

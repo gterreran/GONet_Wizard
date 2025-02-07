@@ -14,7 +14,7 @@ import dash_daq as daq
     Output("x-axis-dropdown",'options'),
     Output("y-axis-dropdown",'options'),
     #---------------------
-    Input("load-data",'n_clicks')
+    Input("top-container",'children')
 )
 def load(_):
     utils.debug()
@@ -25,7 +25,7 @@ def load(_):
 
     for n,night in enumerate(sorted(os.listdir(env.ROOT))):
         if not os.path.isdir(env.ROOT+night): continue
-        json_file = env.ROOT+night+f'/{night}_nn.json'
+        json_file = env.ROOT+night+f'/{night}.json'
         if not os.path.isfile(json_file): continue
         with open(json_file) as inp:
             night_dict = json.load(inp)
@@ -94,6 +94,7 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
                         fig['data'][i]['hoverinfo'] = "x+y+text+channel"
                         fig['data'][i]['hovertemplate'] = x_label+'=%{x}<br>'+y_label+'=%{y}'
                         fig['data'][i]['hidden'] = False
+                        fig['data'][i]['showlegend'] = True
                         if 'line' in fig['data'][i]['marker']:
                             fig['data'][i]['marker']['line']['width']=2
             # Hiding
@@ -104,6 +105,7 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
                         fig['data'][i]['hoverinfo'] = "none"
                         fig['data'][i]['hovertemplate'] = None
                         fig['data'][i]['hidden'] = True
+                        fig['data'][i]['showlegend'] = False
                         if 'line' in fig['data'][i]['marker']:
                             fig['data'][i]['marker']['line']['width']=0
                             
