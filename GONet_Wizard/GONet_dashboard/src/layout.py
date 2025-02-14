@@ -9,9 +9,11 @@ layout = dcc.Loading(
     type="circle", 
     overlay_style={"visibility":"visible", "filter": "blur(2px)"},
     children=html.Div([
+        html.Div(id='dummy-div'),
         dcc.Store(id='data-json'),
         dcc.Store(id='big-points'),
         dcc.Store(id='active-filters', data=[]),
+        dcc.Store(id='status-data'),
         html.Div(id='top-container',children=[
             html.Div(
                 dcc.Graph(id="main-plot"),
@@ -35,6 +37,13 @@ layout = dcc.Loading(
             html.Table(id="stats-table", style={'border':'1px solid black'}),
             html.Button('Export current data', id='export-data', n_clicks=0),
             dcc.Download(id="download-json")
+        ]),
+        html.Div(id='save-load-status-container', children=[
+            html.Button('Save status', id='save-status', n_clicks=0),
+            # dcc.Download(id="download-status"),
+            #html.Button('Load status', id='load-status', n_clicks=0),
+            dcc.Upload(id="upload-status",children=html.Button('Load status', n_clicks=0))
+            #dcc.Upload(id="upload-status")
         ]),
         html.Div(id='big-filter-container', children=[
             html.Div(id = "folder-container", children=[

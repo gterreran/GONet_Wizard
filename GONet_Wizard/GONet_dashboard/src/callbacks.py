@@ -1,12 +1,11 @@
 from dash.dependencies import Input, Output, State, ALL, MATCH
 from .server import app
-import os, json, datetime
+import os, json, datetime, base64
 from . import env
 from . import utils
-from dash import no_update, ctx, dcc, html
+from dash import no_update, ctx, html, clientside_callback
 import numpy as np
 from GONet_utils import GONetFile
-import dash_daq as daq
 
 #upload image and storing the data.
 @app.callback(
@@ -25,7 +24,7 @@ def load(_):
 
     for n,night in enumerate(sorted(os.listdir(env.ROOT))):
         if not os.path.isdir(env.ROOT+night): continue
-        json_file = env.ROOT+night+f'/{night}_nn.json'
+        json_file = env.ROOT+night+f'/{night}.json'
         if not os.path.isfile(json_file): continue
         with open(json_file) as inp:
             night_dict = json.load(inp)
@@ -73,6 +72,7 @@ def load(_):
     State("main-plot",'figure'),
     State("data-json",'data'),
     State("big-points",'data'),
+    #---------------------
     prevent_initial_call=True
 )
 def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_switch, fig, all_data, big_point_idx):
@@ -94,6 +94,7 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
                         fig['data'][i]['hoverinfo'] = "x+y+text+channel"
                         fig['data'][i]['hovertemplate'] = x_label+'=%{x}<br>'+y_label+'=%{y}'
                         fig['data'][i]['hidden'] = False
+                        fig['data'][i]['showlegend'] = True
                         if 'line' in fig['data'][i]['marker']:
                             fig['data'][i]['marker']['line']['width']=2
             # Hiding
@@ -104,6 +105,7 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
                         fig['data'][i]['hoverinfo'] = "none"
                         fig['data'][i]['hovertemplate'] = None
                         fig['data'][i]['hidden'] = True
+                        fig['data'][i]['showlegend'] = False
                         if 'line' in fig['data'][i]['marker']:
                             fig['data'][i]['marker']['line']['width']=0
                             
@@ -215,7 +217,7 @@ def info(clickdata, fig, data, fold_switch):
     
 @app.callback(
     Output("fold-time-switch",'disabled'),
-    Output("fold-time-switch",'on'),
+    Output("fold-time-switch",'on', allow_duplicate=True),
     #---------------------
     Input("x-axis-dropdown",'value'),
     #---------------------
@@ -231,7 +233,7 @@ def activate_fold_switch(x_label):
     
 
 @app.callback(
-    Output("custom-filter-container",'children'),
+    Output("custom-filter-container",'children', allow_duplicate=True),
     #---------------------
     Input("add-filter",'n_clicks'),
     #---------------------
@@ -242,22 +244,11 @@ def activate_fold_switch(x_label):
 )
 def add_filter(_, filter_div, labels):
     utils.debug()
-
+    
     n_filter = len(filter_div)
+    new_empty_filter = utils.new_empty_filter(n_filter, labels)
+    filter_div.append(new_empty_filter)
 
-    new_filter = html.Div(id = {"type":'filter-container', "index":n_filter}, children=[
-                html.Div(id = {"type":'first-filter-container', "index":n_filter}, children=[
-                    daq.BooleanSwitch(id={"type":'filter-switch', "index":n_filter}, on=False, style={'display': 'inline-block'}),
-                    dcc.Dropdown(id={"type":'filter-dropdown', "index":n_filter}, options=labels, style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px', 'width':'200px'}),
-                    dcc.Dropdown(id={"type":'filter-operator', "index":n_filter}, options=['<','<=','=','!=','=>','>'], value = '<=', style={'display': 'inline-block', 'margin-left':'5px', 'margin-right':'5px', 'width':'40px'}),
-                    dcc.Input(id={"type":'filter-value', "index":n_filter}, type="text", debounce=True, style={'display': 'inline-block'})
-                ], style={'display': 'inline-block'}),
-                html.Div(id = {"type":'second-filter-container', "index":n_filter}, children=[
-                    html.Button('Add OR filter', id = {"type":'add-or-filter', "index":n_filter}, n_clicks=0),
-                ], style={'display': 'inline-block', 'margin-left':'15px'})
-            ])
-
-    filter_div.append(new_filter)
     return filter_div
 
 @app.callback(
@@ -274,13 +265,7 @@ def add_or_filter(_, id, labels):
     utils.debug()
     
     idx = id['index']
-
-    new_filter = [
-        html.Div('OR',style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px',}),
-        dcc.Dropdown(id={"type":'second-filter-dropdown', "index":idx}, options=labels, style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px', 'width':'200px'}),
-        dcc.Dropdown(id={"type":'second-filter-operator', "index":idx}, options=['<','<=','=','!=','=>','>'], value = '<=', style={'display': 'inline-block', 'margin-left':'5px', 'margin-right':'5px', 'width':'40px'}),
-        dcc.Input(id={"type":'second-filter-value', "index":idx}, type="text", debounce=True, value=0, style={'display': 'inline-block'})
-    ]
+    new_filter = utils.new_empty_second_filter(idx, labels)
 
     return new_filter
 
@@ -292,7 +277,7 @@ def add_or_filter(_, id, labels):
     #---------------------
     prevent_initial_call=True
 )
-def update_main_filters_label(label):
+def update_main_filters_value(label):
     utils.debug()
     
     if label in env.DEFAULT_FILTER_VALUES:
@@ -307,7 +292,7 @@ def update_main_filters_label(label):
     #---------------------
     prevent_initial_call=True
 )
-def update_secondary_filters_label(label):
+def update_secondary_filters_value(label):
     utils.debug()
     
     if label in env.DEFAULT_FILTER_VALUES:
@@ -357,7 +342,6 @@ def update_filters(switches, ops, values, second_ops, second_values, labels, sec
     #---------------------
     State("main-plot",'figure'),
     State("data-json",'data'),
-    # State("channels",'value'),
     #---------------------
     prevent_initial_call=True
 )
@@ -395,3 +379,174 @@ def export_data(_, fig, data):#, channels):
         json_out.append(out_dict)
 
     return dict(content=json.dumps(json_out, indent=4), filename="filtered_data.json")
+
+# Considering the dictionary describing the status is pretty small, we can use 
+# Data URLs, despite it is probably not the best way of downloading data.
+# Below you can find the javascript for using the File System Access API,
+# which handles the download better, but it doesn't use the browser download UI
+# so it's a little bit less nice. I think in the future we will let django handle
+# the download
+
+clientside_callback(
+    """
+    async function(data) {
+        if (data) {
+            try {
+                const jsonString = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+
+                const filename = prompt("Please enter the filename:", "status.json"); // Get filename
+
+                if (filename === null || filename.trim() === "") {
+                    return window.dash_clientside.no_update;
+                }
+
+                const url = window.URL.createObjectURL(blob); // Create URL for blob
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename; // Set filename
+                document.body.appendChild(a);
+                a.click(); // Trigger download
+                document.body.removeChild(a); // Clean up
+                window.URL.revokeObjectURL(url); // Release blob URL
+
+                return "";
+            } catch (err) {
+                console.error("Download error:", err);
+                alert("Download failed. Please try again. Check the console for more details.");
+                return window.dash_clientside.no_update;
+            }
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("dummy-div", 'children'),
+    #---------------------
+    Input("status-data", 'data'),
+    #---------------------
+    prevent_initial_call=True,
+)
+
+# """
+#     async function(data) {
+#         if (data) {
+#             try {
+#                 const jsonString = JSON.stringify(data, null, 2);
+#                 const blob = new Blob([jsonString], { type: 'application/json' });
+
+#                 // Let showSaveFilePicker handle the prompt:
+#                 const handle = await window.showSaveFilePicker({ suggestedName: "data.json" }); // Suggested filename
+#                 const writable = await handle.createWritable();
+#                 await writable.write(blob);
+#                 await writable.close();
+
+#                 // Explicitly set handle to null to release access:
+#                 handle = null; // Important: Release the handle!
+
+#                 return "downloaded";
+#             } catch (err) {
+#                 console.error("Download error:", err);
+#                 alert("Download failed. Please try again. Check the console for more details.");
+#                 return window.dash_clientside.no_update;
+#             }
+#         }
+#         return window.dash_clientside.no_update;
+#     }
+# """
+
+
+@app.callback(
+    Output("status-data", 'data'),
+    #---------------------
+    Input("save-status", 'n_clicks'),
+    #---------------------
+    State("x-axis-dropdown",'id'),
+    State("x-axis-dropdown",'value'),
+    State("y-axis-dropdown",'id'),
+    State("y-axis-dropdown",'value'),
+    State({"type": "filter-switch", "index": ALL}, 'id'),
+    State({"type": "filter-switch", "index": ALL}, 'on'),
+    State({"type": "filter-dropdown", "index": ALL}, 'id'),
+    State({"type": "filter-dropdown", "index": ALL}, 'value'),
+    State({"type": "filter-operator", "index": ALL}, 'id'),
+    State({"type": "filter-operator", "index": ALL}, 'value'),
+    State({"type": "filter-value", "index": ALL}, 'id'),
+    State({"type": "filter-value", "index": ALL}, 'value'),
+    State({"type": "second-filter-dropdown", "index": ALL}, 'id'),
+    State({"type": "second-filter-dropdown", "index": ALL}, 'value'),
+    State({"type": "second-filter-operator", "index": ALL}, 'id'),
+    State({"type": "second-filter-operator", "index": ALL}, 'value'),
+    State({"type": "second-filter-value", "index": ALL}, 'id'),
+    State({"type": "second-filter-value", "index": ALL}, 'value'),
+    State("channels",'id'),
+    State("channels",'value'),
+    State("show-filtered-data-switch", 'id'),
+    State("show-filtered-data-switch", 'on'),
+    State("fold-time-switch",'id'),
+    State("fold-time-switch",'on'),
+    #---------------------
+    prevent_initial_call=True
+)
+def save_status(_,*args):
+    utils.debug()
+
+    out_dict = {'filters':[]}
+    for i,el in enumerate(args):
+        if i%2==1: continue
+        if type(args[i]) == list:
+            for f,flt in enumerate(args[i]):
+                while True:
+                    if flt['index'] < len(out_dict['filters']):
+                        break
+                    else:
+                        out_dict['filters'].append({'secondary':{}})
+                if flt['type'].split('-')[0] == 'second':
+                    out_dict['filters'][flt['index']]['secondary'][flt['type']] = args[i+1][f]
+                else:
+                    out_dict['filters'][flt['index']][flt['type']] = args[i+1][f]
+        else:
+            out_dict[args[i]] = args[i+1]
+    return out_dict
+
+@app.callback(
+    Output("x-axis-dropdown",'value'),
+    Output("y-axis-dropdown",'value'),
+    Output("channels",'value'),
+    Output("show-filtered-data-switch", 'on'),
+    Output("fold-time-switch",'on'),
+    Output("custom-filter-container",'children'),
+    #---------------------
+    Input("upload-status", 'contents'),
+    #---------------------
+    State("custom-filter-container",'children'),
+    State("x-axis-dropdown",'options'),
+    #---------------------
+    prevent_initial_call=True
+)
+def load_status(contents, filter_div, labels):
+    utils.debug()
+    decoded_string = base64.b64decode(contents.split(',')[1]).decode('utf-8')
+    base64.b64decode(decoded_string)
+    status_dict = json.loads(decoded_string)
+
+    n_filter = len(filter_div)
+    for f,flt in enumerate(status_dict['filters']):
+        new_empty_filter = utils.new_empty_filter(n_filter+f, labels)
+
+        filter_div.append(new_empty_filter)
+        filter_div[-1].children[0].children[0].on = flt['filter-switch']
+        filter_div[-1].children[0].children[1].value = flt['filter-dropdown']
+        filter_div[-1].children[0].children[2].value = flt['filter-operator']
+        filter_div[-1].children[0].children[3].value = flt['filter-value']
+
+        if len(flt['secondary']) > 0:
+            filter_div[-1].children[1].children = utils.new_empty_second_filter(n_filter+f, labels)
+
+            filter_div[-1].children[1].children[1].value = flt['secondary']['second-filter-dropdown']
+            filter_div[-1].children[1].children[2].value = flt['secondary']['second-filter-operator']
+            filter_div[-1].children[1].children[3].value = flt['secondary']['second-filter-value']
+
+
+    
+    return status_dict["x-axis-dropdown"], status_dict["y-axis-dropdown"], status_dict["channels"], status_dict["show-filtered-data-switch"], status_dict["fold-time-switch"], filter_div
