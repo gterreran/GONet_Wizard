@@ -54,6 +54,7 @@ layout = dcc.Loading(
                 daq.BooleanSwitch(id='show-filtered-data-switch', on=True, style={'display': 'inline-block'}),
                 html.Div("Show filtered data", id='show-filtered-data-label', style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px',}),
             ]),
+            html.Button('Filter selection', id='selection-filter', disabled=True, n_clicks=0),
             html.Button('Add filter', id='add-filter', n_clicks=0),
             html.Div(id='custom-filter-container', children=[])
         ]),

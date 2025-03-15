@@ -46,27 +46,59 @@ def get_labels(fig):
 
 def plot_scatter(all_data, channels, fig, active_filters, show_filtered_points, fold_switch):
 
+    # Retrieving the quantities I am currently plotting
     labels = get_labels(fig)
 
+    # For every GONet image, all_data contains a 3 rows, one for every channel
+    # Here I identify what channels I am plotting, and I create a mask isolating
+    # the elements in all_data corresponding to those channels.
     channel_filter = {}
     if labels['x'] in env.LABELS['gen'] and labels['y'] in env.LABELS['gen']:
+        # If the labels are not channel-specific, the row of any channel can be used
         channel_filter['gen'] = np.array(all_data['channel']) == 'red'
     else:
         for c in channels:
             channel_filter[c] = np.array(all_data['channel']) == c
     
+    # The filters array will have a list of masks, one for every active filter
+    # Each mask will have len equal to the full all_data database, i.e. the
+    # len of any of each column, for instance all_data['channel'].
     filters = []
-
     for f in active_filters:
-        if 'secondary' not in f:
-            filters.append(op[f['operator']](np.array(all_data[f['label']]),type(all_data[f['label']][0])(f['value'])))
+        # I will take care of selection filters later
+        if f['label'].split()[0]=='Selection':
+            primary_filter = np.isin(all_data['idx'],f['value'])
+            primary_filter = np.logical_and(primary_filter, channel_filter[c])
+            if f['operator'] == 'out':
+                primary_filter = ~primary_filter
+            filters.append(primary_filter)
+    
         else:
-            filters.append(np.logical_or(op[f['operator']](np.array(all_data[f['label']]),type(all_data[f['label']][0])(f['value'])), op[f['secondary']['operator']](np.array(all_data[f['secondary']['label']]),type(all_data[f['secondary']['label']][0])(f['secondary']['value']))))
+            primary_filter = op[f['operator']](np.array(all_data[f['label']]),type(all_data[f['label']][0])(f['value']))
 
+            if 'secondary' in f:
+                secondary_filter = op[f['secondary']['operator']](np.array(all_data[f['secondary']['label']]),type(all_data[f['secondary']['label']][0])(f['secondary']['value']))
+            else:
+                # If there is no secondary filter, I just create an array with all True values
+                secondary_filter = np.full(len(all_data['channel']), False)
+            filters.append(np.logical_or(primary_filter, secondary_filter))
+
+        # if f['label'].split()[0]=='Selection':
+    #             np.full(len(all_data['channel']), True)  # Initialize with all False
+    #             mask[fig['data'][0]['idx'][f['value']]] = True
+    #             filters.append(mask)
+    #         else:
+
+    # I recursively apply all the masks in filters, starting from an array with all True values
     total_filter = np.full(len(all_data['channel']), True)
     for f in filters:
         total_filter = np.logical_and(total_filter,f)
 
+    # copying the columns we are interested in, plus the index column
+    # to 3 more generic x_data, y_data, real_idx arrays, and making 
+    # them numpy arrays. Also taking care of any folding needed
+    # if we want to visualize the night evolution rather than
+    # the whole time evolution.
     if labels['x'] == 'date' and fold_switch:
         time = []
         for t in all_data[labels['x']]:
@@ -78,12 +110,19 @@ def plot_scatter(all_data, channels, fig, active_filters, show_filtered_points, 
         fig['layout']['xaxis']['tickformat'] = "%H:%M"
     else:
         x_data = np.array(all_data[labels['x']])
-        # if 'tickformat' in fig['layout']['xaxis']:
-        #     del fig['layout']['xaxis']['tickformat']
     y_data = np.array(all_data[labels['y']])
     real_idx = np.array(all_data['idx'])
 
+
     for c in channel_filter:
+        marker = {
+                'color': env.COLORS[c](1),
+                'symbol': 'circle'
+            }
+        filtered_out_marker = {
+                        'color': env.COLORS[c](0.2) if show_filtered_points else env.COLORS[c](0),
+                        'symbol': 'circle'
+                    }
         selected_data_filter = np.logical_and(total_filter, channel_filter[c])
         fig['data'].append({
             'hovertemplate': labels['x']+'=%{x}<br>'+labels['y']+'=%{y}',
@@ -91,10 +130,8 @@ def plot_scatter(all_data, channels, fig, active_filters, show_filtered_points, 
             'y': y_data[selected_data_filter],
             'type': 'scatter',
             'mode': 'markers',
-            'marker': {
-                'color': env.COLORS[c](1),
-                'symbol': 'circle'
-            },
+            'marker': marker,
+            'unselected': {'marker': marker},
             'channel': c,
             'showlegend': True,
             'idx': real_idx[selected_data_filter],
@@ -110,10 +147,8 @@ def plot_scatter(all_data, channels, fig, active_filters, show_filtered_points, 
                 'y': y_data[filtered_out_data],
                 'type': 'scatter',
                 'mode': 'markers',
-                'marker': {
-                    'color': env.COLORS[c](0.2) if show_filtered_points else env.COLORS[c](0),
-                    'symbol': 'circle'
-                }, 
+                'marker': filtered_out_marker,
+                'unselected': {'marker': filtered_out_marker},
                 'channel': c,
                 'showlegend': True,
                 'idx': real_idx[filtered_out_data],
@@ -159,12 +194,7 @@ def plot_big_points(data, idx_big_point, fig, fold_switch):
             else:
                 x_data = ['2025-01-02T'+x_data[0].split('T')[1]]
 
-        big_point_figs.append({
-            'x': x_data,
-            'y': y_data,
-            'type': 'scatter',
-            'mode': 'markers',
-            'marker': {
+        marker_big_point = {
                 'color': img['marker']['color'],
                 'symbol': 'circle',
                 'size': 15,
@@ -172,7 +202,15 @@ def plot_big_points(data, idx_big_point, fig, fold_switch):
                     'width':0 if img['hidden'] else 2,
                     'color':'DarkSlateGrey'
                 }
-            },
+            }
+
+        big_point_figs.append({
+            'x': x_data,
+            'y': y_data,
+            'type': 'scatter',
+            'mode': 'markers',
+            'marker': marker_big_point,
+            'unselected': {'marker': marker_big_point},
             'channel': img['channel'],
             'showlegend': False,
             'filtered': img['filtered'],
@@ -244,5 +282,18 @@ def new_empty_second_filter(idx, labels):
         dcc.Dropdown(id={"type":'second-filter-operator', "index":idx}, options=['<','<=','=','!=','=>','>'], value = '<=', style={'display': 'inline-block', 'margin-left':'5px', 'margin-right':'5px', 'width':'40px'}),
         dcc.Input(id={"type":'second-filter-value', "index":idx}, type="text", debounce=True, value=0, style={'display': 'inline-block'})
     ]
+
+    return new_filter
+
+def new_selection_filter(idx, selected_indexes):
+
+    new_filter = html.Div(id = {"type":'filter-container', "index":idx}, children=[
+                html.Div(id = {"type":'first-filter-container', "index":idx}, children=[
+                    daq.BooleanSwitch(id={"type":'filter-switch', "index":idx}, on=False, style={'display': 'inline-block'}),
+                    dcc.Dropdown(id={"type":'filter-dropdown', "index":idx}, options=[f'Selection {idx}'], value=f'Selection {idx}',style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px', 'width':'200px'}),
+                    dcc.Store(id={"type":'filter-selection-data', "index": idx}, data = selected_indexes),
+                    dcc.Dropdown(id={"type":'filter-operator', "index":idx}, options=['in', 'out'], value = 'in', style={'display': 'inline-block', 'margin-left':'5px', 'margin-right':'5px', 'width':'40px'}),
+                ])
+            ])
 
     return new_filter

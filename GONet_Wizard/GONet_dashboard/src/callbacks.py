@@ -136,12 +136,13 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
             xaxis_range = fig['layout']['xaxis']['range']
             yaxis_range = fig['layout']['yaxis']['range']
         
-
+    
     fig = {
         'data': [],
         'layout': {
             'xaxis': {'title': {'text': x_label}},
-            'yaxis': {'title': {'text': y_label}}
+            'yaxis': {'title': {'text': y_label}},
+            'dragmode': 'lasso'
         }
     }
 
@@ -204,7 +205,7 @@ def info(clickdata, fig, data, fold_switch):
     # Center
     outfig['data'].append({'x': [data['center_x'][real_idx]], 'y': [data['center_y'][real_idx]], 'type': 'scatter', 'mode': 'markers', 'marker': {'color':'rgba(0, 0, 0, 1)', 'symbol': 'circle'}})
 
-    #Circle
+    # Circle
     c_x, c_y = [],[]
     for ang in np.linspace(0,2*np.pi,25):
         c_x.append(data['center_x'][real_idx]+data['extraction_radius'][real_idx]*np.cos(ang))
@@ -307,24 +308,33 @@ def update_secondary_filters_value(label):
     Input({"type": "filter-switch", "index": ALL}, 'on'),
     Input({"type": "filter-operator", "index": ALL}, 'value'),
     Input({"type": "filter-value", "index": ALL}, 'value'),
+    Input({"type": "filter-selection-data", "index": ALL}, 'data'),
     Input({"type": "second-filter-operator", "index": ALL}, 'value'),
     Input({"type": "second-filter-value", "index": ALL}, 'value'),
     #---------------------
     State({"type": "filter-dropdown", "index": ALL}, 'value'),
     State({"type": "second-filter-dropdown", "index": ALL}, 'value'),
     State({"type": "second-filter-value", "index": ALL}, 'id'),
+    State({"type": "filter-selection-data", "index": ALL}, 'id'),
     State("active-filters",'data'),
     #---------------------
     prevent_initial_call=True
 )
-def update_filters(switches, ops, values, second_ops, second_values, labels, second_labels, second_ids, filters_before):
+def update_filters(switches, ops, values, selections, second_ops, second_values, labels, second_labels, second_ids, selections_ids, filters_before):
     utils.debug()
 
     active_filters=[]
-
     for i,s in enumerate(switches):
-        if s and labels[i] is not None and values[i] is not None:
-            active_filters.append({'label': labels[i], 'operator': ops[i], 'value': values[i]})
+        value = None
+        for k, id in enumerate(selections_ids):
+            if i == id['index']:
+                value = selections[k]
+                values.insert(i, None)
+                break
+        if not value:
+            value = values[i]
+        if s and labels[i] is not None and value is not None:
+            active_filters.append({'label': labels[i], 'operator': ops[i], 'value': value})
             for j,id in enumerate(second_ids):
                 if id['index'] == i and second_labels[j] is not None and second_values[j] is not None:
                     active_filters[-1]['secondary'] = {'label': second_labels[j], 'operator': second_ops[j], 'value': second_values[j]}
@@ -547,6 +557,54 @@ def load_status(contents, filter_div, labels):
             filter_div[-1].children[1].children[2].value = flt['secondary']['second-filter-operator']
             filter_div[-1].children[1].children[3].value = flt['secondary']['second-filter-value']
 
-
-    
     return status_dict["x-axis-dropdown"], status_dict["y-axis-dropdown"], status_dict["channels"], status_dict["show-filtered-data-switch"], status_dict["fold-time-switch"], filter_div
+
+
+@app.callback(
+    Output('selection-filter', 'disabled'),
+    Input('main-plot', 'relayoutData'),
+    State('main-plot', 'figure'),
+    State("data-json",'data'),
+    #---------------------
+    prevent_initial_call=True
+)
+def update_filter_selection_state(relayout_data, fig, all_data):
+    utils.debug()
+    if relayout_data and 'selections' in relayout_data:
+        selection = relayout_data['selections']
+        if isinstance(selection, list) and len(selection) > 0 and isinstance(selection[0], dict) and 'path' in selection[0]:
+            return False
+    return True
+
+
+@app.callback(
+    Output("custom-filter-container",'children', allow_duplicate=True),
+    Output('main-plot', 'relayoutData'),
+    Output('main-plot', 'figure', allow_duplicate=True),
+    #---------------------
+    Input("selection-filter",'n_clicks'),
+    #---------------------
+    State("custom-filter-container",'children'),
+    State('main-plot', 'relayoutData'),
+    State('main-plot', 'figure'),
+    #---------------------
+    prevent_initial_call=True
+)
+def add_selection_filter(_, filter_div, relayout_data, figure):
+    utils.debug()
+
+    if not relayout_data or 'selections' not in relayout_data:
+        return no_update, no_update, no_update
+
+    selection = relayout_data['selections']
+    if not isinstance(selection, list) or len(selection) == 0 or not isinstance(selection[0], dict) or 'path' not in selection[0]:
+        return no_update, no_update, no_update
+
+
+    del figure['layout']['selections']
+
+    n_filter = len(filter_div)
+    new_empty_filter = utils.new_selection_filter(n_filter, figure['data'][0]['selectedpoints'])
+    filter_div.append(new_empty_filter)
+
+    return filter_div, {}, figure
