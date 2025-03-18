@@ -1,11 +1,11 @@
 from dash.dependencies import Input, Output, State, ALL, MATCH
-from GONet_dashboard.src.server import app
+from GONet_Wizard.GONet_dashboard.src.server import app
 import os, json, datetime, base64
-from GONet_dashboard.src import env
-from GONet_dashboard.src import utils
+from GONet_Wizard.GONet_dashboard.src import env
+from GONet_Wizard.GONet_dashboard.src import utils
 from dash import no_update, ctx, html, clientside_callback
 import numpy as np
-from GONet_utils import GONetFile
+from GONet_Wizard.GONet_utils import GONetFile
 
 #upload image and storing the data.
 @app.callback(
