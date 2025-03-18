@@ -3,4 +3,4 @@ from GONet_Wizard.GONet_dashboard.src.layout import layout
 
 app.layout = layout
 
-from GONet_dashboard.src import callbacks
+from GONet_Wizard.GONet_dashboard.src import callbacks
