@@ -37,7 +37,7 @@ def load(_):
             for img in night_dict:
                 image_idx += 1
                 for c in env.CHANNELS:
-                    data['night'].append(night)
+                    data['night'].append(img['night'])
                     data['idx'].append(image_idx)
                     data['channel'].append(c)
                     data['blue-green'].append(img['blue']['mean']/img['green']['mean'])
@@ -376,7 +376,7 @@ def export_data(_, fig, data):#, channels):
         # Taking just the first to fetch the labels unrelated to the channel
         matching_idx = np.argwhere(data_idx == i)[0][0]
 
-        for label in ['filename','night'] + env.LABELS['gen']:
+        for label in ['filename'] + env.LABELS['gen']:
             if label == 'idx': continue
             out_dict[label] = data[label][matching_idx]
         

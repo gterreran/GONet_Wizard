@@ -1,16 +1,24 @@
-from __future__ import annotations
 from tifffile import tifffile
 import os, PIL, operator
 from PIL import Image
 from PIL.ExifTags import TAGS
 import numpy as np
 from enum import Enum, auto
+from dataclasses import dataclass
+import matplotlib
 
 def cast(v):
     '''
-    This is necessary in order the get rid of weird Tiff formats
-    which are not json serializable.
-    
+    Casts various types to JSON serializable types.
+
+    This is necessary in order to get rid of weird Tiff formats
+    which are not JSON serializable.
+
+    Parameters:
+    v (various types): The value to be cast.
+
+    Returns:
+    various types: The cast value.
     '''
     if isinstance(v, PIL.TiffImagePlugin.IFDRational):
         return v._numerator / v.denominator
@@ -25,14 +33,26 @@ def cast(v):
     else: return v
 
 class FileType(Enum):
-    """GONet file types."""
-
+    """Enumeration for GONet file types."""
+    
     SCIENCE = auto()
     FLAT = auto()
     BIAS = auto()
     DARK = auto()
 
 class GONetFile:
+    """
+    A class to represent a GONet file.
+
+    Attributes:
+    RAW_FILE_OFFSET (int): The offset for the raw file.
+    RAW_HEADER_SIZE (int): The size of the raw header.
+    RAW_DATA_OFFSET (int): The offset for the raw data.
+    RELATIVETOEND (int): Relative to end constant.
+    PIXEL_PER_LINE (int): Number of pixels per line.
+    PIXEL_PER_COLUMN (int): Number of pixels per column.
+    USED_LINE_BYTES (int): Number of bytes used per line.
+    """
 
     RAW_FILE_OFFSET = 18711040
     RAW_HEADER_SIZE = 32768
@@ -44,6 +64,17 @@ class GONetFile:
     USED_LINE_BYTES=int(PIXEL_PER_LINE*12/8)
 
     def __init__(self, filename: str, red: np.ndarray, green: np.ndarray, blue: np.ndarray, meta: dict, filetype: FileType) -> None:
+        """
+        Initializes a GONetFile instance.
+
+        Parameters:
+        filename (str): The name of the file.
+        red (np.ndarray): The red channel data.
+        green (np.ndarray): The green channel data.
+        blue (np.ndarray): The blue channel data.
+        meta (dict): The metadata associated with the file.
+        filetype (FileType): The type of the file.
+        """
         self._filename = filename
         self._red = red
         self._green = green
@@ -53,26 +84,62 @@ class GONetFile:
 
     @property
     def filename(self) -> str:
+        """
+        Gets the filename of the GONet file.
+
+        Returns:
+        str: The filename.
+        """
         return self._filename
 
     @property
     def red(self) -> np.ndarray:
+        """
+        Gets the red channel data.
+
+        Returns:
+        np.ndarray: The red channel data.
+        """
         return self._red
 
     @property
     def green(self) -> np.ndarray:
+        """
+        Gets the green channel data.
+
+        Returns:
+        np.ndarray: The green channel data.
+        """
         return self._green
 
     @property
     def blue(self) -> np.ndarray:
+        """
+        Gets the blue channel data.
+
+        Returns:
+        np.ndarray: The blue channel data.
+        """
         return self._blue
 
     @property
     def meta(self) -> dict:
+        """
+        Gets the metadata associated with the GONet file.
+
+        Returns:
+        dict: The metadata.
+        """
         return self._meta
     
     @property
     def filetype(self) -> FileType:
+        """
+        Gets the type of the GONet file.
+
+        Returns:
+        FileType: The file type.
+        """
         return self._filetype
 
     def write_to_jpeg(self, outname:str) -> None:
@@ -87,7 +154,7 @@ class GONetFile:
         raise NotImplementedError()
 
     @classmethod
-    def from_file(cls, filepath: str, filetype: FileType = FileType.SCIENCE) -> GONetFile:
+    def from_file(cls, filepath: str, filetype: FileType = FileType.SCIENCE) -> 'GONetFile':
         if not os.path.isfile(filepath):
             raise FileNotFoundError(f'Could not find file {filepath}.')
         if filepath.split('.')[-1] in ['tiff','TIFF','tif','TIF']:
@@ -96,7 +163,7 @@ class GONetFile:
             parsed_data, parsed_meta = cls._parse_jpg_file(filepath)
         else:
             raise ValueError("Extension must be '.tiff', '.TIFF', '.tif', '.TIF' or the original '.jpg' from a GONet camera.")
-        #computed_data = cls._precompute_stuff(parsed_data)
+
         return cls(
             filename = filepath,
             red = parsed_data[0],
@@ -120,7 +187,7 @@ class GONetFile:
         '''
 
         with open(filepath, "rb") as file:
-            file.seek(-GONetFile.RAW_DATA_OFFSET,GONetFile.RELATIVETOEND) #### Negative value for first argument gives 'invalid argument' error, but removing the negative sign here causes downstream ValueError {"could not broadcast input array from shape (0,) into shape (2028,)"}.
+            file.seek(-GONetFile.RAW_DATA_OFFSET,GONetFile.RELATIVETOEND)
             s=np.zeros((GONetFile.PIXEL_PER_LINE,GONetFile.PIXEL_PER_COLUMN),dtype='uint16')   
             # do this at least 3040 times though the precise number of lines is a bit unclear
             for i in range(GONetFile.PIXEL_PER_COLUMN):
@@ -182,88 +249,142 @@ class GONetFile:
     An operation between a GONetFile instance and a number, will
     keep the original `filename` and the `meta` attributes.
 
+    Since the logic to determine which of the above mentioned two
+    case will be the same for all the operators, we define a
+    `operate` function applying said logic. This funtion will then
+    used by each single operator overloading, using the `operator`
+    module.
+
     '''
+
+    def _operate(self, other, op) -> 'GONetFile':
+        if isinstance(other, GONetFile):
+            return GONetFile(
+                filename = None, 
+                red = op(self.red, other.red),
+                green = op(self.green, other.green),
+                blue = op(self.blue, other.blue),
+                meta = None,
+                filetype = None
+            )
+        else:
+            return GONetFile(
+                filename = self.filename, 
+                red = op(self.red, other),
+                green = op(self.green, other),
+                blue = op(self.blue, other),
+                meta = self.meta,
+                filetype = self.filetype
+            )
 
     # Addition
     def __add__(self, other):
-        if isinstance(other, GONetFile):
-            return GONetFile(None, self.red + other.red, self.green + other.green, self.blue + other.blue, None)
-        else:
-            return GONetFile(self.filename, self.red + other, self.green + other, self.blue + other, self.meta)
+        return self._operate(other, operator.add)
     
     __radd__ = __add__
 
     # In place addition (+=)
     def __iadd__(self, other):
-        if isinstance(other, GONetFile):
-            return GONetFile(None, operator.iadd(self.red, other.red), operator.iadd(self.green, other.green), operator.iadd(self.blue, other.blue), None)
-        else:
-            return GONetFile(self.filename, operator.iadd(self.red, other), operator.iadd(self.green, other), operator.iadd(self.blue, other), self.meta)
-
+        return self._operate(other, operator.iadd)
+    
     # Multiplication
     def __mul__(self, other):
-        if isinstance(other, GONetFile):
-            return GONetFile(None, self.red * other.red, self.green * other.green, self.blue * other.blue, None)
-        else:
-            return GONetFile(self.filename, self.red * other, self.green * other, self.blue * other, self.meta)
-    
+        return self._operate(other, operator.mul)
+
     __rmul__ = __mul__
 
     # Subtraction
-    def __sub__(self, other):
-        if isinstance(other, GONetFile):
-            return GONetFile(None, self.red - other.red, self.green - other.green, self.blue - other.blue, None)
-        else:
-            return GONetFile(self.filename, self.red - other, self.green - other, self.blue - other, self.meta)
+    def __sub__(self, other):       
+        return self._operate(other, operator.sub)
     
     # Division
     def __truediv__(self, other):
-        if isinstance(other, GONetFile):
-            return GONetFile(None, self.red / other.red, self.green / other.green, self.blue / other.blue, None)
-        else:
-            return GONetFile(self.filename, self.red / other, self.green / other, self.blue / other, self.meta)
-
-    # Comparison functions
-    def __lt__(self, other):
-        if isinstance(other, GONetFile):
-            return GONetFile(None, self.red < other.red, self.green < other.green, self.blue < other.blue, None)
-        else:
-            return GONetFile(self.filename, self.red < other, self.green < other, self.blue < other, self.meta)
-        
-    def __le__(self, other):
-        if isinstance(other, GONetFile):
-            return GONetFile(None, self.red <= other.red, self.green <= other.green, self.blue <= other.blue, None)
-        else:
-            return GONetFile(self.filename, self.red <= other, self.green <= other, self.blue <= other, self.meta)
-        
-    def __eq__(self, other):
-        if isinstance(other, GONetFile):
-            return GONetFile(None, self.red == other.red, self.green == other.green, self.blue == other.blue, None)
-        else:
-            return GONetFile(self.filename, self.red == other, self.green == other, self.blue == other, self.meta)
-        
-    def __ne__(self, other):
-        if isinstance(other, GONetFile):
-            return GONetFile(None, self.red != other.red, self.green != other.green, self.blue != other.blue, None)
-        else:
-            return GONetFile(self.filename, self.red != other, self.green != other, self.blue != other, self.meta)
-        
-    def __ge__(self, other):
-        if isinstance(other, GONetFile):
-            return GONetFile(None, self.red > other.red, self.green > other.green, self.blue > other.blue, None)
-        else:
-            return GONetFile(self.filename, self.red > other, self.green > other, self.blue > other, self.meta)
-        
-    def __gt__(self, other):
-        if isinstance(other, GONetFile):
-            return GONetFile(None, self.red >= other.red, self.green >= other.green, self.blue >= other.blue, None)
-        else:
-            return GONetFile(self.filename, self.red >= other, self.green >= other, self.blue >= other, self.meta)
-        
-    # Making sure we are using numpy mean and median
-    def mean(self, *args, **kwargs):
-        return np.array([np.mean(self.red, *args, **kwargs), np.mean(self.green, *args, **kwargs), np.mean(self.blue, *args, **kwargs)])
+        return self._operate(other, operator.truediv)
     
-    def median(self, *args, **kwargs):
-        return np.array([np.median(self.red, *args, **kwargs), np.median(self.green, *args, **kwargs), np.median(self.blue, *args, **kwargs)])
-                
+    # I'd like to start writing some tests. But first I need to understand why in line 144 we add 0.5 (to avoid zeros?) and wether we can use uint32 
+    # Can Jeff make me a custom image from skratch?
+
+    
+
+    # # Comparison functions
+    # def __lt__(self, other):
+    #     if isinstance(other, GONetFile):
+    #         return GONetFile(None, self.red < other.red, self.green < other.green, self.blue < other.blue, None)
+    #     else:
+    #         return GONetFile(self.filename, self.red < other, self.green < other, self.blue < other, self.meta)
+        
+    # def __le__(self, other):
+    #     if isinstance(other, GONetFile):
+    #         return GONetFile(None, self.red <= other.red, self.green <= other.green, self.blue <= other.blue, None)
+    #     else:
+    #         return GONetFile(self.filename, self.red <= other, self.green <= other, self.blue <= other, self.meta)
+        
+    # def __eq__(self, other):
+    #     if isinstance(other, GONetFile):
+    #         return GONetFile(None, self.red == other.red, self.green == other.green, self.blue == other.blue, None)
+    #     else:
+    #         return GONetFile(self.filename, self.red == other, self.green == other, self.blue == other, self.meta)
+        
+    # def __ne__(self, other):
+    #     if isinstance(other, GONetFile):
+    #         return GONetFile(None, self.red != other.red, self.green != other.green, self.blue != other.blue, None)
+    #     else:
+    #         return GONetFile(self.filename, self.red != other, self.green != other, self.blue != other, self.meta)
+        
+    # def __ge__(self, other):
+    #     if isinstance(other, GONetFile):
+    #         return GONetFile(None, self.red > other.red, self.green > other.green, self.blue > other.blue, None)
+    #     else:
+    #         return GONetFile(self.filename, self.red > other, self.green > other, self.blue > other, self.meta)
+        
+    # def __gt__(self, other):
+    #     if isinstance(other, GONetFile):
+    #         return GONetFile(None, self.red >= other.red, self.green >= other.green, self.blue >= other.blue, None)
+    #     else:
+    #         return GONetFile(self.filename, self.red >= other, self.green >= other, self.blue >= other, self.meta)
+        
+    # # Making sure we are using numpy mean and median
+    # def mean(self, *args, **kwargs):
+    #     return np.array([np.mean(self.red, *args, **kwargs), np.mean(self.green, *args, **kwargs), np.mean(self.blue, *args, **kwargs)])
+    
+    # def median(self, *args, **kwargs):
+    #     return np.array([np.median(self.red, *args, **kwargs), np.median(self.green, *args, **kwargs), np.median(self.blue, *args, **kwargs)])
+
+# def show(go: GONetFile, red: bool = False, green: bool = False, blue: bool = False, ax: matplotlib.axes._axes.Axes = None) -> extraction_output:
+    
+#     # If all extensions are false, we will plot all them
+#     if not any(extensions := [red, green, blue]):
+#         extensions =  [not el for el in extensions]
+
+#     n_of_extensions = np.sum(extensions)
+
+#     Tot = len(tiffs_files) * n_of_extensions#number_of_subplots
+#     Number_of_blocks = Tot % n_of_extensions**2 + 1
+#     Cols = math.ceil(np.sqrt(Number_of_blocks)) * n_of_extensions
+#     Rows = Tot // Cols
+#     # If one additional row is necessary -> add one:
+#     if Tot % Cols != 0:
+#         Rows += 1
+
+#     i_plot = 0
+
+
+
+
+@dataclass
+class extraction_output:
+    total_counts: float
+    mean_counts: float
+    std: float
+    npixels: int
+
+def extract_circle(data: np.ndarray, x0: float, y0: float, radius: float) -> extraction_output:
+    y = np.arange(0,data.shape[0])
+    x = np.arange(0,data.shape[1])
+    mask = (x[np.newaxis,:]-x0)**2 + (y[:,np.newaxis]-y0)**2 < radius**2
+    return extraction_output(
+        total_counts = np.sum(data[mask]),
+        mean_counts = np.mean(data[mask]),
+        std = np.std(data[mask]),
+        npixels = len(data[mask])
+    )

@@ -13,10 +13,9 @@ setup(
     author="Giacomo Terreran",
     author_email="gterreran@adlerplanetarium.org",
     license="MIT",
-    package_dir={"": "GONet_Wizard"},
-    packages=find_packages(where='GONet_Wizard'),
+    packages=find_packages(),
     entry_points = {
-        'console_scripts': [ 'GONet_dashboard=GONet_dashboard:run']
+        'console_scripts': [ 'GONet_Wizard=GONet_Wizard.__main__:main']
         },
     classifiers=[
         "License :: OSI Approved :: MIT License",
