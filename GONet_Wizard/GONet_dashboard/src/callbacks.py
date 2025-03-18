@@ -1,8 +1,8 @@
 from dash.dependencies import Input, Output, State, ALL, MATCH
-from .server import app
+from GONet_dashboard.src.server import app
 import os, json, datetime, base64
-from . import env
-from . import utils
+from GONet_dashboard.src import env
+from GONet_dashboard.src import utils
 from dash import no_update, ctx, html, clientside_callback
 import numpy as np
 from GONet_utils import GONetFile

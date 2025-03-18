@@ -1,4 +1,4 @@
-from .app import app
+from GONet_dashboard.src.app import app
 
 def run():
     app.run_server(debug=True)

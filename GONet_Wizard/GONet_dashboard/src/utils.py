@@ -1,6 +1,6 @@
 import inspect, datetime
 import numpy as np
-from . import env
+from GONet_dashboard.src import env
 import operator
 from dash import html, dcc, html
 import dash_daq as daq

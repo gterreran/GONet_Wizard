@@ -1,6 +1,6 @@
-from .server import app
-from .layout import layout
+from GONet_dashboard.src.server import app
+from GONet_dashboard.src.layout import layout
 
 app.layout = layout
 
-from . import callbacks
+from GONet_dashboard.src import callbacks

@@ -25,6 +25,7 @@ setup(
     install_requires=[
         'numpy',
         'pillow',
+        'matplotlib',
         'tifffile==2023.7.10',
         'python-dateutil',
         'dash==2.18.2',
@@ -33,5 +34,5 @@ setup(
     extras_require={
         "dev": ["pytest>=7.0", "twine>=4.0.2"],
     },
-    python_requires=">=3.8",
+    python_requires=">=3.10",
 )

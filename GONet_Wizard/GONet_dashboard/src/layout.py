@@ -1,6 +1,6 @@
 from dash import dcc, html
 import dash_daq as daq
-from . import env
+from GONet_dashboard.src import env
 
 
 layout = dcc.Loading(

@@ -1,3 +1,3 @@
-from .src.run_app import (
+from GONet_dashboard.src.run_app import (
     run
 )

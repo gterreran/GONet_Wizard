@@ -1,7 +1,7 @@
-from .src.gonetfile import (
+from GONet_utils.src.gonetfile import (
     GONetFile,
 )
 
-from .src.show import (
+from GONet_utils.src.show import (
     show
 )

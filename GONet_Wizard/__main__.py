@@ -1,6 +1,6 @@
 # MyPackage/__main__.py
 import argparse
-from . import GONet_dashboard, GONet_utils
+from GONet_Wizard import GONet_dashboard, GONet_utils
 
 def main():
     parser = argparse.ArgumentParser(description="MyPackage command-line interface.")
