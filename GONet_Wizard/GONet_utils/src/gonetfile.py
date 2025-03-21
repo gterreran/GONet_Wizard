@@ -62,6 +62,8 @@ class GONetFile:
     PIXEL_PER_LINE=4056
     PIXEL_PER_COLUMN=3040
     USED_LINE_BYTES=int(PIXEL_PER_LINE*12/8)
+    
+    CHANNELS = ['red', 'green', 'blue']
 
     def __init__(self, filename: str, red: np.ndarray, green: np.ndarray, blue: np.ndarray, meta: dict, filetype: FileType) -> None:
         """
@@ -142,6 +144,11 @@ class GONetFile:
         """
         return self._filetype
 
+    def channel(self, attribute_name:str) -> np.ndarray:
+        if attribute_name not in self.CHANNELS:
+            raise ValueError(f"Invalid channel name: {attribute_name}. Allowed channels: {self.CHANNELS}")
+        return getattr(self, attribute_name)
+    
     def write_to_jpeg(self, outname:str) -> None:
         jpeg = Image.open(self.filename)
         jpeg.convert("RGB")
@@ -154,13 +161,13 @@ class GONetFile:
         raise NotImplementedError()
 
     @classmethod
-    def from_file(cls, filepath: str, filetype: FileType = FileType.SCIENCE) -> 'GONetFile':
+    def from_file(cls, filepath: str, filetype: FileType = FileType.SCIENCE, meta: bool = True) -> 'GONetFile':
         if not os.path.isfile(filepath):
             raise FileNotFoundError(f'Could not find file {filepath}.')
         if filepath.split('.')[-1] in ['tiff','TIFF','tif','TIF']:
-            parsed_data, parsed_meta = cls._parse_tiff_file(filepath)
+            parsed_data, parsed_meta = cls._parse_tiff_file(filepath, meta)
         elif filepath.split('.')[-1] in ['jpg']:
-            parsed_data, parsed_meta = cls._parse_jpg_file(filepath)
+            parsed_data, parsed_meta = cls._parse_jpg_file(filepath, meta)
         else:
             raise ValueError("Extension must be '.tiff', '.TIFF', '.tif', '.TIF' or the original '.jpg' from a GONet camera.")
 
@@ -174,12 +181,17 @@ class GONetFile:
         )
 
     @staticmethod
-    def _parse_tiff_file(filepath: str) -> tuple[np.ndarray, dict]:
+    def _parse_tiff_file(filepath: str, meta: bool) -> tuple[np.ndarray, dict]:
         with tifffile.TiffFile(filepath) as tif:
-            return tif.asarray(), tif.shaped_metadata[0]
+            tiff_data = tif.asarray()
+            tiff_meta = tif.shaped_metadata[0]
+            if meta:
+                return tiff_data, tiff_meta
+            else:
+                return tiff_data, None
 
     @staticmethod
-    def _parse_jpg_file(filepath: str) -> tuple[np.ndarray, dict]:
+    def _parse_jpg_file(filepath: str, meta: bool) -> tuple[np.ndarray, dict]:
         '''
         An image taken by a GoNET camera has a full RAW image saved underneath.
         This script extracts this component from the original .jpg file.
@@ -211,12 +223,15 @@ class GONetFile:
         array = ((sp+0.5).astype('uint16'))
 
         # Extracting the metadata
-        jpeg = Image.open(filepath)
-        meta_data = jpeg._getexif()
-        tiff_meta = {}
-        for k,v in meta_data.items():
-            v = cast(v)
-            tiff_meta[TAGS[k]] = v
+        if meta:
+            jpeg = Image.open(filepath)
+            meta_data = jpeg._getexif()
+            tiff_meta = {}
+            for k,v in meta_data.items():
+                v = cast(v)
+                tiff_meta[TAGS[k]] = v
+        else:
+            tiff_meta = None
 
 
         return array, tiff_meta
