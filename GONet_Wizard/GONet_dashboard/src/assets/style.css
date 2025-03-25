@@ -288,7 +288,18 @@ input:focus, select:focus, button:focus {
     display: inline-block;
 }
 
+#gonet-image-container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;  /* aligns the table to the top */
+    gap: 20px;                /* spacing between the image and table */
+}
+
 #gonet-image {
     width: 40%;
-    display: 'inline-block';
+    flex-shrink: 0;           /* prevent the image from shrinking */
+}
+
+#info-table {
+    max-width: 300px;         /* optional: keep the table narrow */
 }

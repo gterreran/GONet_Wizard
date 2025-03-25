@@ -5,7 +5,7 @@ with open("README.md", "r") as inp:
 
 setup(
     name="GONet_wizard",
-    version="0.6.0",
+    version="0.7.0",
     description="Tools and methods to handle GONet data.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -14,6 +14,7 @@ setup(
     author_email="gterreran@adlerplanetarium.org",
     license="MIT",
     packages=find_packages(),
+    include_package_data=True,
     entry_points = {
         'console_scripts': [ 'GONet_Wizard=GONet_Wizard.__main__:main']
         },

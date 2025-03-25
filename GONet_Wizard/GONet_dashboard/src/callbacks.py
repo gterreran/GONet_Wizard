@@ -37,7 +37,6 @@ def load(_):
             for img in night_dict:
                 image_idx += 1
                 for c in env.CHANNELS:
-                    data['night'].append(img['night'])
                     data['idx'].append(image_idx)
                     data['channel'].append(c)
                     data['blue-green'].append(img['blue']['mean']/img['green']['mean'])
@@ -212,7 +211,26 @@ def info(clickdata, fig, data, fold_switch):
     filename = env.ROOT_EXT + night + '/Horizontal/' + filename
 
     go = GONetFile.from_file(filename)
-    outfig = {'data':[{'z':getattr(go,original_channel), 'type': 'heatmap'}], 'layout':{'showlegend': False}}
+    outfig = {
+        'data':[{'z':getattr(go,original_channel), 'type': 'heatmap'}],
+        'layout':{
+            'showlegend': False,
+            'paper_bgcolor':env.BG_COLOR,
+            'plot_bgcolor':env.BG_COLOR,
+            'font': {'color':env.TEXT_COLOR},
+            'margin': {'l':10, 'r':10},
+            'xaxis':{
+                'automargin':True,
+                'ticks':"outside",
+                'mirror':True
+            },
+            'yaxis':{
+                'automargin':True,
+                'ticks':"outside",
+                'mirror':True
+            },
+        }
+    }
     del go
 
     # Overplotting extraction region
