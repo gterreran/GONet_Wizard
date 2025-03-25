@@ -1,0 +1,294 @@
+:root {
+    --accent-color: rgb(158,248,253);
+    --accent-color-transparent: rgba(158,248,253, 0.1);
+    --placeholder-color: #aaaaaa;
+}
+
+/* General reset and font */
+body {
+    margin: 0;
+    background-color: #1a1a1a;
+    font-family: 'Fira Sans', 'Segoe UI', sans-serif;
+    color: #f0f0f0;
+}
+
+/* Title container */
+#title-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    background-color: #1f1f1f;
+}
+
+/* Title styling */
+h1, .main-title {
+    font-size: 28px;
+    color: var(--accent-color);
+    margin: 0;
+    text-align: left;
+}
+
+/* Logo */
+#logo {
+    max-height: 100px;
+}
+
+/* Main layout containers */
+#main-plot,
+#gonet-image,
+#top-container,
+#stats-container,
+#save-load-status-container,
+#big-filter-container,
+#bottom-container {
+    margin: 20px;
+    padding: 15px;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    box-shadow: 0 0 10px var(--accent-color-transparent);
+}
+
+#top-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: stretch;
+}
+
+#graph-container {
+    width: 80%;
+}
+
+#graph-selector-container {
+    width: 20%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 10px;
+    gap: 15px;
+}
+
+#graph-selector-container > div {
+    margin-bottom: 10px;
+}
+
+/* Checklist */
+.dash-checklist {
+    margin-bottom: 15px;
+}
+
+.dash-checklist label {
+    margin-right: 10px;
+    display: inline-block;
+    font-size: 16px;
+}
+
+.dash-checklist input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    accent-color: var(--accent-color);
+}
+
+/* Dropdowns */
+.Select-control, .Select-menu-outer, .Select-menu {
+    background-color: #2a2a2a !important;
+    color: #f0f0f0 !important;
+    border: 1px solid #444 !important;
+}
+
+.Select-placeholder {
+    color: var(--placeholder-color) !important;
+}
+
+.Select-value-label {
+    color: #f0f0f0 !important;
+}
+
+.Select-menu .Select-option.is-focused {
+    background-color: var(--accent-color-transparent) !important;
+    color: var(--accent-color) !important;
+}
+
+.Select-arrow-zone > .Select-arrow {
+    border-color: var(--accent-color) transparent transparent !important;
+}
+
+.Select-input > input {
+    color: #f0f0f0 !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+    caret-color: var(--accent-color);
+    outline: none !important;
+    border: none !important;
+}
+
+.Select.is-focused .Select-control {
+    box-shadow: none !important;
+    border-color: var(--accent-color) !important;
+}
+
+/* Hide the clear (x) button in dropdown selections */
+.Select-clear-zone {
+    display: none !important;
+}
+
+/* Graphs */
+.dash-graph {
+    background-color: #222;
+    border: 1px solid #333;
+    border-radius: 5px;
+}
+
+/* Tables */
+table {
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 14px;
+    background-color: #1e1e1e;
+}
+
+th, td {
+    border: 1px solid #f0f0f0;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+th {
+    background-color: #2e2e2e;
+}
+
+tr:nth-child(even) {
+    background-color: #252525;
+}
+
+#stats-table td {
+    width: 150px;
+    height: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Buttons */
+button {
+    background-color: #2e2e2e;
+    color: #f0f0f0;
+    border: 1px solid var(--accent-color);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #3e3e3e;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Disable hover effects for switches */
+.switch,
+.switch:hover,
+.switch:focus,
+.switch:active {
+    transform: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Custom filter layout */
+.custom-filter-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.first-filter-container,
+.second-filter-container {
+    height: 48px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+#upload-status {
+    margin-left: 10px;
+}
+
+#big-filter-container > button,
+#upload-status {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#filter-container {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+#custom-filter-container {
+    margin-top: 15px;
+    width: 100%;
+}
+
+#folder-container,
+#shower-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    height: 48px;
+}
+
+.switch-container {
+    margin-bottom: 8px;
+}
+
+input:focus, select:focus, button:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+#loading-wrapper {
+    position: relative;
+    z-index: 10;
+}
+
+.custom-filter-dropdown {
+    width: 200px;
+}
+
+.custom-filter-value {
+    height: 50%;
+    border-radius: 6px;
+    padding: 6px 10px;
+    background-color: #1a1a1a;
+    color: #f0f0f0;
+    border: 1px solid #444;
+    font-size: 14px;
+}
+
+.main-plot {
+    width: 80%;
+    display: inline-block;
+}
+
+#gonet-image {
+    width: 40%;
+    display: 'inline-block';
+}

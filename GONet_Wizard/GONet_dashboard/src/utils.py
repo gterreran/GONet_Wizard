@@ -2,7 +2,7 @@ import inspect, datetime
 import numpy as np
 from GONet_Wizard.GONet_dashboard.src import env
 import operator
-from dash import html, dcc, html
+from dash import html, dcc
 import dash_daq as daq
 
 op = {
@@ -254,45 +254,49 @@ def get_stats(fig):
         except np.core._exceptions._UFuncNoLoopError:
             stats_table[axis]=[]
 
-    formatted_stats_table = [html.Tr([html.Td(el[val],style={'width':'200px','border':'1px solid black'}) for el in stats_table[axis] for val in ['label', 'value']], style={'border':'1px solid black'}) for axis in ['x', 'y']]
+    formatted_stats_table = [html.Tr([html.Td(el[val]) for el in stats_table[axis] for val in ['label', 'value']]) for axis in ['x', 'y']]
 
     return formatted_stats_table
 
 
 def new_empty_filter(idx, labels):
 
-    new_filter = html.Div(id = {"type":'filter-container', "index":idx}, children=[
-                html.Div(id = {"type":'first-filter-container', "index":idx}, children=[
-                    daq.BooleanSwitch(id={"type":'filter-switch', "index":idx}, on=False, style={'display': 'inline-block'}),
-                    dcc.Dropdown(id={"type":'filter-dropdown', "index":idx}, options=labels, style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px', 'width':'200px'}),
-                    dcc.Dropdown(id={"type":'filter-operator', "index":idx}, options=['<','<=','=','!=','=>','>'], value = '<=', style={'display': 'inline-block', 'margin-left':'5px', 'margin-right':'5px', 'width':'40px'}),
-                    dcc.Input(id={"type":'filter-value', "index":idx}, type="text", debounce=True, style={'display': 'inline-block'})
-                ], style={'display': 'inline-block'}),
-                html.Div(id = {"type":'second-filter-container', "index":idx}, children=[
-                    html.Button('Add OR filter', id = {"type":'add-or-filter', "index":idx}, n_clicks=0),
-                ], style={'display': 'inline-block', 'margin-left':'15px'})
+    new_filter = html.Div(className="custom-filter-container", id = {"type":'custom-filter-container', "index":idx}, children=[
+                html.Div(className="first-filter-container", id = {"type":'first-filter-container', "index":idx}, children=[
+                    html.Div(className = 'switch-container', id = {"type":'filter-switch-container', "index":idx}, children=
+                        daq.BooleanSwitch(className='switch', id={"type":'filter-switch', "index":idx}, on=False),
+                    ),
+                    dcc.Dropdown(className="custom-filter-dropdown", id={"type":'filter-dropdown', "index":idx}, options=labels),
+                    dcc.Dropdown(className="custom-filter-operator", id={"type":'filter-operator', "index":idx}, options=['<','<=','=','!=','=>','>'], value = '<='),
+                    dcc.Input(className="custom-filter-value", id={"type":'filter-value', "index":idx}, type="text", debounce=True)
+                ]),
+                html.Div(className="second-filter-container", id = {"type":'second-filter-container', "index":idx}, children=[
+                    html.Button(className="OR-filter-button", children='Add OR filter', id = {"type":'add-or-filter', "index":idx}, n_clicks=0),
+                ])
             ])
 
     return new_filter
 
 def new_empty_second_filter(idx, labels):
     new_filter = [
-        html.Div('OR',style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px',}),
-        dcc.Dropdown(id={"type":'second-filter-dropdown', "index":idx}, options=labels, style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px', 'width':'200px'}),
-        dcc.Dropdown(id={"type":'second-filter-operator', "index":idx}, options=['<','<=','=','!=','=>','>'], value = '<=', style={'display': 'inline-block', 'margin-left':'5px', 'margin-right':'5px', 'width':'40px'}),
-        dcc.Input(id={"type":'second-filter-value', "index":idx}, type="text", debounce=True, value=0, style={'display': 'inline-block'})
+        html.Div(className='or-div', id= {"type":'or-div', "index":idx}, children='OR'),
+        dcc.Dropdown(className="custom-filter-dropdown", id={"type":'second-filter-dropdown', "index":idx}, options=labels),
+        dcc.Dropdown(className="custom-filter-operator", id={"type":'second-filter-operator', "index":idx}, options=['<','<=','=','!=','=>','>'], value = '<='),
+        dcc.Input(className="custom-filter-value", id={"type":'second-filter-value', "index":idx}, type="text", debounce=True)
     ]
 
     return new_filter
 
 def new_selection_filter(idx, selected_indexes):
 
-    new_filter = html.Div(id = {"type":'filter-container', "index":idx}, children=[
-                html.Div(id = {"type":'first-filter-container', "index":idx}, children=[
-                    daq.BooleanSwitch(id={"type":'filter-switch', "index":idx}, on=False, style={'display': 'inline-block'}),
-                    dcc.Dropdown(id={"type":'filter-dropdown', "index":idx}, options=[f'Selection {idx}'], value=f'Selection {idx}',style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px', 'width':'200px'}),
+    new_filter = html.Div(className="custom-filter-container", id = {"type":'custom-filter-container', "index":idx}, children=[
+                html.Div(className="first-filter-container", id = {"type":'first-filter-container', "index":idx}, children=[
+                    html.Div(className = 'switch-container', id = {"type":'filter-switch-container', "index":idx}, children=
+                        daq.BooleanSwitch(className='switch', id={"type":'filter-switch', "index":idx}, on=False),
+                    ),
+                    dcc.Dropdown(className="custom-filter-dropdown", id={"type":'filter-dropdown', "index":idx}, options=[f'Selection {idx}'], value=f'Selection {idx}'),
                     dcc.Store(id={"type":'filter-selection-data', "index": idx}, data = selected_indexes),
-                    dcc.Dropdown(id={"type":'filter-operator', "index":idx}, options=['in', 'out'], value = 'in', style={'display': 'inline-block', 'margin-left':'5px', 'margin-right':'5px', 'width':'40px'}),
+                    dcc.Dropdown(className="custom-filter-operator", id={"type":'filter-operator', "index":idx}, options=['in', 'out'], value = 'in'),
                 ])
             ])
 

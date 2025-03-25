@@ -140,9 +140,23 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
     fig = {
         'data': [],
         'layout': {
-            'xaxis': {'title': {'text': x_label}},
-            'yaxis': {'title': {'text': y_label}},
-            'dragmode': 'lasso'
+            'paper_bgcolor':env.BG_COLOR,
+            'plot_bgcolor':env.BG_COLOR,
+            'font': {'color':env.TEXT_COLOR},
+            'dragmode': 'lasso',
+            'margin': {'l':10, 'r':10, 't':10, 'b':10},
+            'xaxis':{
+                'title': {'text': x_label},
+                'automargin':True,
+                'ticks':"outside",
+                'mirror':True
+            },
+            'yaxis':{
+                'title': {'text': y_label},
+                'automargin':True,
+                'ticks':"outside",
+                'mirror':True
+            },
         }
     }
 

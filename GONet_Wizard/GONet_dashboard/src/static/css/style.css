@@ -1,0 +1,121 @@
+/* General reset and font */
+body {
+    margin: 0;
+    background-color: #1a1a1a;
+    font-family: 'Fira Sans', 'Segoe UI', sans-serif;
+    color: #f0f0f0;
+}
+
+/* Logo */
+#logo {
+    max-height: 60px;
+    margin: 15px;
+}
+
+/* Container spacing */
+#top-container, 
+#stats-container, 
+#save-load-status-container, 
+#big-filter-container, 
+#bottom-container {
+    margin: 20px;
+    padding: 15px;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(158,248,253, 0.1);
+}
+
+/* Checklist and dropdown section */
+#top-container > div:last-child {
+    padding: 0 15px;
+}
+
+.dash-dropdown,
+.dash-checklist {
+    margin-bottom: 15px;
+}
+
+/* Graphs */
+.dash-graph {
+    background-color: #222;
+    border: 1px solid #333;
+    border-radius: 5px;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 14px;
+    background-color: #1e1e1e;
+}
+
+th, td {
+    border: 1px solid #444;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+th {
+    background-color: #2e2e2e;
+}
+
+tr:nth-child(even) {
+    background-color: #252525;
+}
+
+/* Buttons */
+button {
+    background-color: #2e2e2e;
+    color: #f0f0f0;
+    border: 1px solid rgb(158,248,253);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+    background-color: #3e3e3e;
+    transform: scale(1.03);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Boolean switches */
+.dash-daq .daq-boolean-switch {
+    transform: scale(0.9);
+    margin-right: 10px;
+}
+
+/* Upload area */
+#upload-status {
+    margin-top: 10px;
+}
+
+/* Checklist labels */
+.dash-checklist label {
+    margin-right: 10px;
+}
+
+/* Custom filter area */
+#custom-filter-container {
+    margin-top: 15px;
+}
+
+/* Nice subtle focus outlines */
+input:focus, select:focus, button:focus {
+    outline: 2px solid rgb(158,248,253);
+    outline-offset: 2px;
+}
+
+/* Loading spinner area */
+#loading-wrapper {
+    position: relative;
+    z-index: 10;
+}
