@@ -21,7 +21,8 @@ def require_env_var(name: str, prompt: str = None) -> str:
 class Config:
     # Defaulted environment variables
     gonet_user: str = os.environ.get("GONET_USER", "pi")
-    gonet4_remote_path: str = os.environ.get("GONET4_REMOTE_PATH", "/home/pi/Tools/Camera/gonet4.py")
+    gonet4_path: str = os.environ.get("GONET4_PATH", "/home/pi/Tools/Camera/gonet4.py")
+    gonet_config_folder: str = os.environ.get("GONET_CONFIG_FOLDER", "/home/pi/Tools/Camera/")
     gonet_images_folder: str = os.environ.get("GONET_IMAGES_FOLDER", "/home/pi/images/")
     local_output_folder: str = os.environ.get("LOCAL_OUTPUT_FOLDER", "./downloaded_files/")
 
