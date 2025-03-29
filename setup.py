@@ -5,7 +5,7 @@ with open("README.md", "r") as inp:
 
 setup(
     name="GONet_wizard",
-    version="0.7.0",
+    version="0.8.0",
     description="Tools and methods to handle GONet data.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -31,6 +31,9 @@ setup(
         'python-dateutil',
         'dash==2.18.2',
         'dash_daq',
+        'python-dotenv',
+        'paramiko',
+        'scp',
     ],
     extras_require={
         "dev": ["pytest>=7.0", "twine>=4.0.2"],

@@ -5,3 +5,7 @@ from GONet_Wizard.GONet_utils.src.gonetfile import (
 from GONet_Wizard.GONet_utils.src.show import (
     show
 )
+
+from GONet_Wizard.GONet_utils.src.snap import (
+    snap
+)
