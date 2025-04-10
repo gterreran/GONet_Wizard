@@ -2,6 +2,7 @@ from GONet_Wizard.GONet_utils.src.gonetfile import GONetFile
 import matplotlib.pyplot as plt
 import math, os
 import numpy as np
+from typing import Union, List
 
 def create_efficient_subplots(N, figsize=(10, 6)):
     """
@@ -61,19 +62,17 @@ def auto_vmin_vmax(data, lower_percentile=0.5, upper_percentile=99.5):
     vmax = np.percentile(data, upper_percentile)
     return vmin, vmax
 
-def show(files, save: bool = False, red: bool = False, green: bool = False, blue: bool = False) -> None:
+def show(files: Union[str, List[str]], save: bool = False, red: bool = False, green: bool = False, blue: bool = False) -> None:
     '''
-    Plot GONet files, with the 
+    Plot GONet files
     
     '''
 
-    print(red, green, blue)
     # If all extensions are false, we will plot all them
     if not any(extensions := [red, green, blue]):
         extensions =  [not el for el in extensions]
-    print(extensions)
+
     n_of_extensions = np.sum(extensions)
-    print(n_of_extensions)
 
     Tot = len(files) * n_of_extensions#number_of_subplots
     fig, ax = create_efficient_subplots(Tot)
@@ -94,7 +93,6 @@ def show(files, save: bool = False, red: bool = False, green: bool = False, blue
         
         for c,val in zip(GONetFile.CHANNELS, extensions):
             if val:
-                print(c)
                 ax[i_plot].set_title(f'{camera} - {c}\n{date}')
                 z1,z2 = auto_vmin_vmax(go.channel(c))
                 ax[i_plot].imshow(go.channel(c), vmin=z1, vmax=z2)

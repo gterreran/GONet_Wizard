@@ -4,8 +4,6 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 import numpy as np
 from enum import Enum, auto
-from dataclasses import dataclass
-import matplotlib
 
 def cast(v):
     '''
@@ -317,7 +315,6 @@ class GONetFile:
         return self._operate(other, operator.truediv)
     
     # I'd like to start writing some tests. But first I need to understand why in line 144 we add 0.5 (to avoid zeros?) and wether we can use uint32 
-    # Can Jeff make me a custom image from skratch?
 
     
 
@@ -364,42 +361,3 @@ class GONetFile:
     
     # def median(self, *args, **kwargs):
     #     return np.array([np.median(self.red, *args, **kwargs), np.median(self.green, *args, **kwargs), np.median(self.blue, *args, **kwargs)])
-
-# def show(go: GONetFile, red: bool = False, green: bool = False, blue: bool = False, ax: matplotlib.axes._axes.Axes = None) -> extraction_output:
-    
-#     # If all extensions are false, we will plot all them
-#     if not any(extensions := [red, green, blue]):
-#         extensions =  [not el for el in extensions]
-
-#     n_of_extensions = np.sum(extensions)
-
-#     Tot = len(tiffs_files) * n_of_extensions#number_of_subplots
-#     Number_of_blocks = Tot % n_of_extensions**2 + 1
-#     Cols = math.ceil(np.sqrt(Number_of_blocks)) * n_of_extensions
-#     Rows = Tot // Cols
-#     # If one additional row is necessary -> add one:
-#     if Tot % Cols != 0:
-#         Rows += 1
-
-#     i_plot = 0
-
-
-
-
-@dataclass
-class extraction_output:
-    total_counts: float
-    mean_counts: float
-    std: float
-    npixels: int
-
-def extract_circle(data: np.ndarray, x0: float, y0: float, radius: float) -> extraction_output:
-    y = np.arange(0,data.shape[0])
-    x = np.arange(0,data.shape[1])
-    mask = (x[np.newaxis,:]-x0)**2 + (y[:,np.newaxis]-y0)**2 < radius**2
-    return extraction_output(
-        total_counts = np.sum(data[mask]),
-        mean_counts = np.mean(data[mask]),
-        std = np.std(data[mask]),
-        npixels = len(data[mask])
-    )

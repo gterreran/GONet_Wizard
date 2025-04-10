@@ -3,6 +3,7 @@ import paramiko
 from scp import SCPClient
 from GONet_Wizard.GONet_utils.src.settings import config
 import hashlib
+from GONet_Wizard.GONet_utils.src.connect import ssh_connect
 
 
 def list_remote_files(ssh, folder):
@@ -54,22 +55,12 @@ def run_remote_script_with_live_output(ssh, command):
             line = stdout.channel.recv(1024).decode()
             print(line, end='')
 
-
-def snap(gonet_ip:str, config_file_path:str) -> None:
+@ssh_connect
+def snap(ssh: paramiko.SSHClient, config_file_path: str) -> None:
     '''
     execute gonet4.py remotely, using a local config file
     
     '''
-    # === CONNECT ===
-    print(f"🔌 Connecting to {config.gonet_user}@{gonet_ip}...")
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    try:
-        ssh.connect(gonet_ip, username=config.gonet_user, password=config.gonet_password)
-        print("✅ Connected successfully.")
-    except Exception as e:
-        print(f"❌ Connection failed: {e}")
-        exit(1)
 
     # === CHECK FILES BEFORE ===
     print("📂 Checking images folder before script runs...")
@@ -107,7 +98,3 @@ def snap(gonet_ip:str, config_file_path:str) -> None:
         print("✅ All new images downloaded.")
     else:
         print("ℹ️ No new images to download.")
-
-    # === DONE ===
-    ssh.close()
-    print("🏁 Done!")
