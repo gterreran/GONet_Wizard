@@ -34,6 +34,7 @@ setup(
         'python-dotenv',
         'paramiko',
         'scp',
+        'astropy',
     ],
     extras_require={
         "dev": ["pytest>=7.0", "twine>=4.0.2"],
