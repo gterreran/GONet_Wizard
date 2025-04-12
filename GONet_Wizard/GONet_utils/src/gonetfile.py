@@ -81,12 +81,12 @@ class GONetFile:
         meta (dict): A dictionary containing metadata.
         filetype (FileType): The type of the file (e.g., SCIENCE, FLAT, etc.).
         """
-        self.filename = filename
-        self.red = red
-        self.green = green
-        self.blue = blue
-        self.meta = meta
-        self.filetype = filetype
+        self._filename = filename
+        self._red = red
+        self._green = green
+        self._blue = blue
+        self._meta = meta
+        self._filetype = filetype
 
     @property
     def filename(self) -> str:
