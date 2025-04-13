@@ -8,18 +8,22 @@ from typing import Any
 from astropy.io import fits
 
 def cast(v: 'Any') -> 'Any':
-    '''
+    """
     Casts various types to JSON serializable types.
 
-    This is necessary in order to get rid of weird Tiff formats
+    This is necessary in order to get rid of weird TIFF formats
     which are not JSON serializable.
 
-    Parameters:
-    v (various types): The value to be cast.
+    Parameters
+    ----------
+    v : various types
+        The value to be cast.
 
-    Returns:
-    various types: The cast value.
-    '''
+    Returns
+    -------
+    various types
+        The cast value.
+    """
     if isinstance(v, PIL.TiffImagePlugin.IFDRational):
         return v._numerator / v.denominator
     elif isinstance(v, tuple):
@@ -48,14 +52,24 @@ class GONetFile:
     GONet files, including the ability to load image data, handle metadata,
     and process pixel data for different file types.
 
-    Attributes:
-    RAW_FILE_OFFSET (int): The offset for the raw file.
-    RAW_HEADER_SIZE (int): The size of the raw header.
-    RAW_DATA_OFFSET (int): The offset for the raw data.
-    RELATIVETOEND (int): Relative to end constant.
-    PIXEL_PER_LINE (int): Number of pixels per line.
-    PIXEL_PER_COLUMN (int): Number of pixels per column.
-    USED_LINE_BYTES (int): Number of bytes used per line.
+    Attributes
+    ----------
+    RAW_FILE_OFFSET : int
+        The offset for the raw file. Defaults to `18711040`.
+    RAW_HEADER_SIZE : int
+        The size of the raw header. Defaults to `32768`.
+    RAW_DATA_OFFSET : int
+        The offset for the raw data. Defaults to `RAW_FILE_OFFSET - RAW_HEADER_SIZE`.
+    RELATIVETOEND : int
+        Relative to end constant. Defaults to `2`.
+    PIXEL_PER_LINE : int
+        Number of pixels per line. Defaults to `4056`.
+    PIXEL_PER_COLUMN : int
+        Number of pixels per column. Defaults to `3040`.
+    USED_LINE_BYTES : int
+        Number of bytes used per line. Defaults to `int(PIXEL_PER_LINE * 12 / 8)`.
+    CHANNELS: list
+        List of string description of the RGB channels. Defaults to `['red', 'green', 'blue']`.
     """
 
     RAW_FILE_OFFSET = 18711040
@@ -73,13 +87,20 @@ class GONetFile:
         """
         Initializes a GONetFile instance.
 
-        Parameters:
-        filename (str): The name of the file.
-        red (np.ndarray): The red channel pixel data.
-        green (np.ndarray): The green channel pixel data.
-        blue (np.ndarray): The blue channel pixel data.
-        meta (dict): A dictionary containing metadata.
-        filetype (FileType): The type of the file (e.g., SCIENCE, FLAT, etc.).
+        Parameters
+        ----------
+        filename : str
+            The name of the file.
+        red : np.ndarray
+            The red channel pixel data.
+        green : np.ndarray
+            The green channel pixel data.
+        blue : np.ndarray
+            The blue channel pixel data.
+        meta : dict
+            A dictionary containing metadata.
+        filetype : FileType
+            The type of the file (e.g., SCIENCE, FLAT, etc.). Defaults to `FileType.SCIENCE`.
         """
         self._filename = filename
         self._red = red
@@ -93,8 +114,10 @@ class GONetFile:
         """
         Gets the filename of the GONet file.
 
-        Returns:
-        str: The filename.
+        Returns
+        -------
+        str
+            The filename.
         """
         return self._filename
 
@@ -103,8 +126,10 @@ class GONetFile:
         """
         Gets the red channel data.
 
-        Returns:
-        np.ndarray: The red channel data.
+        Returns
+        -------
+        numpy.ndarray
+            The red channel data.
         """
         return self._red
 
@@ -113,8 +138,10 @@ class GONetFile:
         """
         Gets the green channel data.
 
-        Returns:
-        np.ndarray: The green channel data.
+        Returns
+        -------
+        numpy.ndarray
+            The green channel data.
         """
         return self._green
 
@@ -123,8 +150,10 @@ class GONetFile:
         """
         Gets the blue channel data.
 
-        Returns:
-        np.ndarray: The blue channel data.
+        Returns
+        -------
+        numpy.ndarray
+            The blue channel data.
         """
         return self._blue
 
@@ -133,8 +162,10 @@ class GONetFile:
         """
         Gets the metadata associated with the GONet file.
 
-        Returns:
-        dict: The metadata.
+        Returns
+        -------
+        dict
+            The metadata.
         """
         return self._meta
     
@@ -143,8 +174,10 @@ class GONetFile:
         """
         Gets the type of the GONet file.
 
-        Returns:
-        FileType: The file type.
+        Returns
+        -------
+        FileType
+            The file type.
         """
         return self._filetype
 
@@ -155,14 +188,20 @@ class GONetFile:
         This function returns the pixel data for the given color channel 
         (e.g., 'red', 'green', 'blue') as a numpy array.
 
-        Parameters:
-        channel_name (str): The name of the channel to retrieve ('red', 'green', 'blue').
+        Parameters
+        ----------
+        channel_name : str
+            The name of the channel to retrieve ('red', 'green', 'blue').
 
-        Returns:
-        np.ndarray: The pixel data for the specified channel as a numpy array.
+        Returns
+        -------
+        numpy.ndarray
+            The pixel data for the specified channel as a numpy array.
 
-        Raises:
-        ValueError: If an invalid channel name is provided.
+        Raises
+        ------
+        ValueError
+            If an invalid channel name is provided.
         """
         if channel_name not in self.CHANNELS:
             raise ValueError(f"Invalid channel name: {channel_name}. Allowed channels: {self.CHANNELS}")
@@ -174,18 +213,24 @@ class GONetFile:
 
         This function combines the red, green, and blue channel data into a 
         single image and saves it as a JPEG file to the specified output 
-        location using the `PIL.Image` library.
+        location using the :mod:`PIL.Image` library.
 
-        Parameters:
-        output_filename (str): The path and filename where the JPEG file will be saved.
+        Parameters
+        ----------
+        output_filename : str
+            The path and filename where the JPEG file will be saved.
 
-        Returns:
-        None: This function does not return a value.
+        Returns
+        -------
+        None
+            This function does not return a value.
 
-        Notes:
-        - The function uses the `PIL.Image` library to handle the file saving.
+        Notes
+        -----
+        - The function uses the :mod:`PIL.Image` library to handle the file saving.
         - If an invalid file path or unsupported format is provided, 
-        `PIL.Image` will raise an appropriate exception.
+          :mod:`PIL.Image` will raise an appropriate exception.
+        
         """
         jpeg = Image.open(self.filename)
         jpeg.convert("RGB")
@@ -197,18 +242,24 @@ class GONetFile:
 
         This function combines the red, green, and blue channel data into a 
         single image and saves it as a TIFF file to the specified output 
-        location using the `PIL.Image` library or `tifffile`.
+        location using the :mod:`PIL.Image` library or `tifffile`.
 
-        Parameters:
-        output_filename (str): The path and filename where the TIFF file will be saved.
+        Parameters
+        ----------
+        output_filename : str
+            The path and filename where the TIFF file will be saved.
 
-        Returns:
-        None: This function does not return a value.
+        Returns
+        -------
+        None
+            This function does not return a value.
 
-        Notes:
-        - The function uses the `PIL.Image` or `tifffile` library to handle the file saving.
+        Notes
+        -----
+        - The function uses the :mod:`PIL.Image` or `tifffile` library to handle the file saving.
         - If the output file extension is not `.tiff` or `.tif`, the behavior is dependent on the implementation.
-        - Unsupported formats or invalid file paths will raise an appropriate exception from `PIL.Image` or `tifffile`.
+        - Unsupported formats or invalid file paths will raise an appropriate exception from :mod:`PIL.Image` or `tifffile`.
+
         """
         tifffile.imwrite(output_filename, [self.red, self.green, self.blue], photometric='rgb', metadata=self.meta)
 
@@ -219,15 +270,21 @@ class GONetFile:
         This function combines the red, green, and blue channel data into separate extensions
         within a single FITS file, using metadata from the 'meta' attribute to create the headers.
 
-        Parameters:
-        output_filename (str): The path and filename where the FITS file will be saved.
+        Parameters
+        ----------
+        output_filename : str
+            The path and filename where the FITS file will be saved.
 
-        Returns:
-        None: This function does not return a value.
+        Returns
+        -------
+        None
+            This function does not return a value.
 
-        Notes:
-        - The function uses the `astropy.io.fits` library to handle the file saving.
+        Notes
+        -----
+        - The function uses the :mod:`astropy.io.fits` library to handle the file saving.
         - FITS header labels are constrained to 8 characters, uppercase letters, and must follow FITS standards.
+
         """
         
         # Create the header for each extension based on the meta attribute
@@ -289,25 +346,33 @@ class GONetFile:
         extracts the image data (red, green, blue channels), and metadata. It then 
         creates and returns an instance of the GONetFile class with the parsed data.
 
-        Parameters:
-        filepath (str): The path to the file that will be used to initialize 
-                        the GONetFile instance. The file should be in either 
-                        TIFF or JPEG format.
-        filetype (FileType, optional): The type of the file, which can be one of 
-                                        the FileType enum values (e.g., SCIENCE, 
-                                        FLAT, BIAS, or DARK). Defaults to 
-                                        FileType.SCIENCE.
-        meta (bool, optional): Whether to parse metadata from the file. Defaults 
-                            to True. If set to False, metadata will not be 
-                            included in the resulting GONetFile instance.
+        Parameters
+        ----------
+        filepath : str
+            The path to the file that will be used to initialize the GONetFile instance. 
+            The file should be in either TIFF or JPEG format.
+        
+        filetype : FileType, optional
+            The type of the file, which can be one of the `FileType` enum values 
+            (e.g., SCIENCE, FLAT, BIAS, or DARK). Defaults to FileType.SCIENCE.
+        
+        meta : bool, optional
+            Whether to parse metadata from the file. Defaults to True. 
+            If set to False, metadata will not be included in the resulting GONetFile instance.
 
-        Returns:
-        GONetFile: A new instance of the GONetFile class, initialized with the 
-                data and metadata extracted from the specified file.
+        Returns
+        -------
+        GONetFile
+            A new instance of the GONetFile class, initialized with the data and 
+            metadata extracted from the specified file.
 
-        Raises:
-        FileNotFoundError: If the specified file does not exist or cannot be found.
-        ValueError: If the file extension is not `.tiff`, `.TIFF`, `.tif`, `.TIF`, or `.jpg`.
+        Raises
+        ------
+        FileNotFoundError
+            If the specified file does not exist or cannot be found.
+        
+        ValueError
+            If the file extension is not `.tiff`, `.TIFF`, `.tif`, `.TIF`, or `.jpg`.
         """
 
         if not os.path.isfile(filepath):
@@ -336,12 +401,17 @@ class GONetFile:
         This method reads the TIFF file specified by `filepath` and extracts the 
         red, green, and blue channel data, as well as metadata if `meta` is True.
 
-        Parameters:
-        filepath (str): The path to the TIFF file.
-        meta (bool): Whether to extract metadata from the file.
+        Parameters
+        ----------
+        filepath : str
+            The path to the TIFF file.
+        meta : bool, optional
+            Whether to extract metadata from the file. Defaults to `True`.
 
-        Returns:
-        tuple: A tuple containing the parsed image data (red, green, blue channels)
+        Returns
+        -------
+        tuple
+            A tuple containing the parsed image data (red, green, blue channels)
             and metadata (if `meta` is True).
         """
 
@@ -361,12 +431,17 @@ class GONetFile:
         This method reads the JPEG file specified by `filepath` and extracts the 
         red, green, and blue channel data, as well as metadata if `meta` is True.
 
-        Parameters:
-        filepath (str): The path to the JPEG file.
-        meta (bool): Whether to extract metadata from the file.
+        Parameters
+        ----------
+        filepath : str
+            The path to the JPEG file.
+        meta : bool, optional
+            Whether to extract metadata from the file. Defaults to `True`.
 
-        Returns:
-        tuple: A tuple containing the parsed image data (red, green, blue channels)
+        Returns
+        -------
+        tuple
+            A tuple containing the parsed image data (red, green, blue channels)
             and metadata (if `meta` is True).
         """
 
@@ -442,26 +517,31 @@ class GONetFile:
         and a scalar, the operation is applied element-wise to the pixel data using 
         numpy's operators.
 
-        Parameters:
-        other (GONetFile or scalar): The other object to perform the operation with. 
-                                    It can either be another GONetFile instance 
-                                    or a scalar value (e.g., an integer or float).
-        op (function): The operation to perform. This is expected to be a function 
-                    (e.g., `numpy.add`, `numpy.subtract`, etc.) that takes two 
-                    arguments and returns the result of the operation.
+        Parameters
+        ----------
+        other : GONetFile or scalar
+            The other object to perform the operation with. It can either be another 
+            GONetFile instance or a scalar value (e.g., an integer or float).
+        op : function
+            The operation to perform. This is expected to be a function 
+            (e.g., `numpy.add`, `numpy.subtract`, etc.) that takes two 
+            arguments and returns the result of the operation.
 
-        Returns:
-        GONetFile: A new GONetFile instance with the result of the operation. 
-                If the operation is between two GONetFile instances, the new 
-                GONetFile will have no metadata and file type.
+        Returns
+        -------
+        GONetFile
+            A new GONetFile instance with the result of the operation. 
+            If the operation is between two GONetFile instances, the new 
+            GONetFile will have no metadata and file type.
 
-        Notes:
+        Notes
+        -----
         - If the operation is between two GONetFile instances, the metadata and 
-        file type of the resulting GONetFile will be set to `None`.
+          file type of the resulting GONetFile will be set to `None`.
         - If the operation is between a GONetFile instance and a scalar, the metadata 
-        and file type from the original instance are preserved.
+          and file type from the original instance are preserved.
         - If the operation between the channels and the other object is not supported 
-        by numpy (e.g., incompatible shapes or types), a numpy error will be raised.
+          by numpy (e.g., incompatible shapes or types), a numpy error will be raised.
         """
         if isinstance(other, GONetFile):
             return GONetFile(
@@ -483,27 +563,150 @@ class GONetFile:
             )
 
     # Addition
-    def __add__(self, other):
+    def __add__(self, other: Any) -> 'GONetFile':
+        """
+        Overloads the `+` operator to add two GONetFile instances.
+
+        This method adds the red, green, and blue channels of two GONetFile 
+        instances together independently. If the operation is between a GONetFile 
+        instance and a scalar, the operation is applied element-wise to the pixel 
+        data using numpy's addition.
+
+        Parameters
+        ----------
+        other : Any
+            Another GONetFile instance or a scalar value (int, float) to add to 
+            the current GONetFile instance.
+
+        Returns
+        -------
+        GONetFile
+            A new GONetFile instance with the result of the addition.
+
+        Notes
+        -----
+        - The resulting GONetFile instance will not have metadata or file type 
+          if the operation is between two GONetFile instances.
+        - Any errors during the operation are raised by numpy.
+        """
         return self._operate(other, operator.add)
-    
+
     __radd__ = __add__
 
-    # In place addition (+=)
-    def __iadd__(self, other):
+    # In-place addition (+=)
+    def __iadd__(self, other: Any) -> 'GONetFile':
+        """
+        Overloads the `+=` operator to perform in-place addition on a GONetFile instance.
+
+        This method adds the red, green, and blue channels of another GONetFile 
+        instance or a scalar value to the current GONetFile instance in-place.
+
+        Parameters
+        ----------
+        other : Any
+            Another GONetFile instance or a scalar value (int, float) to add 
+            to the current GONetFile instance.
+
+        Returns
+        -------
+        GONetFile
+            The updated GONetFile instance with the result of the in-place addition.
+
+        Notes
+        -----
+        - This operation modifies the current instance and returns the updated 
+          GONetFile.
+        - Any errors during the operation are raised by numpy.
+        """
         return self._operate(other, operator.iadd)
-    
+
     # Multiplication
-    def __mul__(self, other):
+    def __mul__(self, other: Any) -> 'GONetFile':
+        """
+        Overloads the `*` operator to multiply the current GONetFile instance 
+        with another GONetFile instance or a scalar.
+
+        This method multiplies the red, green, and blue channels of two GONetFile 
+        instances or applies element-wise multiplication between a GONetFile instance 
+        and a scalar using numpy's multiplication.
+
+        Parameters
+        ----------
+        other : Any
+            Another GONetFile instance or a scalar value (int, float) to multiply 
+            with the current GONetFile instance.
+
+        Returns
+        -------
+        GONetFile
+            A new GONetFile instance with the result of the multiplication.
+
+        Notes
+        -----
+        - If the operation is between two GONetFile instances, the resulting 
+          GONetFile instance will not have metadata or file type.
+        - Any errors during the operation are raised by numpy.
+        """
         return self._operate(other, operator.mul)
 
     __rmul__ = __mul__
 
     # Subtraction
-    def __sub__(self, other):       
+    def __sub__(self, other: Any) -> 'GONetFile':
+        """
+        Overloads the `-` operator to subtract another GONetFile instance 
+        or a scalar from the current GONetFile instance.
+
+        This method subtracts the red, green, and blue channels of two GONetFile 
+        instances or applies element-wise subtraction between a GONetFile instance 
+        and a scalar using numpy's subtraction.
+
+        Parameters
+        ----------
+        other : Any
+            Another GONetFile instance or a scalar value (int, float) to subtract 
+            from the current GONetFile instance.
+
+        Returns
+        -------
+        GONetFile
+            A new GONetFile instance with the result of the subtraction.
+
+        Notes
+        -----
+        - If the operation is between two GONetFile instances, the resulting 
+          GONetFile instance will not have metadata or file type.
+        - Any errors during the operation are raised by numpy.
+        """
         return self._operate(other, operator.sub)
-    
+
     # Division
-    def __truediv__(self, other):
+    def __truediv__(self, other: Any) -> 'GONetFile':
+        """
+        Overloads the `/` operator to divide the current GONetFile instance 
+        by another GONetFile instance or a scalar.
+
+        This method divides the red, green, and blue channels of two GONetFile 
+        instances or applies element-wise division between a GONetFile instance 
+        and a scalar using numpy's true division.
+
+        Parameters
+        ----------
+        other : Any
+            Another GONetFile instance or a scalar value (int, float) to divide 
+            the current GONetFile instance.
+
+        Returns
+        -------
+        GONetFile
+            A new GONetFile instance with the result of the division.
+
+        Notes
+        -----
+        - If the operation is between two GONetFile instances, the resulting 
+          GONetFile instance will not have metadata or file type.
+        - Any errors during the operation are raised by numpy.
+        """
         return self._operate(other, operator.truediv)
     
     # I'd like to start writing some tests. But first I need to understand why in line 144 we add 0.5 (to avoid zeros?) and wether we can use uint32 

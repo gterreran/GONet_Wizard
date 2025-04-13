@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-with open("README.md", "r") as inp:
+with open("README.rst", "r") as inp:
     long_description = inp.read()
 
 setup(
@@ -38,6 +38,11 @@ setup(
     ],
     extras_require={
         "dev": ["pytest>=7.0", "twine>=4.0.2"],
+        'docs': [
+            'sphinx>=7.0',
+            'sphinx-autodoc-typehints',
+            'sphinx-rtd-theme',
+        ],
     },
     python_requires=">=3.10",
 )

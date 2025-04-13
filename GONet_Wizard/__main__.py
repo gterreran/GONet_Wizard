@@ -1,4 +1,4 @@
-# MyPackage/__main__.py
+# GONet_Wizard/__main__.py
 import argparse
 from GONet_Wizard import GONet_dashboard, GONet_utils
 
