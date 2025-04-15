@@ -9,6 +9,7 @@ managing GONet data, including file handling, data extraction, and more.
    :caption: Modules:
 
    gonetfile
+   raw_data
    connect
 
 

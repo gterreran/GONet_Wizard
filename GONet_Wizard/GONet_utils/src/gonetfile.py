@@ -380,7 +380,7 @@ class GONetFile:
         if filepath.split('.')[-1] in ['tiff','TIFF','tif','TIF']:
             parsed_data, parsed_meta = cls._parse_tiff_file(filepath, meta)
         elif filepath.split('.')[-1] in ['jpg']:
-            parsed_data, parsed_meta = cls._parse_jpg_file(filepath, meta)
+            parsed_data, parsed_meta = cls._parse_raw_file(filepath, meta)
         else:
             raise ValueError("Extension must be '.tiff', '.TIFF', '.tif', '.TIF' or the original '.jpg' from a GONet camera.")
 
@@ -424,17 +424,19 @@ class GONetFile:
                 return tiff_data, None
 
     @staticmethod
-    def _parse_jpg_file(filepath: str, meta: bool) -> tuple[np.ndarray, dict]:
+    def _parse_raw_file(filepath: str, meta: bool) -> tuple[np.ndarray, dict]:
         """
-        Parses a JPEG file and extracts image data and metadata.
+        Parses a raw GONet file and extracts image data and metadata.
 
-        This method reads the JPEG file specified by `filepath` and extracts the 
+        This method reads the raw file specified by `filepath` and extracts the 
         red, green, and blue channel data, as well as metadata if `meta` is True.
+        Note that the raw files usually have `.jpg` extensions, but they are not
+        standard JPEG images.
 
         Parameters
         ----------
         filepath : str
-            The path to the JPEG file.
+            The path to the raw file.
         meta : bool, optional
             Whether to extract metadata from the file. Defaults to `True`.
 

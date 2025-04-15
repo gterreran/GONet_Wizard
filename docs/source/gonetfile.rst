@@ -7,19 +7,16 @@ and methods required for manipulating the image data (including red, green,
 and blue channels) and metadata associated with GONet files.
 
 The module supports various operations on GONet files, including:
-- Loading image data from TIFF and JPEG formats.
+- Loading image data from original raw (`.jpg`) or TIFF formats.
 - Performing arithmetic operations between GONet files and scalar values.
 - Writing image data to common formats like JPEG, TIFF, and FITS.
 - Parsing and handling metadata for different file types.
 
+For more info regarding how the raw data is parsed, see :doc:`raw_data`.
+
 The `GONetFile` class also includes support for operator overloading, allowing 
 users to easily perform element-wise operations between GONet files or between 
 a GONet file and scalar values.
-
-Key functionalities include:
-- Parsing TIFF and JPEG files to extract pixel data and metadata.
-- Writing multi-extension FITS files with image data and associated metadata.
-- Handling file saving with libraries such as :mod:`PIL.Image` and :mod:`astropy.io.fits`.
 
 Attributes
 ----------
@@ -33,7 +30,7 @@ This module utilizes libraries like :mod:`numpy`, :mod:`PIL.Image`, and
 
 Example usage:
 --------------
-.. code-block:: javascript
+.. code-block:: python
 
    gonet_file = GONetFile.from_file('example_image.tiff')
    plt.imshow(gonet_file.green)
