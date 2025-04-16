@@ -91,11 +91,11 @@ class GONetFile:
         ----------
         filename : str
             The name of the file.
-        red : np.ndarray
+        red : numpy.ndarray
             The red channel pixel data.
-        green : np.ndarray
+        green : numpy.ndarray
             The green channel pixel data.
-        blue : np.ndarray
+        blue : numpy.ndarray
             The blue channel pixel data.
         meta : dict
             A dictionary containing metadata.

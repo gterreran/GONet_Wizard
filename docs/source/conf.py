@@ -25,11 +25,13 @@ extensions = [
     'sphinx.ext.viewcode',  # To include links to source code
     'sphinx.ext.intersphinx', # Enables linking to external docs
     'sphinx_autodoc_typehints',  
+    'sphinx.ext.extlinks',
 ]
 
 exclude_patterns = []
 
-
+typehints = 'signature'
+autodoc_typehints = 'description'
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -44,7 +46,16 @@ intersphinx_mapping = {
     'paramiko': ('https://docs.paramiko.org/en/stable', None),
     'numpy': ('https://numpy.org/doc/stable', None),
     'astropy': ('https://docs.astropy.org/en/stable/', None),
+    'flask': ('https://flask.palletsprojects.com/en/latest/', None),
+}
+
+extlinks = {
+    'dashdoc': ('https://dash.plotly.com/%s', 'dash.'),
 }
 
 autodoc_typehints = 'signature'
 autodoc_member_order = 'bysource'
+
+html_theme_options = {
+    "navigation_depth": 3,  # Required for function-level sidebar nesting
+}

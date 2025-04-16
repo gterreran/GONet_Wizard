@@ -1,3 +1,44 @@
+"""
+GONet Wizard Dashboard Layout Definition.
+
+This module defines the full layout of the GONet Wizard web dashboard using Dash components.
+It includes UI elements for plotting, filtering, exporting, and inspecting data. It also defines
+placeholder figures used before user interaction or data loading.
+
+Layout Overview
+---------------
+- Top Section:
+    - Title and logo
+    - Graph container for the main scatter plot
+    - Dropdowns and switches to select channels, axes, and fold settings
+    - Export button to download current filtered data
+
+- Bottom Section:
+    - Filter controls for custom and selection-based filters
+    - Upload/Save status buttons to persist or restore UI state
+    - GONet image preview section for pixel-level inspection
+
+Placeholders
+------------
+- `place_holder_main_plot` : dict
+    A blank Plotly figure with an image background to serve as the default main plot display.
+
+- `place_holder_GONet` : dict
+    A blank figure used for the GONet image display on the lower right panel.
+
+Variables
+---------
+layout : dash.development.base_component.Component
+    The full layout tree of the Dash app, including all Divs, Graphs, Dropdowns,
+    Stores, Uploads, Buttons, and custom components.
+
+Notes
+-----
+- All dropdown options, filters, and data stores are initialized to empty or default values.
+- The layout dynamically interacts with callbacks registered in `callbacks.py`.
+- Styling and visibility are managed primarily through CSS classes and Dash DAQ components.
+"""
+
 from dash import dcc, html
 import dash_daq as daq
 from GONet_Wizard.GONet_dashboard.src import env

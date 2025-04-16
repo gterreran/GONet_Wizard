@@ -1,3 +1,29 @@
+"""
+Callbacks for the GONet Dashboard.
+
+This module defines all Dash callback functions used to power the interactivity
+of the GONet Wizard dashboard. These callbacks handle data loading, filter logic,
+plot generation, UI synchronization, and exporting/importing dashboard state.
+
+Features
+--------
+- Loads and parses JSON datasets into memory upon UI interaction.
+- Dynamically populates axis dropdowns and filter containers based on dataset contents.
+- Updates scatter plots based on user selections, filters, and folding options.
+- Allows for data export of filtered selections and dashboard state as JSON files.
+- Supports restoring saved states by decoding uploaded status files.
+- Includes clientside support for browser-based download of status data.
+- Manages both simple and compound filters, including lasso-selection-based filters.
+
+Notes
+-----
+- This module depends on utility functions from `GONet_Wizard.GONet_dashboard.src.utils`
+  and configuration settings from `GONet_Wizard.GONet_dashboard.src.env`.
+- Image decoding and handling rely on the `GONetFile` class from `GONet_utils`.
+- Clientside callbacks are documented manually and should be maintained alongside the server-side callbacks.
+
+"""
+
 from dash.dependencies import Input, Output, State, ALL, MATCH
 from GONet_Wizard.GONet_dashboard.src.server import app
 import os, json, datetime, base64
@@ -6,8 +32,8 @@ from GONet_Wizard.GONet_dashboard.src import utils
 from dash import no_update, ctx, html, clientside_callback
 import numpy as np
 from GONet_Wizard.GONet_utils import GONetFile
+from typing import Any
 
-#upload image and storing the data.
 @app.callback(
     Output('data-json', 'data'),
     Output("x-axis-dropdown",'options'),
@@ -16,6 +42,25 @@ from GONet_Wizard.GONet_utils import GONetFile
     Input("top-container",'children')
 )
 def load(_):
+    """
+    Load available data from the configured ROOT directory and prepare dropdown options.
+
+    The ROOT directory must be defined by the environment variable ``GONET_ROOT``.
+
+    This functions is the only function that will run at the loading of the page.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    data : :class:`dict`
+        Dictionary containing metadata from all available nights.
+    options_x : :class:`list`
+        List of options for the x-axis dropdown.
+    options_y : :class:`list`
+        List of options for the y-axis dropdown.
+    """
     utils.debug()
 
     data = {'night':[], 'idx':[], 'channel':[]}
@@ -75,6 +120,37 @@ def load(_):
     prevent_initial_call=True
 )
 def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_switch, fig, all_data, big_point_idx):
+    """
+    Update the main plot based on the selected axes, filters, and other plot parameters.
+
+    Parameters
+    ----------
+    x_label : :class:`str`
+        Label selected for the x-axis.
+    y_label : :class:`str`
+        Label selected for the y-axis.
+    channels : :class:`list` of str
+        List of selected channels (e.g., 'red', 'green', 'blue').
+    active_filters : :class:`list` of dict
+        List of active filters, each specified as a dictionary with keys like 'label', 'operator', and 'value'.
+    show_filtered_points : :class:`bool`
+        Whether to show points that were excluded by the filters.
+    fold_switch : :class:`bool`
+        Whether to apply time-folding to the x-axis values.
+    big_point_idx : :class:`int` or None
+        Index of a selected point to be highlighted prominently.
+    fig : :class:`dict` or None
+        Previous figure state (used to preserve axis ranges or toggle channels).
+    all_data : :class:`dict`
+        Full dataset in dictionary form.
+
+    Returns
+    -------
+    fig : :class:`dict`
+        Updated plotly figure with applied filters and plotting parameters.
+    stats : :class:`dict`
+        Statistics extracted from the current figure, used for display or export.
+    """
     utils.debug()
 
     if x_label is None or y_label is None:
@@ -189,6 +265,31 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
     prevent_initial_call=True
 )
 def info(clickdata, fig, data, fold_switch):
+    """
+    Update the UI when a data point in the main plot is clicked.
+
+    Parameters
+    ----------
+    clickdata : :class:`dict`
+        Click event data from the main plot.
+    fig : :class:`dict`
+        Current figure object.
+    data : :class:`dict`
+        Dataset as loaded from JSON.
+    fold_switch : :class:`bool`
+        Whether time folding is enabled.
+
+    Returns
+    -------
+    outfig : :class:`dict`
+        Updated heatmap figure for the clicked data point.
+    fig : :class:`dict`
+        Updated main scatter figure.
+    table : :class:`list`
+        List of HTML table row elements with info.
+    real_idx : :class:`int`
+        Index of the clicked data point.
+    """
     utils.debug()
     plot_index = clickdata['points'][0]['curveNumber']
     idx = fig['data'][plot_index]['idx'][clickdata['points'][0]['pointIndex']]
@@ -257,6 +358,21 @@ def info(clickdata, fig, data, fold_switch):
     prevent_initial_call=True
 )
 def activate_fold_switch(x_label):
+    """
+    Toggle the availability of the fold-time switch based on the x-axis selection.
+
+    Parameters
+    ----------
+    x_label : :class:`str`
+        Label selected for the x-axis.
+
+    Returns
+    -------
+    disabled : :class:`bool`
+        Whether the switch should be disabled.
+    on : :class:`bool`
+        State of the switch.
+    """
     utils.debug()
 
     if x_label == 'date':
@@ -276,6 +392,23 @@ def activate_fold_switch(x_label):
     prevent_initial_call=True
 )
 def add_filter(_, filter_div, labels):
+    """
+    Add a new empty filter block to the filter container in the UI.
+
+    Parameters
+    ----------
+    _ : :class:`Any`
+        Dummy input from the button click (not used).
+    filter_div : :class:`list`
+        Current list of filter components in the container.
+    labels : :class:`list` of dict
+        List of label options for dropdowns.
+
+    Returns
+    -------
+    filter_div : :class:`list`
+        Updated list of filter components with one new filter added.
+    """
     utils.debug()
     
     n_filter = len(filter_div)
@@ -295,6 +428,23 @@ def add_filter(_, filter_div, labels):
     prevent_initial_call=True
 )
 def add_or_filter(_, id, labels):
+    """
+    Add an additional (OR-based) condition to an existing filter block.
+
+    Parameters
+    ----------
+    _ : :class:`Any`
+        Dummy input from the OR-button click (not used).
+    id : :class:`dict`
+        Dictionary containing the index of the filter block to update.
+    labels : :class:`list` of dict
+        List of label options for the dropdowns.
+
+    Returns
+    -------
+    new_filter : dash component
+        A new filter component to be added to the filter block.
+    """
     utils.debug()
     
     idx = id['index']
@@ -311,6 +461,19 @@ def add_or_filter(_, id, labels):
     prevent_initial_call=True
 )
 def update_main_filters_value(label):
+    """
+    Automatically update the value of the main filter when a filter label is selected.
+
+    Parameters
+    ----------
+    label : :class:`str`
+        The selected label from the main filter dropdown.
+
+    Returns
+    -------
+    value : :class:`Any` or None
+        Default value corresponding to the label, or None if not found.
+    """
     utils.debug()
     
     if label in env.DEFAULT_FILTER_VALUES:
@@ -326,6 +489,19 @@ def update_main_filters_value(label):
     prevent_initial_call=True
 )
 def update_secondary_filters_value(label):
+    """
+    Automatically update the value of the secondary (OR) filter when a label is selected.
+
+    Parameters
+    ----------
+    label : :class:`str`
+        The selected label from the secondary filter dropdown.
+
+    Returns
+    -------
+    value : :class:`Any` or None
+        Default value corresponding to the label, or None if not found.
+    """
     utils.debug()
     
     if label in env.DEFAULT_FILTER_VALUES:
@@ -353,6 +529,43 @@ def update_secondary_filters_value(label):
     prevent_initial_call=True
 )
 def update_filters(switches, ops, values, selections, second_ops, second_values, labels, second_labels, second_ids, selections_ids, filters_before):
+    """
+    Assemble and update the active filters list based on user-defined filter inputs.
+
+    This function collects the current state of all active filters, including their
+    labels, operators, and values, and constructs a list of active filters. If a
+    secondary (OR) filter is present, it is added as a nested dictionary.
+
+    Parameters
+    ----------
+    switches : :class:`list` of bool
+        States of the main filter switches indicating whether each filter is active.
+    ops : :class:`list` of str
+        Comparison operators for each main filter (e.g., '>', '<=', '==').
+    values : :class:`list`
+        Values selected or entered for each main filter.
+    selections : :class:`list`
+        Lasso or box selection data used to override value-based filters.
+    second_ops : :class:`list` of str
+        Comparison operators for each secondary filter.
+    second_values : :class:`list`
+        Values selected or entered for each secondary filter.
+    labels : :class:`list` of str
+        Labels (field names) selected for each main filter.
+    second_labels : :class:`list` of str
+        Labels selected for each secondary filter.
+    second_ids : :class:`list` of dict
+        IDs of the secondary filter value fields, containing the filter index.
+    selections_ids : :class:`list` of dict
+        IDs of the selection-based filters, containing the filter index.
+    filters_before : :class:`list` of dict
+        Previously active filters, used to check whether an update is necessary.
+
+    Returns
+    -------
+    :class:`list` of :class:`dict` or :class:`dash.no_update`
+        Updated list of active filters, or `no_update` if unchanged.
+    """
     utils.debug()
 
     active_filters=[]
@@ -388,6 +601,31 @@ def update_filters(switches, ops, values, selections, second_ops, second_values,
     prevent_initial_call=True
 )
 def export_data(_, fig, data):#, channels):
+    """
+    Export filtered data from the plot to a downloadable JSON file.
+
+    This function retrieves all points currently visible in the main plot that are not
+    filtered or marked as big points. It extracts relevant metadata and fit parameters
+    for each unique index across all channels, organizing the data into a structured JSON
+    format for export.
+
+    Parameters
+    ----------
+    _ : :class:`Any`
+        Unused placeholder for the n_clicks input from the export button.
+    fig : :class:`dict`
+        The Plotly figure dictionary containing plotted data and metadata.
+    data : :class:`dict`
+        The full dataset loaded into the application, including all measurements
+        and metadata for each point.
+
+    Returns
+    -------
+    :class:`dict`
+        A dictionary containing:
+        - 'content': JSON string representing the filtered and formatted dataset.
+        - 'filename': Suggested filename for the download ("filtered_data.json").
+    """
     utils.debug()
 
     json_out = []
@@ -422,12 +660,50 @@ def export_data(_, fig, data):#, channels):
 
     return dict(content=json.dumps(json_out, indent=4), filename="filtered_data.json")
 
-# Considering the dictionary describing the status is pretty small, we can use 
-# Data URLs, despite it is probably not the best way of downloading data.
-# Below you can find the javascript for using the File System Access API,
-# which handles the download better, but it doesn't use the browser download UI
-# so it's a little bit less nice. I think in the future we will let django handle
-# the download
+# ------------------------------------------------------------------------------
+# Clientside Callback: Download Dashboard Status as JSON
+# ------------------------------------------------------------------------------
+#
+# This clientside callback enables users to export the current dashboard status
+# (e.g., selected axes, filters, and switches) as a downloadable JSON file.
+# The data is serialized on the client and offered as a file via the browser’s
+# native download mechanism, using a temporary Blob URL.
+#
+# Although this method is simple and effective for small payloads, it relies on
+# Data URLs, which are not ideal for large or binary content. In future versions,
+# it may be preferable to offload download handling to the backend (e.g., via Django).
+#
+# Parameters
+# ----------
+# data : object
+#     A small dictionary representing the dashboard’s state, typically stored in
+#     the `status-data` component. This includes axis values, filter configurations,
+#     and switch states.
+#
+# Returns
+# -------
+# str
+#     An empty string upon successful trigger of the download process,
+#     or `dash_clientside.no_update` if no action is taken.
+#
+# Behavior
+# --------
+# - Prompts the user to enter a filename (default: "status.json")
+# - Converts the input data to a formatted JSON string
+# - Creates a Blob and object URL for download
+# - Triggers the download using a temporary anchor tag
+# - Cleans up the temporary elements after the download completes
+#
+# Notes
+# -----
+# While the current solution provides a user-friendly browser-based download
+# experience, it bypasses the native file save dialog and may not be ideal for
+# production workflows. A more robust implementation using the File System Access API
+# is also provided below (commented out), offering deeper integration with the
+# operating system at the cost of browser compatibility and UI polish.
+#
+# Future versions may delegate this task to Django to provide cleaner handling,
+# especially for larger payloads or authenticated sessions.
 
 clientside_callback(
     """
@@ -531,6 +807,30 @@ clientside_callback(
     prevent_initial_call=True
 )
 def save_status(_,*args):
+    """
+    Save the current dashboard state, including axis selections and filter configurations.
+
+    This function collects the current state of all dashboard controls—such as axis dropdowns,
+    filters, channel selections, and switches—and assembles them into a dictionary suitable
+    for export or persistent storage. It supports both primary and secondary filters.
+
+    Parameters
+    ----------
+    _ : :class:`Any`
+        Unused placeholder for the `n_clicks` input from the "save status" button.
+    *args : :class:`list`
+        Interleaved list of (id, value) pairs for all input states. Each id can either be a string
+        (for global components like axis dropdowns and switches) or a dictionary (for indexed filters).
+
+    Returns
+    -------
+    :class:`dict`
+        A dictionary representing the current state of the dashboard, including:
+        - Axis selection values.
+        - All filters and their properties.
+        - Active channels and switch states.
+        The structure is compatible with later reloading via the `load_status` function.
+    """
     utils.debug()
 
     out_dict = {'filters':[]}
@@ -567,6 +867,37 @@ def save_status(_,*args):
     prevent_initial_call=True
 )
 def load_status(contents, filter_div, labels):
+    """
+    Load a previously saved dashboard state from a base64-encoded JSON file.
+
+    This function decodes and parses the uploaded status file and restores the application state,
+    including axis selections, active channels, switches, and filters. It dynamically reconstructs
+    each filter (both primary and secondary) and injects them into the dashboard.
+
+    Parameters
+    ----------
+    contents : :class:`str`
+        Base64-encoded string representing the uploaded file contents from the Dash upload component.
+    filter_div : :class:`list`
+        List of existing filter components already present in the dashboard.
+    labels : :class:`list`
+        List of available labels used to populate new filters.
+
+    Returns
+    -------
+    x_axis_value : :class:`str`
+        Restored value for the x-axis dropdown.
+    y_axis_value : :class:`str`
+        Restored value for the y-axis dropdown.
+    channels : :class:`list`
+        Restored list of selected channels.
+    show_filtered : :class:`bool`
+        Whether to show filtered points, as restored from the saved state.
+    fold_time : :class:`bool`
+        Whether time-folding is enabled, as restored from the saved state.
+    filter_div : :class:`list`
+        Updated list of filter UI components reflecting the saved configuration.
+    """
     utils.debug()
     decoded_string = base64.b64decode(contents.split(',')[1]).decode('utf-8')
     base64.b64decode(decoded_string)
@@ -601,6 +932,27 @@ def load_status(contents, filter_div, labels):
     prevent_initial_call=True
 )
 def update_filter_selection_state(relayout_data, fig, all_data):
+    """
+    Enable or disable the "Add Selection Filter" button based on current selection in the plot.
+
+    This function checks whether a valid lasso or box selection exists in the main plot.
+    If such a selection is detected (i.e., a non-empty path is present), the filter button
+    becomes enabled; otherwise, it remains disabled.
+
+    Parameters
+    ----------
+    relayout_data : :class:`dict`
+        The relayout metadata from the Plotly plot, which may include a 'selections' field.
+    fig : :class:`dict`
+        The current figure displayed in the main plot (unused, but passed for context).
+    all_data : :class:`dict`
+        The full dataset shown in the dashboard (unused, but passed for context).
+
+    Returns
+    -------
+    :class:`bool`
+        `False` if a valid selection exists (enabling the button), `True` otherwise (disabling it).
+    """
     utils.debug()
     if relayout_data and 'selections' in relayout_data:
         selection = relayout_data['selections']
@@ -623,6 +975,34 @@ def update_filter_selection_state(relayout_data, fig, all_data):
     prevent_initial_call=True
 )
 def add_selection_filter(_, filter_div, relayout_data, figure):
+    """
+    Create and add a new filter based on the current selection region in the plot.
+
+    This function checks if a valid lasso or box selection exists in the plot's `relayoutData`.
+    If so, it generates a new filter corresponding to the selected data points and appends it
+    to the list of existing filters. The selection is then removed from the plot layout to avoid
+    reprocessing.
+
+    Parameters
+    ----------
+    _ : :class:`Any`
+        Placeholder for the button click triggering the addition of a selection-based filter.
+    filter_div : :class:`list`
+        Existing list of Dash filter components displayed in the UI.
+    relayout_data : :class:`dict`
+        Plotly relayout data containing information about lasso/box selections.
+    figure : :class:`dict`
+        The current figure dictionary shown in the main plot.
+
+    Returns
+    -------
+    filter_div : :class:`list`
+        Updated list of filter components, now including the new selection-based filter.
+    relayoutData : :class:`dict`
+        An empty dictionary to reset plot selection state.
+    figure : :class:`dict`
+        The updated figure with the selection metadata removed.
+    """
     utils.debug()
 
     if not relayout_data or 'selections' not in relayout_data:

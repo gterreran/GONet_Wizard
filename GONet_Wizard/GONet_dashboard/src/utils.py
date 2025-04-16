@@ -1,3 +1,37 @@
+"""
+GONet Wizard Utility Functions.
+
+This module provides reusable functions for plotting, filtering, statistical analysis,
+and layout generation within the GONet Wizard dashboard application. These functions
+support the construction of Dash figures, dynamic filter UI elements, and filter logic
+used in the callback system.
+
+Key Functional Areas
+--------------------
+- **Debugging**: `debug()` logs the caller function and line number.
+- **Figure Sorting**: `sort_figure()` reorders plot layers for visibility.
+- **Plotting**:
+    - `plot_scatter()`: Adds filtered and unfiltered data points to the main plot.
+    - `plot_big_points()`: Highlights selected points in the scatter plot.
+- **Statistics**: `get_stats()` computes mean and standard deviation for displayed data.
+- **Filter Layouts**:
+    - `new_empty_filter()`: Creates a UI block for a primary filter.
+    - `new_empty_second_filter()`: Generates a secondary "OR" filter.
+    - `new_selection_filter()`: Creates a filter based on a lasso/box selection.
+
+Globals
+-------
+op : :class:`dict`
+    Dictionary mapping string operators (e.g., '<', '!=') to their Python equivalents.
+
+Notes
+-----
+- This module interacts with the shared `env` configuration module for constants
+  such as channel names, color schemes, and filter labels.
+- Dash components from `dash` and `dash_daq` are used to construct UI elements dynamically.
+- Filters are expressed as masks on `all_data` and combined with logical operations.
+
+"""
 import inspect, datetime
 import numpy as np
 from GONet_Wizard.GONet_dashboard.src import env
@@ -26,7 +60,26 @@ def debug():
             inspect.stack()[1][3],
             inspect.stack()[1][2]))
 
-def sort_figure(fig):
+def sort_figure(fig: dict) -> dict:
+    """
+    Reorders the traces in a Plotly figure based on filtering and highlight status.
+
+    This function reorders the entries in the `fig['data']` list so that:
+    1. Filtered points (not highlighted) are drawn first.
+    2. Unfiltered points are drawn next (these should be visually dominant).
+    3. Highlighted "big points" are drawn last so they appear on top.
+
+    Parameters
+    ----------
+    fig : :class:`dict`
+        A Plotly figure dictionary with a "data" key containing traces.
+        Each trace is expected to include boolean keys: "filtered" and "big_point".
+
+    Returns
+    -------
+    :class:`dict`
+        The modified Plotly figure with reordered data traces.
+    """
     new_order = []
     for img in fig['data']:
         if img['filtered'] and not img['big_point']:
@@ -41,10 +94,62 @@ def sort_figure(fig):
     fig['data'] = new_order[:]
     return fig
 
-def get_labels(fig):
+def get_labels(fig: dict) -> dict:
+    """
+    Extracts the axis label text from a Plotly figure layout.
+
+    This function retrieves the `xaxis` and `yaxis` title strings from the figure's layout
+    and returns them as a dictionary keyed by `'x'` and `'y'`.
+
+    Parameters
+    ----------
+    fig : :class:`dict`
+        A Plotly figure dictionary expected to have keys: `'layout' → 'xaxis'/'yaxis' → 'title' → 'text'`.
+
+    Returns
+    -------
+    :class:`dict`
+        A dictionary with keys `'x'` and `'y'`, mapping to the corresponding axis labels as strings.
+    """
     return {'x': fig['layout']['xaxis']['title']['text'], 'y': fig['layout']['yaxis']['title']['text']}
 
-def plot_scatter(all_data, channels, fig, active_filters, show_filtered_points, fold_switch):
+def plot_scatter(
+    all_data: dict,
+    channels: list,
+    fig: dict,
+    active_filters: list,
+    show_filtered_points: bool,
+    fold_switch: bool
+) -> dict:
+    """
+    Update a Plotly figure by adding scatter traces for selected and filtered data.
+
+    This function builds the main scatter plot based on selected channels, applied filters,
+    and folding settings. It appends new traces to the input figure dictionary for both
+    visible (selected) and hidden (filtered out) data points.
+
+    Parameters
+    ----------
+    all_data : :class:`dict`
+        The full data dictionary containing all measured quantities. Each key corresponds
+        to a column, with values as lists of entries (e.g., 'idx', 'channel', 'date', etc.).
+    channels : :class:`list`
+        A list of channel names (e.g., ['red', 'green', 'blue']) to include in the plot.
+    fig : :class:`dict`
+        A Plotly figure dictionary that will be modified in-place by appending scatter traces.
+    active_filters : :class:`list`
+        A list of active filters, each represented as a dictionary with keys like 'label',
+        'operator', 'value', and optionally 'secondary'.
+    show_filtered_points : :class:`bool`
+        Whether to display the filtered-out points in the plot (with lower opacity).
+    fold_switch : :class:`bool`
+        Whether to fold time-based x-axis values into a 24-hour night-based view.
+
+    Returns
+    -------
+    :class:`dict`
+        The modified Plotly figure with updated 'data' containing scatter traces for each channel.
+    """
 
     # Retrieving the quantities I am currently plotting
     labels = get_labels(fig)
@@ -159,7 +264,30 @@ def plot_scatter(all_data, channels, fig, active_filters, show_filtered_points, 
 
     return fig
 
-def plot_big_points(data, idx_big_point, fig, fold_switch):
+def plot_big_points(data: dict, idx_big_point: int, fig: dict, fold_switch: bool) -> dict:
+    """
+    Highlight a selected point in the scatter plot by adding enlarged "big point" markers.
+
+    This function removes any previously plotted big points and appends new, enlarged markers
+    corresponding to the selected index. It supports time-folding if the x-axis is temporal.
+
+    Parameters
+    ----------
+    data : :class:`dict`
+        The full data dictionary containing measurement entries. Each key corresponds to a quantity
+        such as 'channel', 'idx', or a plotted axis label.
+    idx_big_point : :class:`int`
+        Index of the selected point to be highlighted.
+    fig : :class:`dict`
+        The Plotly figure to be modified. New traces will be appended to its `'data'` field.
+    fold_switch : :class:`bool`
+        Whether to fold time values to a 24-hour display anchored to the astronomical day.
+
+    Returns
+    -------
+    :class:`dict`
+        The updated Plotly figure dictionary with big point highlights added.
+    """
 
     labels = get_labels(fig)
 
@@ -222,7 +350,24 @@ def plot_big_points(data, idx_big_point, fig, fold_switch):
 
     return fig
 
-def get_stats(fig):
+def get_stats(fig: dict) -> list:
+    """
+    Compute summary statistics (mean and standard deviation) for plotted x and y values.
+
+    This function extracts unfiltered, non-highlighted data from the figure and calculates
+    per-axis statistics. It builds an HTML table as a list of Dash row components to be
+    rendered in the dashboard's stats panel.
+
+    Parameters
+    ----------
+    fig : :class:`dict`
+        A Plotly figure dictionary containing the data traces used for plotting.
+
+    Returns
+    -------
+    :class:`list`
+        A list of :class:`dash.html.Tr` elements representing the statistics table rows.
+    """
 
     labels = get_labels(fig)
 
@@ -259,7 +404,28 @@ def get_stats(fig):
     return formatted_stats_table
 
 
-def new_empty_filter(idx, labels):
+def new_empty_filter(idx: int, labels: list) -> html.Div:
+    """
+    Create a Dash component representing an empty primary filter block.
+
+    This function generates a new UI element for a filter container, including:
+    - A toggle switch to activate the filter
+    - Dropdowns for selecting the data field and comparison operator
+    - An input box for entering the comparison value
+    - A button to optionally add a secondary (OR) filter
+
+    Parameters
+    ----------
+    idx : :class:`int`
+        The index of the filter, used to uniquely identify its subcomponents.
+    labels : :class:`list`
+        A list of dictionaries defining the dropdown options for the filter field selector.
+
+    Returns
+    -------
+    :class:`dash.html.Div`
+        A fully constructed Dash `Div` component containing the filter UI.
+    """
 
     new_filter = html.Div(className="custom-filter-container", id = {"type":'custom-filter-container', "index":idx}, children=[
                 html.Div(className="first-filter-container", id = {"type":'first-filter-container', "index":idx}, children=[
@@ -277,7 +443,26 @@ def new_empty_filter(idx, labels):
 
     return new_filter
 
-def new_empty_second_filter(idx, labels):
+def new_empty_second_filter(idx: int, labels: list) -> list:
+    """
+    Create a Dash component block representing a secondary (OR) filter.
+
+    This function returns a list of Dash components corresponding to a secondary filter UI.
+    It includes a label ("OR"), a dropdown for field selection, a dropdown for the operator,
+    and an input field for the value.
+
+    Parameters
+    ----------
+    idx : :class:`int`
+        The index of the parent filter, used to uniquely identify the subcomponents.
+    labels : :class:`list`
+        A list of dictionaries representing dropdown options for field selection.
+
+    Returns
+    -------
+    :class:`list`
+        A list of Dash components to be inserted into a secondary filter container.
+    """
     new_filter = [
         html.Div(className='or-div', id= {"type":'or-div', "index":idx}, children='OR'),
         dcc.Dropdown(className="custom-filter-dropdown", id={"type":'second-filter-dropdown', "index":idx}, options=labels),
@@ -287,7 +472,26 @@ def new_empty_second_filter(idx, labels):
 
     return new_filter
 
-def new_selection_filter(idx, selected_indexes):
+def new_selection_filter(idx: int, selected_indexes: list) -> html.Div:
+    """
+    Create a Dash component for a selection-based filter using manually selected points.
+
+    This function generates a filter UI tied to a lasso or box selection on the plot.
+    It includes a toggle switch, a dropdown preset to the selection label, a hidden
+    data store with the selected indices, and a dropdown to choose inclusion or exclusion.
+
+    Parameters
+    ----------
+    idx : :class:`int`
+        The index of the filter, used to generate unique component IDs.
+    selected_indexes : :class:`list`
+        A list of data indices representing the points included in the selection.
+
+    Returns
+    -------
+    :class:`dash.html.Div`
+        A Dash `Div` component containing the selection-based filter UI.
+    """
 
     new_filter = html.Div(className="custom-filter-container", id = {"type":'custom-filter-container', "index":idx}, children=[
                 html.Div(className="first-filter-container", id = {"type":'first-filter-container', "index":idx}, children=[
