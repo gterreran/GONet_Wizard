@@ -2,7 +2,7 @@
 Entry point for launching the GONet Dashboard.
 
 This module imports the :dashdoc:`Dash <>` `app` instance and provides a top-level `run` function
-that starts the dashboard server. It is also executable as a script.
+that starts the dashboard server.
 
 """
 
@@ -16,5 +16,3 @@ def run():
     """
     app.run_server(debug=True)
 
-if __name__ == '__main__':
-    run()
