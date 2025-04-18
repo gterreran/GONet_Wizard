@@ -1,31 +1,42 @@
-=========================
+============
 GONet Wizard
-=========================
+============
 
-Welcome to the GONet Wizard documentation!
+.. image:: https://img.shields.io/github/v/tag/gterreran/GONet_Wizard?label=version&color=blue
+   :target: https://github.com/gterreran/GONet_Wizard/tags
+   :alt: GitHub latest tag
 
-Contents:
-==========
+.. automodule:: GONet_Wizard
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+See the :doc:`installation` page for details on how to install the package.
+
+See the :doc:`CLI <cli>` page a description on how to use some of the functionalities from the command line.
+
+The following modules are included in the GONet Wizard package:
+
+- :mod:`GONet_Wizard.GONet_dashboard`
+- :mod:`GONet_Wizard.GONet_utils`
+- :mod:`GONet_Wizard.commands`
+
+Each module is documented in its own section below.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   GONet_Wizard
+   installation
+   cli
    GONet_dashboard
    GONet_utils
+   commands
+   Changelog <https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md>
 
-API Documentation
-=================
+Changelog
+=========
 
-.. automodule:: GONet_Wizard.GONet_dashboard
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :no-index:
+The full changelog is available on GitHub:
 
-.. automodule:: GONet_Wizard.GONet_utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :no-index:
+View `CHANGELOG.md <https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md>`_ on GitHub 

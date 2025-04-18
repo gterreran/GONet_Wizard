@@ -16,6 +16,5 @@ Submodules
    dashboard/callbacks
    dashboard/env
    dashboard/layout
-   dashboard/run_app
    dashboard/server
    dashboard/utils

@@ -1,15 +1,16 @@
 GONet Utils Module
 ==================
 
-The `GONet_utils` module contains utility functions for processing and 
-managing GONet data, including file handling, data extraction, and more.
+.. automodule:: GONet_Wizard.GONet_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Submodules
+----------
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Modules:
+   :maxdepth: 3
 
-   gonetfile
-   raw_data
-   connect
-
-
+   utils/gonetfile
+   utils/raw_data

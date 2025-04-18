@@ -2,6 +2,15 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../../'))
 from typing import Callable, Any
+from GONet_Wizard._version import __version__  
+
+version = __version__
+release = __version__
+
+html_context = {
+    'display_version': True,
+    'version': version,
+}
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -13,8 +22,10 @@ author = 'Giacomo Terreran'
 # The master toctree document (this is the main entry point for Sphinx)
 master_doc = 'index'
 
-# The suffix of source files. Typically .rst for reStructuredText files
-source_suffix = {'.rst': 'restructuredtext'}
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -26,6 +37,7 @@ extensions = [
     'sphinx.ext.intersphinx', # Enables linking to external docs
     'sphinx_autodoc_typehints',  
     'sphinx.ext.extlinks',
+    'myst_parser',
 ]
 
 exclude_patterns = []
@@ -43,10 +55,11 @@ html_logo = '_static/logo.png'  # Path to your logo image
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'PIL': ('https://pillow.readthedocs.io/en/stable/', None),
-    'paramiko': ('https://docs.paramiko.org/en/stable', None),
+    'paramiko': ('https://docs.paramiko.org/en/stable/', None),
     'numpy': ('https://numpy.org/doc/stable', None),
     'astropy': ('https://docs.astropy.org/en/stable/', None),
     'flask': ('https://flask.palletsprojects.com/en/latest/', None),
+    'matplotlib': ('https://matplotlib.org/stable/', None),
 }
 
 extlinks = {

@@ -1,53 +1,102 @@
-# GONet_Wizard/__main__.py
+"""
+GONet Wizard Command-Line Interface.
+
+The GONet Wizard package provides a command-line interface for interacting
+with GONet devices, launching the dashboard, and inspecting or plotting GONet data.
+It allows users to:
+
+- Visualize GONet images (`show`)
+- View metadata from GONet files (`show_meta`)
+- Launch the interactive dashboard (`dashboard`)
+- Connect to a remote camera and run imaging-related commands (`connect`)
+
+This CLI is launched using the :mod:`GONet_Wizard.__main__` module.
+
+"""
+
+
+
 import argparse
-from GONet_Wizard import GONet_dashboard, GONet_utils
+from GONet_Wizard import commands
+from GONet_Wizard._version import __version__
 
-def main():
-    parser = argparse.ArgumentParser(description="MyPackage command-line interface.")
-    subparsers = parser.add_subparsers(dest="command")
 
-    # Subcommand: show
-    show_parser = subparsers.add_parser("show", help="Plot the content of one or multiple GONet files.")
-    show_parser.add_argument("filenames", nargs='+', help='GONet files.')
-    show_parser.add_argument("--save", help='Save output to pdf.')
-    show_parser.add_argument("--red", help='Load only red components.', action='store_true', default=False)
-    show_parser.add_argument("--green", help='Load only green components.', action='store_true', default=False)
-    show_parser.add_argument("--blue", help='Load only blue components.', action='store_true', default=False)
+def main() -> None:
+    """
+    Main CLI dispatch function for the GONet Wizard package.
 
-    # Subcommand: show_meta
-    show_parser = subparsers.add_parser("show_meta", help="Show the meta data of one of multiple GONet files.")
-    show_parser.add_argument("filenames", nargs='+', help='GONet files.')
+    Parses user input from the command line and delegates to the appropriate
+    command module. Supports both top-level and nested subcommands.
 
-    # Subcommand: run_dashboard
-    dashboard_parser = subparsers.add_parser("dashboard", help="Run the dashboard.")
+    Returns
+    -------
+    None
+    """
 
-    # First-level command: operate
-    operate_parser = subparsers.add_parser("connect", help="Connect to a remote camera")
-    operate_parser.add_argument("gonet_ip", help="IP address of the camera")
+    parser = argparse.ArgumentParser(
+        description="GONet Wizard command-line interface."
+    )
+    
+    parser.add_argument('--version', action='version', version=f"GONet Wizard {__version__}")
+
+    subparsers = parser.add_subparsers(dest="command", help="Top-level commands")
+
+    # === Subcommand: show ===
+    show_parser = subparsers.add_parser(
+        "show", help="Plot the content of one or more GONet .npy files."
+    )
+    show_parser.add_argument("filenames", nargs='+', help="GONet file(s) to plot.")
+    show_parser.add_argument("--save", help="Save output as a PDF.")
+    show_parser.add_argument("--red", action="store_true", default=False, help="Plot only the red channel.")
+    show_parser.add_argument("--green", action="store_true", default=False, help="Plot only the green channel.")
+    show_parser.add_argument("--blue", action="store_true", default=False, help="Plot only the blue channel.")
+
+    # === Subcommand: show_meta ===
+    meta_parser = subparsers.add_parser(
+        "show_meta", help="Print metadata from one or more GONet files."
+    )
+    meta_parser.add_argument("filenames", nargs='+', help="GONet file(s) to inspect.")
+
+    # === Subcommand: dashboard ===
+    dashboard_parser = subparsers.add_parser(
+        "dashboard", help="Launch the interactive GONet dashboard."
+    )
+
+    # === Subcommand group: connect ===
+    operate_parser = subparsers.add_parser(
+        "connect", help="Connect to a remote GONet device."
+    )
+    operate_parser.add_argument("gonet_ip", help="IP address of the GONet device.")
     operate_subparsers = operate_parser.add_subparsers(dest="subcommand", required=True)
 
-    # Nested command: snap
-    snap_parser = operate_subparsers.add_parser("snap", help="Run gonet4.py remotely, using a local config file.")
-    snap_parser.add_argument("config_file", help="Configuration file for snapshot")
+    # Nested subcommand: snap
+    snap_parser = operate_subparsers.add_parser(
+        "snap", help="Trigger remote gonet4.py execution with optional config file."
+    )
+    snap_parser.add_argument("config_file", nargs="?", default=None, help="Optional path to config file.")
 
-    # Nested command: terminate imaging
-    terminate_parser = operate_subparsers.add_parser("terminate_imaging", help="Clear the crontab, terminating and automated imaging")
+    # Nested subcommand: terminate_imaging
+    terminate_parser = operate_subparsers.add_parser(
+        "terminate_imaging", help="Terminate remote imaging (clear crontab, kill processes)."
+    )
 
+    # === Dispatch logic ===
     args = parser.parse_args()
 
     if args.command == "show":
-        GONet_utils.show(args.filenames, args.save, args.red, args.green, args.blue)
+        commands.show(args.filenames, args.save, args.red, args.green, args.blue)
     elif args.command == "show_meta":
-        GONet_utils.show_meta(args.filenames)
+        commands.show_meta(args.filenames)
     elif args.command == "dashboard":
-        GONet_dashboard.run()
+        commands.run_dashboard()
     elif args.command == "connect":
         if args.subcommand == "snap":
-            GONet_utils.snap(args.gonet_ip, args.config_file)
-        if args.subcommand == "terminate_imaging":
-            GONet_utils.terminate_imaging(args.gonet_ip)
+            commands.snap(args.gonet_ip, args.config_file)
+        elif args.subcommand == "terminate_imaging":
+            commands.terminate_imaging(args.gonet_ip)
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()

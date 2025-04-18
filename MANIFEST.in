@@ -1,1 +1,8 @@
+include README.rst
+include LICENSE
+include setup.py
+include pyproject.toml
+include .env
+include .env.example
+
 recursive-include GONet_Wizard/GONet_dashboard/src/assets *

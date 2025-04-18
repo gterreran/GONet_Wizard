@@ -8,7 +8,7 @@ GONet cameras save raw image data in a special 12-bit packed format. Each frame 
 
 The sensor uses a BGGR Bayer pattern, as shown below:
 
-.. figure:: _static/bayer_pattern.pdf
+.. figure:: ../_static/bayer_pattern.pdf
    :align: center
    :width: 50%
    :alt: BGGR Bayer Pattern
@@ -26,7 +26,7 @@ Each pixel is encoded with 12 bits, and every group of two pixels is packed into
 
 This packaging is commonly known as a *12-bit packed little endian* format. The following diagram shows how 3 bytes form 2 pixel values:
 
-.. figure:: _static/GONet_bytes_pixels.pdf
+.. figure:: ../_static/GONet_bytes_pixels.pdf
    :align: center
    :width: 90%
    :alt: Byte-wise packing of 12-bit pixels
