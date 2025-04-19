@@ -74,6 +74,41 @@ def cast(v: 'Any') -> 'Any':
         return v
     else: return v
 
+def scale_uint12_to_uint16(x):
+    """
+    Linearly scales unsigned 12-bit integer values to the full 16-bit range.
+
+    This function maps the full dynamic range of an unsigned 12-bit integer
+    (0–4095) to the full range of an unsigned 16-bit integer (0–65535),
+    preserving relative magnitudes and maximizing precision.
+
+    Parameters
+    ----------
+    x : array-like or int
+        Input value(s) in the uint12 range [0, 4095]. Can be a single integer or a NumPy array.
+
+    Returns
+    -------
+    np.uint16 or np.ndarray
+        Scaled value(s) in the uint16 range [0, 65535]. Output type matches the input type.
+
+    Raises
+    ------
+    ValueError
+        If any input values are outside the valid uint12 range.
+
+    """
+    x = np.asarray(x)
+
+    max_uint12 = 2**12 - 1
+    max_uint16 = 2**16 - 1
+
+    if np.any((x < 0) | (x > max_uint12)):
+        raise ValueError("Input values must be in the range [0, {max_uint12}] for uint12.")
+
+    scaled = np.round((x / max_uint12) * max_uint16).astype(np.uint16)
+    return scaled
+
 class FileType(Enum):
     """
     Enumeration of file types used in GONet observations.
@@ -120,6 +155,8 @@ class GONetFile:
         Number of pixels per image row (default: 4056).
     PIXEL_PER_COLUMN : :class:`int`
         Number of pixels per image column (default: 3040).
+    PADDED_LINE_BYTES : :class:`int`
+        Number of bytes used to store a single image row, including padding (default: 6112).
     USED_LINE_BYTES : :class:`int`
         Number of bytes used to store a single image row, based on 12-bit pixel encoding 
         (default: int(``PIXEL_PER_LINE`` * 12 / 8)).
@@ -134,6 +171,7 @@ class GONetFile:
 
     PIXEL_PER_LINE = 4056
     PIXEL_PER_COLUMN = 3040
+    PADDED_LINE_BYTES = 6112  # Including padding
     USED_LINE_BYTES = int(PIXEL_PER_LINE * 12 / 8)
 
     CHANNELS = ['red', 'green', 'blue']
@@ -535,7 +573,7 @@ class GONetFile:
             for i in range(GONetFile.PIXEL_PER_COLUMN):
 
                 # read in 6112 bytes, but only 6084 will be used
-                bdLine = file.read(6112)
+                bdLine = file.read(GONetFile.PADDED_LINE_BYTES)
                 gg=np.array(list(bdLine[0:GONetFile.USED_LINE_BYTES]),dtype='uint16')
                 s[0::2,i] = (gg[0::3]<<4) + (gg[2::3]&15)
                 s[1::2,i] = (gg[1::3]<<4) + (gg[2::3]>>4)
@@ -545,12 +583,9 @@ class GONetFile:
         sp[:,:,0]=s[1::2,1::2]                      # red
         sp[:,:,1]=(s[0::2,1::2]+s[1::2,0::2])/2     # green
         sp[:,:,2]=s[0::2,0::2]                      # blue
-        sp = np.multiply(sp,16) ## adjusting the image to be saturated correctly(it was imported from 12bit into a 16bit) so it is a factor of 16 dimmer than should be, i.e this conversion
+        sp = scale_uint12_to_uint16(sp)
 
-        sp=sp.transpose()
-
-        # now we need to write it to a tiff file
-        array = ((sp+0.5).astype('uint16'))
+        array=sp.transpose()
 
         # Extracting the metadata
         if meta:

@@ -8,6 +8,7 @@ Functions:
 ---------------
 
 .. autofunction:: GONet_Wizard.GONet_utils.src.gonetfile.cast
+.. autofunction:: GONet_Wizard.GONet_utils.src.gonetfile.scale_uint12_to_uint16
 
 
 Classes:
@@ -23,6 +24,6 @@ Classes:
    :members:
    :undoc-members:
    :show-inheritance:
-   :exclude-members: RAW_FILE_OFFSET, RAW_HEADER_SIZE, RAW_DATA_OFFSET, RELATIVETOEND, PIXEL_PER_LINE, PIXEL_PER_COLUMN, USED_LINE_BYTES, CHANNELS, __dict__, __module__, __weakref__
+   :exclude-members: RAW_FILE_OFFSET, RAW_HEADER_SIZE, RAW_DATA_OFFSET, RELATIVETOEND, PIXEL_PER_LINE, PIXEL_PER_COLUMN, PADDED_LINE_BYTES, USED_LINE_BYTES, CHANNELS, __dict__, __module__, __weakref__
    :special-members:
    :private-members:
