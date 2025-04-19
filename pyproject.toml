@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "GONet_Wizard"
+dynamic = ["version"]
 description = "Tools and methods to handle GONet data."
-readme = "README.rst"
-readme-content-type = "text/x-rst"
+readme = { file = "README.rst", content-type = "text/x-rst" }
 requires-python = ">=3.10"
 license = { text = "MIT" }
 
