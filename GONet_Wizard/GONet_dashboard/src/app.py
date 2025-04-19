@@ -1,21 +1,13 @@
 """
 GONet Wizard Dashboard Application Entry Point.
 
-This script initializes the Dash application, sets its layout,
+This script initializes the `Dash <https://dash.plotly.com/>`_ application, sets its layout,
 and registers all callback functions that define the app's interactivity.
 
 The layout and callbacks are modularized for clarity and maintainability.
 
-Modules Imported
-----------------
-- `server`: Provides the `app` object, which is a Dash instance wrapped around a Flask server.
-- `layout`: Contains the full layout definition (Divs, Graphs, Controls).
-- `callbacks`: Registers all Dash callbacks for user interaction.
-
-Notes
------
 This script should be used as the WSGI entry point when deploying the app
-(e.g., with Gunicorn or `python app.py` for development).
+(e.g. Gunicorn).
 """
 
 # Import the initialized Dash app instance

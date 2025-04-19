@@ -1,44 +1,45 @@
 """
 GONet Dashboard Configuration Environment.
 
-This module defines shared constants and environment-specific settings
-used throughout the GONet Wizard dashboard. These include paths to data
-directories, display settings, default filter thresholds, and plotting styles.
+This module defines constants and environment-specific settings shared across
+the GONet Wizard dashboard. It includes paths, plotting styles, default UI
+parameters, and display properties.
 
 Environment Variables
 ---------------------
-GONET_ROOT : str
-    Path to the root directory containing GONet metadata JSON files.
-GONET_ROOT_IMG : str
+GONET_ROOT : :class:`str`
+    Path to the root directory containing nightly GONet JSON metadata files.
+GONET_ROOT_IMG : :class:`str`
     Path to the directory containing raw image files for preview and extraction.
 
 Constants
 ---------
-ROOT : str
-    Loaded from the GONET_ROOT environment variable.
-ROOT_EXT : str
-    Loaded from the GONET_ROOT_IMG environment variable.
-CHANNELS : list of str
-    RGB channels used in image processing and plotting.
-BG_COLOR : str
-    Background color for plots and dashboards.
-TEXT_COLOR : str
-    Default text color for UI and figure labels.
-COLORS : dict of callable
-    Dictionary mapping channels to RGBA color functions.
-LOCAL_TZ : tzinfo
-    Local timezone for timestamp localization (America/Chicago).
-DAY_START : datetime.time
-    The start of the "astronomical day" for grouping nighttime observations.
-DEFAULT_FILTER_VALUES : dict
-    Predefined default values for interactive filters in the UI.
-LABELS : dict
-    Empty label placeholders for future data categorization. Separated by
-    'gen' (general) and 'fit' (fit-specific) keys.
+ROOT : :class:`str`
+    Loaded from the ``GONET_ROOT`` environment variable.
+ROOT_EXT : :class:`str`
+    Loaded from the ``GONET_ROOT_IMG`` environment variable.
+CHANNELS : :class:`list` of :class:`str`
+    Image channels used in processing and plotting (e.g., 'red', 'green', 'blue').
+BG_COLOR : :class:`str`
+    Background color used across the dashboard and plot components.
+TEXT_COLOR : :class:`str`
+    Foreground text color used for UI elements and figure labels.
+COLORS : :class:`dict`
+    Dictionary mapping each channel to an RGBA-generating function with configurable alpha.
+LOCAL_TZ : :class:`tzinfo`
+    Local timezone for converting timestamps (America/Chicago).
+DAY_START : :class:`datetime.time`
+    Starting time used to group nightly observations across local midnight.
+DEFAULT_FILTER_VALUES : :class:`dict`
+    Predefined defaults for the interactive filtering interface.
+LABELS : :class:`dict`
+    Dictionary storing metadata keys categorized as:
+    
+    - 'gen': General labels not tied to specific channels.
+    - 'fit': Fit-specific labels associated with individual channels.
 
 Notes
 -----
-- Color definitions use opacity-aware RGBA strings for overlay plotting.
 - This module is imported across layout, callbacks, and plotting utilities.
 """
 import os,datetime

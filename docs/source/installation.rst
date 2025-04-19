@@ -164,6 +164,69 @@ https://github.com/gterreran/GONet_Wizard
 
 ----
 
+Installation tips for Windows Users
+-----------------------------------
+
+Before installing the GONet Wizard package, ensure that you have both Python and Git installed and accessible from your terminal or command prompt.
+
+Check if Python and Git are installed:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can verify their availability with the following commands:
+
+.. code-block:: bash
+
+   python --version
+   git --version
+
+If either command results in a “command not found” error or opens a system prompt, follow the instructions to install them. On some systems, a prompt may appear automatically offering to install the missing component — accept it. This ensures the tools are correctly installed and added to your system’s `PATH`.
+
+If the prompt does not appear, download them from:
+
+- Python: https://www.python.org/downloads/
+- Git: https://git-scm.com/downloads
+
+Installing GONet Wizard via pip:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Once Python and Git are available, install GONet Wizard directly from GitHub using:
+
+.. code-block:: bash
+
+   pip install git+https://github.com/gterreran/GONet_Wizard.git
+
+.. warning::
+
+   After installation, you may see a message like:
+
+   ``WARNING: The script GONet_Wizard is installed in '/Users/yourname/.local/bin' which is not on PATH.``
+
+   If so, you'll need to add that directory to your system ``PATH``. 
+
+   To permanently add environment variables on Windows:
+
+   1. Press Win + S, search for Environment Variables, and select
+   
+      `Edit the system environment variables → Environment Variables…`
+      
+   2. Under User variables, click New.
+   3. Enter the variable name (e.g., ``PATH``, ``GONET_ROOT``) and its value (e.g., C:\\Users\\YourName\\gonet\\data).
+   4. Repeat for any additional variables (e.g., ``ROOT_EXT``).
+   5. Click OK and restart your terminal for the changes to take effect.
+
+These variables will be automatically loaded if you’re running the dashboard or CLI tools.
+
+Run the CLI commands
+^^^^^^^^^^^^^^^^^^^^
+
+You are now ready to run any GONet Wizard command from the command line, e.g.:
+
+.. code-block:: bash
+
+    GONet_Wizard dashboard
+
+----
+
 Troubleshooting
 ---------------
 

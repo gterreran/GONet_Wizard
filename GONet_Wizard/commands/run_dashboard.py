@@ -1,7 +1,7 @@
 """
 Entry point for launching the GONet Dashboard.
 
-This module imports the :dashdoc:`Dash <>` `app` instance and provides a top-level
+This module imports the `Dash <https://dash.plotly.com/>`_ `app` instance and provides a top-level
 function to start the server. It also verifies that critical environment variables
 used by the dashboard are set before launching.
 
@@ -12,7 +12,7 @@ Environment
 
 **Functions**
 
-- :func:`run_dashboard` : Start the GONet Dashboard server using :dashdoc:`Dash <>`.
+- :func:`run_dashboard` : Start the GONet Dashboard server using `Dash <https://dash.plotly.com/>`_.
 
 """
 
@@ -22,7 +22,7 @@ from GONet_Wizard.commands.settings import DashboardConfig
 
 def run_dashboard():
     """
-    Start the GONet Dashboard server using :dashdoc:`Dash <>`.
+    Start the GONet Dashboard server using `Dash <https://dash.plotly.com/>`_.
 
     This function launches the dashboard and performs
     a pre-check to ensure that required environment variables are defined.

@@ -1,4 +1,4 @@
-"""`GONet_Wizard <https://github.com/gterreran/GONet_Wizard/issues>`_: A toolkit for analyzing and visualizing GONet sky monitoring data.
+"""`GONet_Wizard <https://github.com/gterreran/GONet_Wizard/>`_: A toolkit for analyzing and visualizing GONet sky monitoring data.
 
 This package provides tools for:
 

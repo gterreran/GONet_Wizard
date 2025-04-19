@@ -1,26 +1,26 @@
 """
 Callbacks for the GONet Dashboard.
 
-This module defines all Dash callback functions used to power the interactivity
+This module defines all `Dash <https://dash.plotly.com/>`_ callback functions used to power the interactivity
 of the GONet Wizard dashboard. These callbacks handle data loading, filter logic,
 plot generation, UI synchronization, and exporting/importing dashboard state.
 
-Features
---------
-- Loads and parses JSON datasets into memory upon UI interaction.
-- Dynamically populates axis dropdowns and filter containers based on dataset contents.
-- Updates scatter plots based on user selections, filters, and folding options.
-- Allows for data export of filtered selections and dashboard state as JSON files.
-- Supports restoring saved states by decoding uploaded status files.
-- Includes clientside support for browser-based download of status data.
-- Manages both simple and compound filters, including lasso-selection-based filters.
+**Functions**
 
-Notes
------
-- This module depends on utility functions from `GONet_Wizard.GONet_dashboard.src.utils`
-  and configuration settings from `GONet_Wizard.GONet_dashboard.src.env`.
-- Image decoding and handling rely on the `GONetFile` class from `GONet_utils`.
-- Clientside callbacks are documented manually and should be maintained alongside the server-side callbacks.
+- :func:`load` : Load available data from the configured ROOT directory and prepare dropdown options.
+- :func:`plot` : Update the main plot based on the selected axes, filters, and other plot parameters.
+- :func:`info` : Update the UI when a data point in the main plot is clicked.
+- :func:`activate_fold_switch` : Toggle the availability of the fold-time switch based on the x-axis selection.
+- :func:`add_filter` : Add a new empty filter block to the filter container in the UI.
+- :func:`add_or_filter` : Add an additional (OR-based) condition to an existing filter block.
+- :func:`update_main_filters_value` : Automatically update the value of the main filter when a filter label is selected.
+- :func:`update_secondary_filters_value` : Automatically update the value of the secondary (OR) filter when a label is selected.
+- :func:`update_filters` : Assemble and update the active filters list based on user-defined filter inputs.
+- :func:`export_data` : Export filtered data from the plot to a downloadable JSON file.
+- :func:`save_status` : Save the current dashboard state, including axis selections and filter configurations.
+- :func:`load_status` : Load a previously saved dashboard state from a base64-encoded JSON file.
+- :func:`update_filter_selection_state` : Enable or disable the "Add Selection Filter" button based on current selection in the plot.
+- :func:`add_selection_filter` : Create and add a new filter based on the current selection region in the plot.
 
 """
 
@@ -43,23 +43,40 @@ from typing import Any
 )
 def load(_):
     """
-    Load available data from the configured ROOT directory and prepare dropdown options.
+    Load and prepare all available GONet data for visualization in the dashboard.
 
-    The ROOT directory must be defined by the environment variable ``GONET_ROOT``.
+    This function runs **once** when the dashboard page first loads. It scans the directory 
+    specified by the ``GONET_ROOT`` environment variable, reads the JSON files for each night 
+    of observation, and builds a structured dictionary containing both metadata and 
+    channel-specific measurements. This dictionary is stored in a hidden dcc.Store component 
+    and is used as the central dataset for all further visualizations and filtering.
 
-    This functions is the only function that will run at the loading of the page.
+    Additionally, the function extracts all available quantities (labels) and constructs the 
+    dropdown options for the x-axis and y-axis selectors.
+
+    The following derived color ratios are also computed and included:
+    
+    - ``blue-green`` = blue mean / green mean
+    - ``green-red``  = green mean / red mean
+    - ``blue-red``   = blue mean / red mean
 
     Parameters
     ----------
+    _ : :class:`Any`
+        Dummy input triggered by the `Dash <https://dash.plotly.com/>`_ page layout; not used directly.
 
     Returns
     -------
     data : :class:`dict`
-        Dictionary containing metadata from all available nights.
-    options_x : :class:`list`
-        List of options for the x-axis dropdown.
-    options_y : :class:`list`
-        List of options for the y-axis dropdown.
+        A flat dictionary where each key maps to a list of values for all GONet images.
+        Includes general metadata (e.g., solar angle, date) and per-channel fitted values
+        (e.g., mean, sigma).
+
+    options_x : :class:`list` of :class:`dict`
+        Dropdown options derived from the available labels for the x-axis selector.
+
+    options_y : :class:`list` of :class:`dict`
+        Dropdown options derived from the available labels for the y-axis selector.
     """
     utils.debug()
 
@@ -121,35 +138,50 @@ def load(_):
 )
 def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_switch, fig, all_data, big_point_idx):
     """
-    Update the main plot based on the selected axes, filters, and other plot parameters.
+    Update the main scatter plot and statistics table based on the selected parameters and filters.
+
+    This callback is the central engine of the dashboard visualization. It handles a variety of triggers, including:
+
+    - A change in selected x/y axis variables
+    - The toggling of filters or updates to active filters
+    - Enabling or disabling of channels
+    - Switching visibility for filtered-out points
+    - Activation of time-folding mode
+
+    Depending on what was triggered, this function can:
+
+    - Regenerate the entire figure from scratch (e.g. if the axis or filters changed)
+    - Selectively update specific components (e.g. hiding/showing filtered data or toggling channels)
+    - Re-insert a highlighted "big point" for a selected observation
+    - Preserve axis ranges when appropriate to improve interactivity
 
     Parameters
     ----------
     x_label : :class:`str`
-        Label selected for the x-axis.
+        Selected label for the x-axis.
     y_label : :class:`str`
-        Label selected for the y-axis.
-    channels : :class:`list` of str
-        List of selected channels (e.g., 'red', 'green', 'blue').
-    active_filters : :class:`list` of dict
-        List of active filters, each specified as a dictionary with keys like 'label', 'operator', and 'value'.
+        Selected label for the y-axis.
+    active_filters : :class:`list` of :class:`dict`
+        List of user-defined filters applied to the data.
+    channels : :class:`list` of :class:`str`
+        Channels selected for visualization (e.g., 'red', 'green', 'blue').
     show_filtered_points : :class:`bool`
-        Whether to show points that were excluded by the filters.
+        Whether to visually include the points that were filtered out.
     fold_switch : :class:`bool`
-        Whether to apply time-folding to the x-axis values.
-    big_point_idx : :class:`int` or None
-        Index of a selected point to be highlighted prominently.
-    fig : :class:`dict` or None
-        Previous figure state (used to preserve axis ranges or toggle channels).
+        Whether to fold the x-axis time data to display only night-time variation.
+    fig : :class:`dict` or :class:`None`
+        The current Plotly figure object. May be reused and updated if possible.
     all_data : :class:`dict`
-        Full dataset in dictionary form.
+        Dictionary of all GONet data currently loaded into the dashboard.
+    big_point_idx : :class:`int` or :class:`None`
+        Index of a selected "big point" to highlight on the plot.
 
     Returns
     -------
     fig : :class:`dict`
-        Updated plotly figure with applied filters and plotting parameters.
-    stats : :class:`dict`
-        Statistics extracted from the current figure, used for display or export.
+        Updated Plotly figure based on the selected parameters and filters.
+    stats : :class:`list`
+        Table rows representing statistical summaries (mean ± std) of the plotted data.
     """
     utils.debug()
 
@@ -266,29 +298,38 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
 )
 def info(clickdata, fig, data, fold_switch):
     """
-    Update the UI when a data point in the main plot is clicked.
+    Handle click interactions on the main scatter plot and update the UI accordingly.
+
+    When a user clicks on a data point in the main plot, this callback:
+    
+    - Highlights the selected point with a larger marker ("big point") in the main figure.
+    - Loads and displays the corresponding GONet image for that data point in the right panel.
+    - Shows a table containing all metadata associated with the clicked data point.
+    - Overlays a circle and center marker to visualize the extraction region on the image.
 
     Parameters
     ----------
     clickdata : :class:`dict`
-        Click event data from the main plot.
+        Click event data generated from the main Plotly plot. Contains the clicked curve index
+        and point index.
     fig : :class:`dict`
-        Current figure object.
+        The current Plotly figure object representing the main scatter plot.
     data : :class:`dict`
-        Dataset as loaded from JSON.
+        The full dataset previously loaded into the dashboard, including metadata and measurements.
     fold_switch : :class:`bool`
-        Whether time folding is enabled.
+        Whether time folding is enabled for the x-axis. Affects formatting of "big point" display.
 
     Returns
     -------
     outfig : :class:`dict`
-        Updated heatmap figure for the clicked data point.
+        A Plotly heatmap figure showing the raw GONet image associated with the clicked point.
+        The figure includes overlays for the extraction region and center.
     fig : :class:`dict`
-        Updated main scatter figure.
+        Updated main plot figure with the selected point rendered as a "big point".
     table : :class:`list`
-        List of HTML table row elements with info.
+        List of :dashdoc:`dash.html.Tr <dash-html-components/tr>` table row elements, each showing a key-value pair of metadata.
     real_idx : :class:`int`
-        Index of the clicked data point.
+        Index of the clicked observation in the full dataset.
     """
     utils.debug()
     plot_index = clickdata['points'][0]['curveNumber']
@@ -401,7 +442,7 @@ def add_filter(_, filter_div, labels):
         Dummy input from the button click (not used).
     filter_div : :class:`list`
         Current list of filter components in the container.
-    labels : :class:`list` of dict
+    labels : :class:`list` of :class:`dict`
         List of label options for dropdowns.
 
     Returns
@@ -437,7 +478,7 @@ def add_or_filter(_, id, labels):
         Dummy input from the OR-button click (not used).
     id : :class:`dict`
         Dictionary containing the index of the filter block to update.
-    labels : :class:`list` of dict
+    labels : :class:`list` of :class:`dict`
         List of label options for the dropdowns.
 
     Returns
@@ -471,7 +512,7 @@ def update_main_filters_value(label):
 
     Returns
     -------
-    value : :class:`Any` or None
+    value : :class:`Any` or :class:`None`
         Default value corresponding to the label, or None if not found.
     """
     utils.debug()
@@ -499,7 +540,7 @@ def update_secondary_filters_value(label):
 
     Returns
     -------
-    value : :class:`Any` or None
+    value : :class:`Any` or :class:`None`
         Default value corresponding to the label, or None if not found.
     """
     utils.debug()
@@ -538,27 +579,27 @@ def update_filters(switches, ops, values, selections, second_ops, second_values,
 
     Parameters
     ----------
-    switches : :class:`list` of bool
+    switches : :class:`list` of :class:`bool`
         States of the main filter switches indicating whether each filter is active.
-    ops : :class:`list` of str
+    ops : :class:`list` of :class:`str`
         Comparison operators for each main filter (e.g., '>', '<=', '==').
     values : :class:`list`
         Values selected or entered for each main filter.
     selections : :class:`list`
         Lasso or box selection data used to override value-based filters.
-    second_ops : :class:`list` of str
+    second_ops : :class:`list` of :class:`str`
         Comparison operators for each secondary filter.
     second_values : :class:`list`
         Values selected or entered for each secondary filter.
-    labels : :class:`list` of str
+    labels : :class:`list` of :class:`str`
         Labels (field names) selected for each main filter.
-    second_labels : :class:`list` of str
+    second_labels : :class:`list` of :class:`str`
         Labels selected for each secondary filter.
-    second_ids : :class:`list` of dict
+    second_ids : :class:`list` of :class:`dict`
         IDs of the secondary filter value fields, containing the filter index.
-    selections_ids : :class:`list` of dict
+    selections_ids : :class:`list` of :class:`dict`
         IDs of the selection-based filters, containing the filter index.
-    filters_before : :class:`list` of dict
+    filters_before : :class:`list` of :class:`dict`
         Previously active filters, used to check whether an update is necessary.
 
     Returns
@@ -623,8 +664,10 @@ def export_data(_, fig, data):#, channels):
     -------
     :class:`dict`
         A dictionary containing:
+
         - 'content': JSON string representing the filtered and formatted dataset.
         - 'filename': Suggested filename for the download ("filtered_data.json").
+
     """
     utils.debug()
 
@@ -826,10 +869,12 @@ def save_status(_,*args):
     -------
     :class:`dict`
         A dictionary representing the current state of the dashboard, including:
+
         - Axis selection values.
         - All filters and their properties.
         - Active channels and switch states.
-        The structure is compatible with later reloading via the `load_status` function.
+
+        The structure is compatible with later reloading via the :func:`load_status` function.
     """
     utils.debug()
 
@@ -877,7 +922,7 @@ def load_status(contents, filter_div, labels):
     Parameters
     ----------
     contents : :class:`str`
-        Base64-encoded string representing the uploaded file contents from the Dash upload component.
+        Base64-encoded string representing the uploaded file contents from the `Dash <https://dash.plotly.com/>`_ upload component.
     filter_div : :class:`list`
         List of existing filter components already present in the dashboard.
     labels : :class:`list`
@@ -978,7 +1023,7 @@ def add_selection_filter(_, filter_div, relayout_data, figure):
     """
     Create and add a new filter based on the current selection region in the plot.
 
-    This function checks if a valid lasso or box selection exists in the plot's `relayoutData`.
+    This function checks if a valid lasso or box selection exists in the plot's ``relayoutData``.
     If so, it generates a new filter corresponding to the selected data points and appends it
     to the list of existing filters. The selection is then removed from the plot layout to avoid
     reprocessing.
@@ -988,7 +1033,7 @@ def add_selection_filter(_, filter_div, relayout_data, figure):
     _ : :class:`Any`
         Placeholder for the button click triggering the addition of a selection-based filter.
     filter_div : :class:`list`
-        Existing list of Dash filter components displayed in the UI.
+        Existing list of `Dash <https://dash.plotly.com/>`_ filter components displayed in the UI.
     relayout_data : :class:`dict`
         Plotly relayout data containing information about lasso/box selections.
     figure : :class:`dict`

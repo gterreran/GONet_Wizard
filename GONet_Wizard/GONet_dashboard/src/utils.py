@@ -3,33 +3,26 @@ GONet Wizard Utility Functions.
 
 This module provides reusable functions for plotting, filtering, statistical analysis,
 and layout generation within the GONet Wizard dashboard application. These functions
-support the construction of Dash figures, dynamic filter UI elements, and filter logic
+support the construction of `Dash <https://dash.plotly.com/>`_ figures, dynamic filter UI elements, and filter logic
 used in the callback system.
 
-Key Functional Areas
---------------------
-- **Debugging**: `debug()` logs the caller function and line number.
-- **Figure Sorting**: `sort_figure()` reorders plot layers for visibility.
-- **Plotting**:
-    - `plot_scatter()`: Adds filtered and unfiltered data points to the main plot.
-    - `plot_big_points()`: Highlights selected points in the scatter plot.
-- **Statistics**: `get_stats()` computes mean and standard deviation for displayed data.
-- **Filter Layouts**:
-    - `new_empty_filter()`: Creates a UI block for a primary filter.
-    - `new_empty_second_filter()`: Generates a secondary "OR" filter.
-    - `new_selection_filter()`: Creates a filter based on a lasso/box selection.
+`Dash <https://dash.plotly.com/>`_ components from `dash` and `dash_daq` are used to construct UI elements dynamically.
 
-Globals
--------
-op : :class:`dict`
-    Dictionary mapping string operators (e.g., '<', '!=') to their Python equivalents.
+**Globals**
 
-Notes
------
-- This module interacts with the shared `env` configuration module for constants
-  such as channel names, color schemes, and filter labels.
-- Dash components from `dash` and `dash_daq` are used to construct UI elements dynamically.
-- Filters are expressed as masks on `all_data` and combined with logical operations.
+- ``op`` :class:`dict` : Dictionary mapping string operators (e.g., '<', '!=') to their Python equivalents.
+
+**Functions**
+
+- :func:`debug` : debugging. 
+- :func:`sort_figure` : Reorders the traces in a Plotly figure based on filtering and highlight status.
+- :func:`get_labels` : Extracts the axis label text from a Plotly figure layout.
+- :func:`plot_scatter` : Update a Plotly figure by adding scatter traces for selected and filtered data.
+- :func:`plot_big_points` : Highlight a selected point in the scatter plot by adding enlarged "big point" markers.
+- :func:`get_stats` : Compute summary statistics (mean and standard deviation) for plotted x and y values.
+- :func:`new_empty_filter` : Create a `Dash <https://dash.plotly.com/>`_ component representing an empty primary filter block.
+- :func:`new_empty_second_filter` : Create a `Dash <https://dash.plotly.com/>`_ component block representing a secondary (OR) filter.
+- :func:`new_selection_filter` : Create a `Dash <https://dash.plotly.com/>`_ component for a selection-based filter using manually selected points.
 
 """
 import inspect, datetime
@@ -50,7 +43,7 @@ op = {
 
 def debug():
     '''
-    This is just for debuggin purposes.
+    This is just for debugging purposes.
     It prints the function in which it is called,
     and the line at which it is called.
     '''
@@ -64,7 +57,8 @@ def sort_figure(fig: dict) -> dict:
     """
     Reorders the traces in a Plotly figure based on filtering and highlight status.
 
-    This function reorders the entries in the `fig['data']` list so that:
+    This function reorders the entries in the ``fig['data']`` list so that:
+
     1. Filtered points (not highlighted) are drawn first.
     2. Unfiltered points are drawn next (these should be visually dominant).
     3. Highlighted "big points" are drawn last so they appear on top.
@@ -355,7 +349,7 @@ def get_stats(fig: dict) -> list:
     Compute summary statistics (mean and standard deviation) for plotted x and y values.
 
     This function extracts unfiltered, non-highlighted data from the figure and calculates
-    per-axis statistics. It builds an HTML table as a list of Dash row components to be
+    per-axis statistics. It builds an HTML table as a list of `Dash <https://dash.plotly.com/>`_ row components to be
     rendered in the dashboard's stats panel.
 
     Parameters
@@ -406,7 +400,7 @@ def get_stats(fig: dict) -> list:
 
 def new_empty_filter(idx: int, labels: list) -> html.Div:
     """
-    Create a Dash component representing an empty primary filter block.
+    Create a `Dash <https://dash.plotly.com/>`_ component representing an empty primary filter block.
 
     This function generates a new UI element for a filter container, including:
     - A toggle switch to activate the filter
@@ -424,7 +418,7 @@ def new_empty_filter(idx: int, labels: list) -> html.Div:
     Returns
     -------
     :class:`dash.html.Div`
-        A fully constructed Dash `Div` component containing the filter UI.
+        A fully constructed :dashdoc:`Dash Div <dash-html-components/div>` component containing the filter UI.
     """
 
     new_filter = html.Div(className="custom-filter-container", id = {"type":'custom-filter-container', "index":idx}, children=[
@@ -445,9 +439,9 @@ def new_empty_filter(idx: int, labels: list) -> html.Div:
 
 def new_empty_second_filter(idx: int, labels: list) -> list:
     """
-    Create a Dash component block representing a secondary (OR) filter.
+    Create a `Dash <https://dash.plotly.com/>`_ component block representing a secondary (OR) filter.
 
-    This function returns a list of Dash components corresponding to a secondary filter UI.
+    This function returns a list of `Dash <https://dash.plotly.com/>`_ components corresponding to a secondary filter UI.
     It includes a label ("OR"), a dropdown for field selection, a dropdown for the operator,
     and an input field for the value.
 
@@ -461,7 +455,7 @@ def new_empty_second_filter(idx: int, labels: list) -> list:
     Returns
     -------
     :class:`list`
-        A list of Dash components to be inserted into a secondary filter container.
+        A list of `Dash <https://dash.plotly.com/>`_ components to be inserted into a secondary filter container.
     """
     new_filter = [
         html.Div(className='or-div', id= {"type":'or-div', "index":idx}, children='OR'),
@@ -474,7 +468,7 @@ def new_empty_second_filter(idx: int, labels: list) -> list:
 
 def new_selection_filter(idx: int, selected_indexes: list) -> html.Div:
     """
-    Create a Dash component for a selection-based filter using manually selected points.
+    Create a `Dash <https://dash.plotly.com/>`_ component for a selection-based filter using manually selected points.
 
     This function generates a filter UI tied to a lasso or box selection on the plot.
     It includes a toggle switch, a dropdown preset to the selection label, a hidden
@@ -490,7 +484,7 @@ def new_selection_filter(idx: int, selected_indexes: list) -> html.Div:
     Returns
     -------
     :class:`dash.html.Div`
-        A Dash `Div` component containing the selection-based filter UI.
+        A :dashdoc:`Dash Div <dash-html-components/div>` component containing the selection-based filter UI.
     """
 
     new_filter = html.Div(className="custom-filter-container", id = {"type":'custom-filter-container', "index":idx}, children=[

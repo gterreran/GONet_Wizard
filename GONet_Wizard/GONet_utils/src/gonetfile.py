@@ -1,3 +1,41 @@
+"""
+This module defines the :class:`GONetFile` class, which provides functionality for 
+handling and processing GONet files. The class encapsulates the properties 
+and methods required for manipulating the image data (including red, green, 
+and blue channels) and metadata associated with GONet files.
+
+The module supports various operations on GONet files, including:
+
+- Loading image data from original raw (`.jpg`) or TIFF formats.
+- Performing arithmetic operations between GONet files and scalar values.
+- Writing image data to common formats like JPEG, TIFF, and FITS.
+- Parsing and handling metadata for different file types.
+
+For more info regarding how the raw data is parsed, see :doc:`raw_data`.
+
+The :class:`GONetFile` class also includes support for operator overloading, allowing 
+users to easily perform element-wise operations between GONet files or between 
+a GONet file and scalar values.
+
+**Functions**
+
+- :func:`cast`: Convert a value to a JSON-serializable type if necessary.
+
+**Classes**
+
+- :class:`FileType`: Enumeration of file types used in GONet observations.
+- :class:`GONetFile`: A class representing a GONet file.
+
+
+Example usage
+--------------
+.. code-block:: python
+
+   gonet_file = GONetFile.from_file('example_image.tiff')
+   plt.imshow(gonet_file.green)
+
+"""
+
 from tifffile import tifffile
 import os, PIL, operator
 from PIL import Image
@@ -9,20 +47,20 @@ from astropy.io import fits
 
 def cast(v: 'Any') -> 'Any':
     """
-    Casts various types to JSON serializable types.
+    Convert a value to a JSON-serializable type if necessary.
 
-    This is necessary in order to get rid of weird TIFF formats
-    which are not JSON serializable.
+    This is primarily used to sanitize data types such as unusual TIFF formats 
+    that cannot be serialized to JSON (e.g., numpy scalars, certain image metadata types).
 
     Parameters
     ----------
-    v : various types
-        The value to be cast.
+    v : :class:`Any`
+        The input value to be cast.
 
     Returns
     -------
-    various types
-        The cast value.
+    :class:`Any`
+        A version of the input that is safe for JSON serialization.
     """
     if isinstance(v, PIL.TiffImagePlugin.IFDRational):
         return v._numerator / v.denominator
@@ -37,7 +75,23 @@ def cast(v: 'Any') -> 'Any':
     else: return v
 
 class FileType(Enum):
-    """Enumeration for GONet file types."""
+    """
+    Enumeration of file types used in GONet observations.
+
+    This enum defines the standard types of data that a GONet file may represent,
+    used for categorizing the file during processing or analysis.
+
+    Attributes
+    ----------
+    SCIENCE : :class:`FileType`
+        Represents a science frame (standard observational data).
+    FLAT : :class:`FileType`
+        Represents a flat field frame (used for pixel response correction).
+    BIAS : :class:`FileType`
+        Represents a bias frame (used for sensor readout offset correction).
+    DARK : :class:`FileType`
+        Represents a dark frame (used to correct for dark current noise).
+    """
     
     SCIENCE = auto()  # Represents science data
     FLAT = auto()     # Represents flat field data
@@ -46,30 +100,31 @@ class FileType(Enum):
 
 class GONetFile:
     """
-    A class to represent a GONet file.
+    A class representing a GONet file.
 
-    This class encapsulates the properties and methods for manipulating
-    GONet files, including the ability to load image data, handle metadata,
-    and process pixel data for different file types.
+    This class provides methods for loading, interpreting, and processing GONet image data 
+    along with its associated metadata. It supports operations such as reading binary formats, 
+    extracting image channels, and converting pixel data into structured arrays.
 
     Attributes
     ----------
-    RAW_FILE_OFFSET : int
-        The offset for the raw file. Defaults to `18711040`.
-    RAW_HEADER_SIZE : int
-        The size of the raw header. Defaults to `32768`.
-    RAW_DATA_OFFSET : int
-        The offset for the raw data. Defaults to `RAW_FILE_OFFSET - RAW_HEADER_SIZE`.
-    RELATIVETOEND : int
-        Relative to end constant. Defaults to `2`.
-    PIXEL_PER_LINE : int
-        Number of pixels per line. Defaults to `4056`.
-    PIXEL_PER_COLUMN : int
-        Number of pixels per column. Defaults to `3040`.
-    USED_LINE_BYTES : int
-        Number of bytes used per line. Defaults to `int(PIXEL_PER_LINE * 12 / 8)`.
-    CHANNELS: list
-        List of string description of the RGB channels. Defaults to `['red', 'green', 'blue']`.
+    RAW_FILE_OFFSET : :class:`int`
+        Offset in bytes to the beginning of the raw data in the file (default: 18711040).
+    RAW_HEADER_SIZE : :class:`int`
+        Size in bytes of the file header preceding the image data (default: 32768).
+    RAW_DATA_OFFSET : :class:`int`
+        Offset in bytes to the raw image data, computed as ``RAW_FILE_OFFSET`` - ``RAW_HEADER_SIZE``.
+    RELATIVETOEND : :class:`int`
+        Flag used to indicate seeking relative to the end of the file (default: 2).
+    PIXEL_PER_LINE : :class:`int`
+        Number of pixels per image row (default: 4056).
+    PIXEL_PER_COLUMN : :class:`int`
+        Number of pixels per image column (default: 3040).
+    USED_LINE_BYTES : :class:`int`
+        Number of bytes used to store a single image row, based on 12-bit pixel encoding 
+        (default: int(``PIXEL_PER_LINE`` * 12 / 8)).
+    CHANNELS : :class:`list` of :class:`str`
+        Names of the RGB channels available in the GONet image (default: ['red', 'green', 'blue']).
     """
 
     RAW_FILE_OFFSET = 18711040
@@ -85,22 +140,25 @@ class GONetFile:
 
     def __init__(self, filename: str, red: np.ndarray, green: np.ndarray, blue: np.ndarray, meta: dict, filetype: FileType) -> None:
         """
-        Initializes a GONetFile instance.
+        Initialize a :class:`GONetFile` instance with image data and metadata.
+
+        This constructor sets up the internal state of a GONet file, including its 
+        RGB channel data, metadata, and file type classification.
 
         Parameters
         ----------
-        filename : str
-            The name of the file.
-        red : numpy.ndarray
-            The red channel pixel data.
-        green : numpy.ndarray
-            The green channel pixel data.
-        blue : numpy.ndarray
-            The blue channel pixel data.
-        meta : dict
-            A dictionary containing metadata.
-        filetype : FileType
-            The type of the file (e.g., SCIENCE, FLAT, etc.). Defaults to `FileType.SCIENCE`.
+        filename : :class:`str`
+            Path or name of the GONet file.
+        red : :class:`numpy.ndarray`
+            Pixel data for the red channel.
+        green : :class:`numpy.ndarray`
+            Pixel data for the green channel.
+        blue : :class:`numpy.ndarray`
+            Pixel data for the blue channel.
+        meta : :class:`dict`
+            Dictionary of extracted metadata (e.g., camera model, timestamp, settings).
+        filetype : :class:`FileType`
+            Type of GONet file, such as :attr:`FileType.SCIENCE` or :attr:`FileType.FLAT`.
         """
         self._filename = filename
         self._red = red
@@ -112,95 +170,96 @@ class GONetFile:
     @property
     def filename(self) -> str:
         """
-        Gets the filename of the GONet file.
+        Get the filename of the GONet file.
 
         Returns
         -------
-        str
-            The filename.
+        :class:`str`
+            The name or path of the file associated with this :class:`GONetFile` instance.
         """
         return self._filename
 
     @property
     def red(self) -> np.ndarray:
         """
-        Gets the red channel data.
+        Get the red channel data from the GONet file.
 
         Returns
         -------
-        numpy.ndarray
-            The red channel data.
+        :class:`numpy.ndarray`
+            A 2D array of pixel values corresponding to the red channel.
         """
         return self._red
 
     @property
     def green(self) -> np.ndarray:
         """
-        Gets the green channel data.
+        Get the green channel data from the GONet file.
 
         Returns
         -------
-        numpy.ndarray
-            The green channel data.
+        :class:`numpy.ndarray`
+            A 2D array of pixel values corresponding to the green channel.
         """
         return self._green
 
     @property
     def blue(self) -> np.ndarray:
         """
-        Gets the blue channel data.
+        Get the blue channel data from the GONet file.
 
         Returns
         -------
-        numpy.ndarray
-            The blue channel data.
+        :class:`numpy.ndarray`
+            A 2D array of pixel values corresponding to the blue channel.
         """
         return self._blue
 
     @property
     def meta(self) -> dict:
         """
-        Gets the metadata associated with the GONet file.
+        Get the metadata associated with the GONet file.
 
         Returns
         -------
-        dict
-            The metadata.
+        :class:`dict`
+            Dictionary containing metadata fields extracted from the file header or sidecar.
         """
         return self._meta
     
     @property
     def filetype(self) -> FileType:
         """
-        Gets the type of the GONet file.
+        Get the file type of the GONet file.
 
         Returns
         -------
-        FileType
-            The file type.
+        :class:`FileType`
+            The type of the file, such as :attr:`~FileType.SCIENCE`, :attr:`~FileType.FLAT`, etc.
         """
         return self._filetype
 
     def channel(self, channel_name: str) -> np.ndarray:
         """
-        Retrieves the pixel data for a specified color channel.
+        Retrieve the pixel data for a specified color channel.
 
-        This function returns the pixel data for the given color channel 
-        (e.g., 'red', 'green', 'blue') as a numpy array.
+        This method returns the image data associated with the specified
+        color channel as a :class:`numpy.ndarray`.
 
         Parameters
         ----------
-        channel_name : str
-            The name of the channel to retrieve ('red', 'green', 'blue').
+        channel_name : :class:`str`
+            The name of the channel to retrieve. Must be one of
+            ``'red'``, ``'green'``, or ``'blue'``.
 
         Returns
         -------
-        numpy.ndarray
-            The pixel data for the specified channel as a numpy array.
+        :class:`numpy.ndarray`
+            The pixel data corresponding to the requested color channel.
 
         Raises
         ------
-        ValueError
+        :class:`ValueError`
             If an invalid channel name is provided.
         """
         if channel_name not in self.CHANNELS:
@@ -209,28 +268,21 @@ class GONetFile:
     
     def write_to_jpeg(self, output_filename: str) -> None:
         """
-        Writes the image data from the GONetFile instance to a JPEG file.
+        Write the RGB image data to a JPEG file.
 
-        This function combines the red, green, and blue channel data into a 
-        single image and saves it as a JPEG file to the specified output 
-        location using the :mod:`PIL.Image` library.
+        This method combines the red, green, and blue channel data into
+        a single RGB image and saves it as a JPEG using the :mod:`PIL.Image` library.
 
         Parameters
         ----------
-        output_filename : str
-            The path and filename where the JPEG file will be saved.
+        output_filename : :class:`str`
+            Path where the resulting JPEG file will be saved.
 
         Returns
         -------
-        None
-            This function does not return a value.
+        :class:`None`
+            This method does not return anything.
 
-        Notes
-        -----
-        - The function uses the :mod:`PIL.Image` library to handle the file saving.
-        - If an invalid file path or unsupported format is provided, 
-          :mod:`PIL.Image` will raise an appropriate exception.
-        
         """
         jpeg = Image.open(self.filename)
         jpeg.convert("RGB")
@@ -238,52 +290,51 @@ class GONetFile:
 
     def write_to_tiff(self, output_filename: str) -> None:
         """
-        Writes the image data from the GONetFile instance to a TIFF file.
+        Write the RGB image data to a TIFF file.
 
-        This function combines the red, green, and blue channel data into a 
-        single image and saves it as a TIFF file to the specified output 
-        location using the :mod:`PIL.Image` library or `tifffile`.
+        This method combines the red, green, and blue channel data into
+        a single RGB image and saves it as a TIFF file using either 
+        :mod:`PIL.Image` or :mod:`tifffile`.
 
         Parameters
         ----------
-        output_filename : str
-            The path and filename where the TIFF file will be saved.
+        output_filename : :class:`str`
+            Path where the resulting TIFF file will be saved.
 
         Returns
         -------
-        None
-            This function does not return a value.
-
-        Notes
-        -----
-        - The function uses the :mod:`PIL.Image` or `tifffile` library to handle the file saving.
-        - If the output file extension is not `.tiff` or `.tif`, the behavior is dependent on the implementation.
-        - Unsupported formats or invalid file paths will raise an appropriate exception from :mod:`PIL.Image` or `tifffile`.
+        :class:`None`
+            This method does not return anything.
 
         """
         tifffile.imwrite(output_filename, [self.red, self.green, self.blue], photometric='rgb', metadata=self.meta)
 
     def write_to_fits(self, output_filename: str) -> None:
         """
-        Writes the image data from the GONetFile instance to a multi-extension FITS file.
+        Write the image data to a multi-extension FITS file.
 
-        This function combines the red, green, and blue channel data into separate extensions
-        within a single FITS file, using metadata from the 'meta' attribute to create the headers.
+        This method saves the red, green, and blue channel data into separate
+        HDUs (Header/Data Units) within a single FITS file. The metadata stored
+        in the ``meta`` attribute is propagated into the FITS headers, adhering
+        to the standard FITS format.
 
         Parameters
         ----------
-        output_filename : str
-            The path and filename where the FITS file will be saved.
+        output_filename : :class:`str`
+            The full path and filename where the FITS file will be written.
 
         Returns
         -------
-        None
-            This function does not return a value.
+        :class:`None`
+            This method does not return a value.
 
         Notes
         -----
-        - The function uses the :mod:`astropy.io.fits` library to handle the file saving.
-        - FITS header labels are constrained to 8 characters, uppercase letters, and must follow FITS standards.
+
+        - The FITS file is created using the :mod:`astropy.io.fits` library.
+        - Each color channel (red, green, blue) is stored in a separate image extension.
+        - Metadata keys longer than 8 characters or containing lowercase letters or symbols
+          will be truncated or sanitized to conform to FITS header requirements.
 
         """
         
@@ -340,39 +391,40 @@ class GONetFile:
     @classmethod
     def from_file(cls, filepath: str, filetype: FileType = FileType.SCIENCE, meta: bool = True) -> 'GONetFile':
         """
-        Creates a GONetFile instance from a file.
+        Create a :class:`GONetFile` instance from a TIFF or JPEG file.
 
-        This class method reads the specified file (either TIFF or JPEG format), 
-        extracts the image data (red, green, blue channels), and metadata. It then 
-        creates and returns an instance of the GONetFile class with the parsed data.
+        This class method reads a GONet image file, extracts the red, green, and blue
+        channel data, and optionally parses the associated metadata. It returns a fully
+        initialized :class:`GONetFile` object.
 
         Parameters
         ----------
-        filepath : str
-            The path to the file that will be used to initialize the GONetFile instance. 
-            The file should be in either TIFF or JPEG format.
+        filepath : :class:`str`
+            Full path to the image file. The file must be in `.tif`, `.tiff`, or `.jpg` format.
         
-        filetype : FileType, optional
-            The type of the file, which can be one of the `FileType` enum values 
-            (e.g., SCIENCE, FLAT, BIAS, or DARK). Defaults to FileType.SCIENCE.
+        filetype : :class:`FileType`, optional
+            Type of the file, chosen from the :class:`FileType` enumeration 
+            (e.g., ``SCIENCE``, ``FLAT``, ``BIAS``, ``DARK``). Defaults to ``FileType.SCIENCE``.
         
-        meta : bool, optional
-            Whether to parse metadata from the file. Defaults to True. 
-            If set to False, metadata will not be included in the resulting GONetFile instance.
+        meta : :class:`bool`, optional
+            If True (default), metadata will be extracted and included in the resulting object.
+            If False, metadata will be skipped.
 
         Returns
         -------
-        GONetFile
-            A new instance of the GONetFile class, initialized with the data and 
-            metadata extracted from the specified file.
+        :class:`GONetFile`
+            A new instance of the :class:`GONetFile` class initialized with the file's pixel data
+            and (optionally) metadata.
 
         Raises
         ------
         FileNotFoundError
-            If the specified file does not exist or cannot be found.
+            If the specified file does not exist or cannot be accessed.
         
         ValueError
-            If the file extension is not `.tiff`, `.TIFF`, `.tif`, `.TIF`, or `.jpg`.
+            If the file extension is not supported (only `.tif`, `.tiff`, or `.jpg` are allowed).
+
+    
         """
 
         if not os.path.isfile(filepath):
@@ -396,23 +448,35 @@ class GONetFile:
     @staticmethod
     def _parse_tiff_file(filepath: str, meta: bool) -> tuple[np.ndarray, dict]:
         """
-        Parses a TIFF file and extracts image data and metadata.
+        Parse a TIFF file and extract RGB channel data and optional metadata.
 
-        This method reads the TIFF file specified by `filepath` and extracts the 
-        red, green, and blue channel data, as well as metadata if `meta` is True.
+        This static method reads a TIFF file and separates the image into red, green, 
+        and blue channels. If ``meta`` is True, it also extracts metadata from the file 
+        header and returns it alongside the image data.
 
         Parameters
         ----------
-        filepath : str
-            The path to the TIFF file.
-        meta : bool, optional
-            Whether to extract metadata from the file. Defaults to `True`.
+        filepath : :class:`str`
+            Path to the TIFF file to be parsed.
+        
+        meta : :class:`bool`
+            Whether to extract metadata from the file. If True, metadata will be 
+            returned as a dictionary. If False, the metadata will be an empty dictionary.
 
         Returns
         -------
-        tuple
-            A tuple containing the parsed image data (red, green, blue channels)
-            and metadata (if `meta` is True).
+        :class:`tuple` [ :class:`numpy.ndarray`, :class:`dict` ]
+            A tuple containing:
+            
+            - A NumPy array of shape ``(3, H, W)`` representing the red, green, and blue channels.
+            - A dictionary of metadata (empty if ``meta`` is False).
+
+        Raises
+        ------
+        FileNotFoundError
+            If the file does not exist or is not accessible.
+        ValueError
+            If the TIFF file does not contain 3 channels.
         """
 
         with tifffile.TiffFile(filepath) as tif:
@@ -426,25 +490,42 @@ class GONetFile:
     @staticmethod
     def _parse_raw_file(filepath: str, meta: bool) -> tuple[np.ndarray, dict]:
         """
-        Parses a raw GONet file and extracts image data and metadata.
+        Parse a raw GONet file and extract RGB channel data and optional metadata.
 
-        This method reads the raw file specified by `filepath` and extracts the 
-        red, green, and blue channel data, as well as metadata if `meta` is True.
-        Note that the raw files usually have `.jpg` extensions, but they are not
-        standard JPEG images.
+        This static method reads a GONet raw file—typically with a `.jpg` extension 
+        but not in standard JPEG format—and extracts the red, green, and blue image 
+        channels. If ``meta`` is True, it also extracts metadata from the embedded 
+        header.
 
         Parameters
         ----------
-        filepath : str
-            The path to the raw file.
-        meta : bool, optional
-            Whether to extract metadata from the file. Defaults to `True`.
+        filepath : :class:`str`
+            Path to the raw file to be parsed.
+        
+        meta : :class:`bool`
+            Whether to extract metadata from the file. If True, metadata will be 
+            returned as a dictionary. If False, the metadata will be an empty dictionary.
 
         Returns
         -------
-        tuple
-            A tuple containing the parsed image data (red, green, blue channels)
-            and metadata (if `meta` is True).
+        :class:`tuple` [ :class:`numpy.ndarray`, :class:`dict` ]
+            A tuple containing:
+
+            - A NumPy array of shape ``(3, H, W)`` representing the red, green, and blue channels.
+            - A dictionary of metadata (empty if ``meta`` is False).
+
+        Notes
+        -----
+
+        - The file is assumed to follow the GONet binary structure with embedded metadata 
+          and interleaved RGB pixel data.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the file does not exist or is not accessible.
+        ValueError
+            If the file format is incompatible or corrupted.
         """
 
         with open(filepath, "rb") as file:
@@ -510,40 +591,45 @@ class GONetFile:
 
     def _operate(self, other, op) -> 'GONetFile':
         """
-        Performs an operation between the current GONetFile instance and another object.
+        Perform an element-wise operation on the current :class:`GONetFile` instance.
 
-        This method facilitates operations between two GONetFile instances or 
-        between a GONetFile instance and a scalar value. If the operation is between
-        two GONetFile instances, the operation is applied to each color channel (red, 
-        green, blue) independently. If the operation is between a GONetFile instance 
-        and a scalar, the operation is applied element-wise to the pixel data using 
-        numpy's operators.
+        This internal method supports element-wise operations between the current 
+        GONetFile instance and either another GONetFile instance or a scalar value.
+        The operation is applied independently to each color channel 
+        (red, green, and blue) using the provided binary operator.
 
         Parameters
         ----------
-        other : GONetFile or scalar
-            The other object to perform the operation with. It can either be another 
-            GONetFile instance or a scalar value (e.g., an integer or float).
-        op : function
-            The operation to perform. This is expected to be a function 
-            (e.g., `numpy.add`, `numpy.subtract`, etc.) that takes two 
-            arguments and returns the result of the operation.
+        other : :class:`GONetFile` or scalar
+            The operand for the operation. This can be another :class:`GONetFile` 
+            instance or a scalar (e.g., :class:`int` or :class:`float`).
+
+        op : :class:`function`
+            A binary operator function (e.g., :func:`numpy.add`, :func:`numpy.multiply`)
+            that performs the desired operation between corresponding pixel arrays.
 
         Returns
         -------
-        GONetFile
-            A new GONetFile instance with the result of the operation. 
-            If the operation is between two GONetFile instances, the new 
-            GONetFile will have no metadata and file type.
+        :class:`GONetFile`
+            A new :class:`GONetFile` instance with the operation applied to each channel.
+            If ``other`` is a GONetFile, the result has no metadata or file type.
+            If ``other`` is a scalar, metadata and file type are preserved.
+
+        Raises
+        ------
+        TypeError
+            If ``other`` is neither a GONetFile nor a scalar.
+        
+        ValueError
+            If the operation cannot be broadcast between the channels and ``other``.
 
         Notes
         -----
-        - If the operation is between two GONetFile instances, the metadata and 
-          file type of the resulting GONetFile will be set to `None`.
-        - If the operation is between a GONetFile instance and a scalar, the metadata 
-          and file type from the original instance are preserved.
-        - If the operation between the channels and the other object is not supported 
-          by numpy (e.g., incompatible shapes or types), a numpy error will be raised.
+
+        - This method is primarily used internally to implement operators like 
+          `__add__`, `__sub__`, etc.
+        - Metadata is only retained when operating with scalars.
+
         """
         if isinstance(other, GONetFile):
             return GONetFile(
@@ -567,29 +653,33 @@ class GONetFile:
     # Addition
     def __add__(self, other: Any) -> 'GONetFile':
         """
-        Overloads the `+` operator to add two GONetFile instances.
+        Add another object to this :class:`GONetFile` instance.
 
-        This method adds the red, green, and blue channels of two GONetFile 
-        instances together independently. If the operation is between a GONetFile 
-        instance and a scalar, the operation is applied element-wise to the pixel 
-        data using numpy's addition.
+        This method overloads the ``+`` operator to support element-wise addition 
+        between the current :class:`GONetFile` and either another :class:`GONetFile` 
+        or a scalar value (e.g., :class:`int`, :class:`float`). Addition is performed 
+        independently on the red, green, and blue channels using :func:`numpy.add`.
 
         Parameters
         ----------
-        other : Any
-            Another GONetFile instance or a scalar value (int, float) to add to 
-            the current GONetFile instance.
+        other : :class:`GONetFile` or scalar
+            The operand to add. Can be another :class:`GONetFile` or a scalar value.
 
         Returns
         -------
-        GONetFile
-            A new GONetFile instance with the result of the addition.
+        :class:`GONetFile`
+            A new instance resulting from the addition. If `other` is a 
+            :class:`GONetFile`, the returned object has no metadata or file type.
 
-        Notes
-        -----
-        - The resulting GONetFile instance will not have metadata or file type 
-          if the operation is between two GONetFile instances.
-        - Any errors during the operation are raised by numpy.
+        Raises
+        ------
+        TypeError
+            If the operation is not supported between the operands.
+        
+        ValueError
+            If the image shapes are incompatible.
+
+
         """
         return self._operate(other, operator.add)
 
@@ -598,56 +688,65 @@ class GONetFile:
     # In-place addition (+=)
     def __iadd__(self, other: Any) -> 'GONetFile':
         """
-        Overloads the `+=` operator to perform in-place addition on a GONetFile instance.
+        Perform in-place addition on this :class:`GONetFile` instance.
 
-        This method adds the red, green, and blue channels of another GONetFile 
-        instance or a scalar value to the current GONetFile instance in-place.
+        This method overloads the ``+=`` operator to support in-place element-wise 
+        addition of another :class:`GONetFile` or a scalar value (e.g., :class:`int`, 
+        :class:`float`). Addition is performed independently on the red, green, and 
+        blue channels using :func:`numpy.add`.
 
         Parameters
         ----------
-        other : Any
-            Another GONetFile instance or a scalar value (int, float) to add 
-            to the current GONetFile instance.
+        other : :class:`GONetFile` or scalar
+            The value to add in-place. Can be another :class:`GONetFile` or a scalar.
 
         Returns
         -------
-        GONetFile
-            The updated GONetFile instance with the result of the in-place addition.
+        :class:`GONetFile`
+            The modified instance after in-place addition.
 
-        Notes
-        -----
-        - This operation modifies the current instance and returns the updated 
-          GONetFile.
-        - Any errors during the operation are raised by numpy.
+        Raises
+        ------
+        TypeError
+            If the operation is not supported between the operands.
+
+        ValueError
+            If the channel dimensions are incompatible for element-wise addition.
+
+
         """
         return self._operate(other, operator.iadd)
 
     # Multiplication
     def __mul__(self, other: Any) -> 'GONetFile':
         """
-        Overloads the `*` operator to multiply the current GONetFile instance 
-        with another GONetFile instance or a scalar.
+        Perform element-wise multiplication using the ``*`` operator.
 
-        This method multiplies the red, green, and blue channels of two GONetFile 
-        instances or applies element-wise multiplication between a GONetFile instance 
-        and a scalar using numpy's multiplication.
+        This method multiplies the red, green, and blue channels of the current 
+        :class:`GONetFile` instance with either another :class:`GONetFile` instance 
+        or a scalar (e.g., :class:`int`, :class:`float`). The multiplication is 
+        performed element-wise using :func:`numpy.multiply`.
 
         Parameters
         ----------
-        other : Any
-            Another GONetFile instance or a scalar value (int, float) to multiply 
-            with the current GONetFile instance.
+        other : :class:`GONetFile` or scalar
+            The object to multiply with. Can be another :class:`GONetFile` instance 
+            or a scalar value.
 
         Returns
         -------
-        GONetFile
-            A new GONetFile instance with the result of the multiplication.
+        :class:`GONetFile`
+            A new :class:`GONetFile` instance containing the result of the multiplication.
 
-        Notes
-        -----
-        - If the operation is between two GONetFile instances, the resulting 
-          GONetFile instance will not have metadata or file type.
-        - Any errors during the operation are raised by numpy.
+        Raises
+        ------
+        TypeError
+            If the operation is not supported between the operands.
+
+        ValueError
+            If the channel dimensions are incompatible for element-wise multiplication.
+
+
         """
         return self._operate(other, operator.mul)
 
@@ -656,58 +755,65 @@ class GONetFile:
     # Subtraction
     def __sub__(self, other: Any) -> 'GONetFile':
         """
-        Overloads the `-` operator to subtract another GONetFile instance 
-        or a scalar from the current GONetFile instance.
+        Perform element-wise subtraction using the ``-`` operator.
 
-        This method subtracts the red, green, and blue channels of two GONetFile 
-        instances or applies element-wise subtraction between a GONetFile instance 
-        and a scalar using numpy's subtraction.
+        This method subtracts either another :class:`GONetFile` instance or a scalar 
+        (e.g., :class:`int`, :class:`float`) from the current :class:`GONetFile` 
+        instance. The operation is applied independently to the red, green, and blue 
+        channels using :func:`numpy.subtract`.
 
         Parameters
         ----------
-        other : Any
-            Another GONetFile instance or a scalar value (int, float) to subtract 
-            from the current GONetFile instance.
+        other : :class:`GONetFile` or scalar
+            The object to subtract. Can be another :class:`GONetFile` instance or a scalar value.
 
         Returns
         -------
-        GONetFile
-            A new GONetFile instance with the result of the subtraction.
+        :class:`GONetFile`
+            A new :class:`GONetFile` instance containing the result of the subtraction.
 
-        Notes
-        -----
-        - If the operation is between two GONetFile instances, the resulting 
-          GONetFile instance will not have metadata or file type.
-        - Any errors during the operation are raised by numpy.
+        Raises
+        ------
+        TypeError
+            If the operation is not supported between the operands.
+
+        ValueError
+            If the channel dimensions are incompatible for element-wise subtraction.
+
+
         """
         return self._operate(other, operator.sub)
 
     # Division
     def __truediv__(self, other: Any) -> 'GONetFile':
         """
-        Overloads the `/` operator to divide the current GONetFile instance 
-        by another GONetFile instance or a scalar.
+        Perform element-wise division using the ``/`` operator.
 
-        This method divides the red, green, and blue channels of two GONetFile 
-        instances or applies element-wise division between a GONetFile instance 
-        and a scalar using numpy's true division.
+        This method divides the red, green, and blue channels of the current 
+        :class:`GONetFile` instance by either another :class:`GONetFile` instance 
+        or a scalar (e.g., :class:`int`, :class:`float`). The division is 
+        applied using :func:`numpy.true_divide`.
 
         Parameters
         ----------
-        other : Any
-            Another GONetFile instance or a scalar value (int, float) to divide 
-            the current GONetFile instance.
+        other : :class:`GONetFile` or scalar
+            The object to divide by. Can be another :class:`GONetFile` instance 
+            or a scalar value.
 
         Returns
         -------
-        GONetFile
-            A new GONetFile instance with the result of the division.
+        :class:`GONetFile`
+            A new :class:`GONetFile` instance containing the result of the division.
 
-        Notes
-        -----
-        - If the operation is between two GONetFile instances, the resulting 
-          GONetFile instance will not have metadata or file type.
-        - Any errors during the operation are raised by numpy.
+        Raises
+        ------
+        ZeroDivisionError
+            If division by zero occurs (e.g., scalar is zero or zero elements in another GONetFile).
+        
+        TypeError
+            If the operation is not supported between the operands.
+
+
         """
         return self._operate(other, operator.truediv)
     

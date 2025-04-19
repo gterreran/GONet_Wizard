@@ -1,11 +1,12 @@
 """
-Defines the Flask server and :dashdoc:`Dash <>` app instance for the GONet Dashboard.
+Defines the Flask server and `Dash <https://dash.plotly.com/>`_ app instance for the GONet Dashboard.
 
 This module initializes:
-- a :class:`flask.Flask` server named "GONet_dashboard", and
-- a :dashdoc:`Dash <>` `app` that uses this server and loads assets from the local `assets/` folder.
 
-These objects are imported by the rest of the dashboard system (e.g. `app.py`).
+- a :class:`flask.Flask` server named "GONet_dashboard", and
+- a `Dash <https://dash.plotly.com/>`_ `app` that uses this server and loads assets from the local `assets/` folder.
+
+These objects are imported by the rest of the dashboard system (e.g. :mod:`GONet_Wizard.GONet_dashboard.src.app`).
 """
 
 from flask import Flask

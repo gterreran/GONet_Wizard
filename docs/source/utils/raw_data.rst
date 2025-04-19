@@ -55,3 +55,8 @@ In :meth:`GONetFile._parse_jpg_file` raw files are read in binary mode. In order
     pixel0 = byte0_left_shifted + byte2_right_shifted # -> 110001101010
 
 Each recreated pixel is then stored in each channel following the bayer pattern. 
+
+Reconstructing the full image
+-----------------------------
+
+After decoding the raw bytes from the sensor, we reconstruct the pixel values and arrange them into three separate images—one for each color channel: red, green, and blue. Due to the nature of the Bayer pattern, the sensor contains twice as many green pixels as red or blue. To create a balanced color representation, we define a super pixel as a 2×2 block consisting of one red, one blue, and two green pixels. For each super pixel, we compute the green value as the average of its two green pixels, while red and blue are taken directly. As a result of this averaging, the green channel will exhibit different statistical properties, such as reduced variance, compared to the red and blue channels.
