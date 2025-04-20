@@ -32,6 +32,7 @@ Each module is documented in its own section below.
    GONet_dashboard
    GONet_utils
    commands
+   _version
    Changelog <https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md>
 
 
@@ -44,7 +45,6 @@ The version is defined by :mod:`_version` and can be retrieved accessing the ``_
 .. code-block:: bash
 
    GONet_Wizard --version
-
 
 Changelog
 =========

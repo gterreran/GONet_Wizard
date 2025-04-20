@@ -17,6 +17,15 @@ The :class:`GONetFile` class also includes support for operator overloading, all
 users to easily perform element-wise operations between GONet files or between 
 a GONet file and scalar values.
 
+In order to ensure that all arithmetic operations on the image channels are safe and
+reliable, we cast the red, green, and blue channel arrays to float64 upon initialization.
+The original pixel data is typically stored as uint12 or uint16, which are prone to
+overflow or precision loss during common operations like addition, subtraction, or
+division. By promoting the arrays to float64, we avoid these issues and enable robust
+numerical processing — particularly important for calibration, normalization, or stacked
+image analysis. This casting ensures consistency and protects users from subtle bugs that
+can arise from working with fixed-width integer types.
+
 **Functions**
 
 - :func:`cast`: Convert a value to a JSON-serializable type if necessary.
@@ -73,41 +82,6 @@ def cast(v: 'Any') -> 'Any':
             v[kk] = cast(vv)
         return v
     else: return v
-
-def scale_uint12_to_uint16(x):
-    """
-    Linearly scales unsigned 12-bit integer values to the full 16-bit range.
-
-    This function maps the full dynamic range of an unsigned 12-bit integer
-    (0–4095) to the full range of an unsigned 16-bit integer (0–65535),
-    preserving relative magnitudes and maximizing precision.
-
-    Parameters
-    ----------
-    x : array-like or int
-        Input value(s) in the uint12 range [0, 4095]. Can be a single integer or a NumPy array.
-
-    Returns
-    -------
-    np.uint16 or np.ndarray
-        Scaled value(s) in the uint16 range [0, 65535]. Output type matches the input type.
-
-    Raises
-    ------
-    ValueError
-        If any input values are outside the valid uint12 range.
-
-    """
-    x = np.asarray(x)
-
-    max_uint12 = 2**12 - 1
-    max_uint16 = 2**16 - 1
-
-    if np.any((x < 0) | (x > max_uint12)):
-        raise ValueError("Input values must be in the range [0, {max_uint12}] for uint12.")
-
-    scaled = np.round((x / max_uint12) * max_uint16).astype(np.uint16)
-    return scaled
 
 class FileType(Enum):
     """
@@ -188,20 +162,37 @@ class GONetFile:
         filename : :class:`str`
             Path or name of the GONet file.
         red : :class:`numpy.ndarray`
-            Pixel data for the red channel.
+            Pixel data for the red channel. Will be cast to float64.
         green : :class:`numpy.ndarray`
-            Pixel data for the green channel.
+            Pixel data for the green channel. Will be cast to float64.
         blue : :class:`numpy.ndarray`
-            Pixel data for the blue channel.
+            Pixel data for the blue channel. Will be cast to float64.
         meta : :class:`dict`
-            Dictionary of extracted metadata (e.g., camera model, timestamp, settings).
+            Dictionary of extracted metadata.
         filetype : :class:`FileType`
-            Type of GONet file, such as :attr:`FileType.SCIENCE` or :attr:`FileType.FLAT`.
+            Type of GONet file (e.g., :attr:`FileType.SCIENCE`).
         """
+        # --- Runtime type checking ---
+        if not isinstance(filename, str):
+            raise TypeError("filename must be a string")
+
+        for name, arr in zip(['red', 'green', 'blue'], [red, green, blue]):
+            if not isinstance(arr, np.ndarray):
+                raise TypeError(f"{name} must be a numpy.ndarray")
+            if arr.ndim != 2:
+                raise ValueError(f"{name} must be a 2D array")
+
+        if not isinstance(meta, dict):
+            raise TypeError("meta must be a dict")
+
+        if not isinstance(filetype, FileType):
+            raise TypeError("filetype must be an instance of FileType")
+
+        # --- Safe assignment ---
         self._filename = filename
-        self._red = red
-        self._green = green
-        self._blue = blue
+        self._red = red.astype(np.float64)
+        self._green = green.astype(np.float64)
+        self._blue = blue.astype(np.float64)
         self._meta = meta
         self._filetype = filetype
 
@@ -308,44 +299,48 @@ class GONetFile:
         """
         Write the RGB image data to a JPEG file.
 
-        This method combines the red, green, and blue channel data into
-        a single RGB image and saves it as a JPEG using the :mod:`PIL.Image` library.
+        This method assumes that the red, green, and blue channels are in the
+        uint16 range [0, 65535], and rescales them to the standard 8-bit range
+        [0, 255] required for JPEG output. Values outside this range are clipped.
 
         Parameters
         ----------
         output_filename : :class:`str`
             Path where the resulting JPEG file will be saved.
-
-        Returns
-        -------
-        :class:`None`
-            This method does not return anything.
-
         """
-        jpeg = Image.open(self.filename)
-        jpeg.convert("RGB")
-        jpeg.save(output_filename, 'JPEG', exif=jpeg.getexif())
+        def convert_to_uint8(arr):
+            arr = np.clip(arr, 0, 2**16 - 1)
+            return np.round(arr / (2**16 - 1) * 255).astype(np.uint8)
+
+        rgb = np.stack([
+            convert_to_uint8(self.red),
+            convert_to_uint8(self.green),
+            convert_to_uint8(self.blue)
+        ], axis=-1)
+
+        image = Image.fromarray(rgb, mode="RGB")
+        image.save(output_filename, format="JPEG")
 
     def write_to_tiff(self, output_filename: str) -> None:
         """
         Write the RGB image data to a TIFF file.
 
-        This method combines the red, green, and blue channel data into
-        a single RGB image and saves it as a TIFF file using either 
-        :mod:`PIL.Image` or :mod:`tifffile`.
+        This method assumes that the red, green, and blue channels are in the
+        uint16 range [0, 65535]. Values outside this range are clipped, and
+        the data is cast to uint16 for TIFF compatibility.
 
         Parameters
         ----------
         output_filename : :class:`str`
             Path where the resulting TIFF file will be saved.
-
-        Returns
-        -------
-        :class:`None`
-            This method does not return anything.
-
         """
-        tifffile.imwrite(output_filename, [self.red, self.green, self.blue], photometric='rgb', metadata=self.meta)
+        rgb_stack = np.stack([
+            np.clip(self.red, 0, 2**16 - 1).astype(np.uint16),
+            np.clip(self.green, 0, 2**16 - 1).astype(np.uint16),
+            np.clip(self.blue, 0, 2**16 - 1).astype(np.uint16)
+        ], axis=0)
+
+        tifffile.imwrite(output_filename, rgb_stack, photometric='rgb', metadata=self.meta)
 
     def write_to_fits(self, output_filename: str) -> None:
         """
@@ -574,16 +569,15 @@ class GONetFile:
 
                 # read in 6112 bytes, but only 6084 will be used
                 bdLine = file.read(GONetFile.PADDED_LINE_BYTES)
-                gg=np.array(list(bdLine[0:GONetFile.USED_LINE_BYTES]),dtype='uint16')
+                gg = np.frombuffer(bdLine[0:GONetFile.USED_LINE_BYTES], dtype=np.uint8)
                 s[0::2,i] = (gg[0::3]<<4) + (gg[2::3]&15)
                 s[1::2,i] = (gg[1::3]<<4) + (gg[2::3]>>4)
 
         # form superpixel array
-        sp=np.zeros((int(GONetFile.PIXEL_PER_LINE/2),int(GONetFile.PIXEL_PER_COLUMN/2),3),dtype='uint16')
+        sp=np.empty((int(GONetFile.PIXEL_PER_LINE/2),int(GONetFile.PIXEL_PER_COLUMN/2),3))
         sp[:,:,0]=s[1::2,1::2]                      # red
         sp[:,:,1]=(s[0::2,1::2]+s[1::2,0::2])/2     # green
         sp[:,:,2]=s[0::2,0::2]                      # blue
-        sp = scale_uint12_to_uint16(sp)
 
         array=sp.transpose()
 
