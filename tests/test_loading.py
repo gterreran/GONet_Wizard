@@ -1,28 +1,114 @@
+import json
+import numpy as np
 import pytest
+from GONet_Wizard.GONet_utils import GONetFile
+from GONet_Wizard.GONet_utils.src.gonetfile import scale_uint12_to_16bit_range
 
-@pytest.fixture
-def example_GONet_data():
+def verify_proper_load(source_file: str, tmp_path: str, pattern_red: np.ndarray, pattern_green: np.ndarray, pattern_blue: np.ndarray):
+    """
+    Verify that the red, green, and blue channels in a GONetFile instance
+    match the expected Dolus pattern.
 
-    from GONet_utils import GONetFile
-    import numpy as np
+    This test uses a controlled test file ("Dolus") and compares the parsed
+    image channels against a known pattern. Metadata is compared against a
+    reference JSON file containing expected EXIF values.
+    """
+
+    # Load expected EXIF metadata from JSON file
+    with open("tests/Dolus_expected_meta.json", "r") as f:
+        expected_metadata = json.load(f)
+
+    # Copy the Dolus file into a temp directory for isolated testing
+    extension = source_file.split('.')[-1]
+    test_file = str(tmp_path / f"Dolus.{extension}")
+    with open(source_file, 'rb') as src, open(test_file, 'wb') as dst:
+        dst.write(src.read())
+
+    # Parse the file using the full class pipeline with metadata extraction
+    gonet = GONetFile.from_file(test_file, meta=True)
+
+    assert gonet.filename == test_file
+
+    # Confirm that each channel was parsed and scaled correctly
+    np.testing.assert_array_equal(gonet.red, pattern_red)
+    np.testing.assert_array_equal(gonet.green, pattern_green)
+    np.testing.assert_array_equal(gonet.blue, pattern_blue)
+
+    # Confirm that metadata matches the known expected fields
+    meta = gonet.meta
+
+    # Allow meta to be None, and only perform checks if it's a dict
+    assert meta is None or isinstance(meta, dict), "Metadata must be a dictionary or None."
+
+    if meta is not None:
+        for key, expected in expected_metadata.items():
+            assert key in meta, f"Missing expected metadata key: {key}"
+            actual = meta[key]
+
+            if isinstance(expected, float):
+                assert abs(actual - expected) < 1e-6, f"Metadata mismatch for key '{key}'"
+            else:
+                assert actual == expected, f"Metadata mismatch for key '{key}'"
+
+
+def test_loading_from_raw_file(tmp_path):
+    """
+    Test that GONetFile.from_file correctly parses a GONet .jpg raw file and
+    extracts both RGB image data and metadata.
+
+    """
+
+    source_file = "tests/Dolus_250307_155311_1741362791.jpg"
+
+    # Generate the expected RGB arrays using the known pattern logic
+    array = np.array([
+        range(i, i + int(GONetFile.PIXEL_PER_LINE / 2))
+        for i in range(0, int(GONetFile.PIXEL_PER_COLUMN / 2))
+    ])
+    red = scale_uint12_to_16bit_range(np.clip(array, 0, 4095))
+    green = scale_uint12_to_16bit_range(np.clip(array * 5, 0, 4095))
+    blue = scale_uint12_to_16bit_range(np.clip(array * 2, 0, 4095))
+
+    verify_proper_load(source_file, tmp_path, red, green, blue)
+
+
+def test_loading_from_tiff_file(tmp_path):
+    """
+    Test that GONetFile.from_file correctly parses a GONet .tiff file and
+    extracts both RGB image data and metadata.
+
+    """
+
+    source_file = "tests/Dolus_250307_155311_1741362791.tiff"
+
+    # Generate the expected RGB arrays using the known pattern logic
+    array = np.array([
+        np.arange(i,(i+int(GONetFile.PIXEL_PER_LINE/2)))
+        for i in np.arange(0,int(GONetFile.PIXEL_PER_COLUMN/2))
+    ])
+
+    def approx_Domus(arr):
+        return arr*16 + np.floor(arr*np.float32(((2**16-1)/(2**12-1)-16)))
+
+    red = np.clip(approx_Domus(array), 0, 2**16-1)
+    green = np.clip(approx_Domus(array*5), 0, 2**16-1)
+    blue = np.clip(approx_Domus(array*2), 0, 2**16-1)
+
+    verify_proper_load(source_file, tmp_path, red, green, blue)
+
     
-    array = np.array([range(i,(i+int(GONetFile.PIXEL_PER_LINE*8)), 16) for i in range(0,int(GONetFile.PIXEL_PER_COLUMN*8), 16)])
-    red = np.array(array)
-    # in GONet we are simply mupltiplying the value by 16, so the saturation is the saturation for a uint12 multiplied by 16, not 2**16-1
-    red[red>2**16-1] = (2**12-1)*16
-    red = red.astype('uint16')
-    green = np.array(array*5)
-    green[green>2**16-1] = (2**12-1)*16
-    green = green.astype('uint16')
-    blue = np.array(array*2)
-    blue[blue>2**16-1] = (2**12-1)*16
-    blue = blue.astype('uint16')
 
 
-    test_file = 'Dolus_250307_155311_1741362791.jpg'
-    go = GONetFile.from_file(test_file)
+# @pytest.fixture
+# def dolus_gonetfile(tmp_path) -> GONetFile:
+#     """
+#     Fixture that loads the verified Dolus file using GONetFile.from_file.
+#     Only used after the method is independently tested.
+#     """
+#     source_file = "tests/Dolus_250307_155311_1741362791.jpg"
+#     test_file = tmp_path / "Dolus.jpg"
+#     with open(source_file, 'rb') as src, open(test_file, 'wb') as dst:
+#         dst.write(src.read())
+#     return GONetFile.from_file(str(test_file), meta=True)
 
-    (go.red == red).all()
-    (go.green == green).all()
-    (go.blue == blue).all()
-    return
+

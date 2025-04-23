@@ -7,7 +7,7 @@ GONetFile Module
 Functions:
 ---------------
 
-.. autofunction:: GONet_Wizard.GONet_utils.src.gonetfile.cast
+.. autofunction:: GONet_Wizard.GONet_utils.src.gonetfile.scale_uint12_to_16bit_range
 
 
 Classes:

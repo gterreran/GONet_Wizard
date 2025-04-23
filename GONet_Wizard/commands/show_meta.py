@@ -19,7 +19,7 @@ def show_meta(files: Union[str, List[str]]) -> None:
     """
     Display the metadata content of one or more GONet files.
 
-    This function extracts the meta data from GONet file(s), and
+    This function extracts the metadata from GONet file(s), and
     pretty-prints them to the console. If the file(s) does
     not exist or cannot be parsed, a warning is shown instead.
 
@@ -48,7 +48,11 @@ def show_meta(files: Union[str, List[str]]) -> None:
 
         try:
             go = GONetFile.from_file(path)
-            print("🧾 Metadata:")
-            pprint.pprint(go.meta, indent=4, width=100)
+            if go.meta is None:
+                print("   ℹ️ No metadata associated with this file.")
+            else:
+                print("🧾 Metadata:")
+                pprint.pprint(go.meta, indent=4, width=100)
         except Exception as e:
             print(f"   ⚠️ Error reading metadata: {e}")
+

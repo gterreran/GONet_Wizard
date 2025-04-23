@@ -46,42 +46,48 @@ Example usage
 """
 
 from tifffile import tifffile
-import os, PIL, operator
+import os, PIL, operator, re, ast, pprint
 from PIL import Image
 from PIL.ExifTags import TAGS
 import numpy as np
 from enum import Enum, auto
-from typing import Any
+from typing import Any, Optional
 from astropy.io import fits
 
-def cast(v: 'Any') -> 'Any':
-    """
-    Convert a value to a JSON-serializable type if necessary.
 
-    This is primarily used to sanitize data types such as unusual TIFF formats 
-    that cannot be serialized to JSON (e.g., numpy scalars, certain image metadata types).
+def scale_uint12_to_16bit_range(x):
+    """
+    Linearly scales unsigned 12-bit integer values to the full 16-bit range [0, 65535].
+
+    This function maps values from the uint12 range [0, 4095] to the float range [0, 65535],
+    preserving relative magnitudes without rounding or type conversion to integer.
 
     Parameters
     ----------
-    v : :class:`Any`
-        The input value to be cast.
+    x : array-like or int
+        Input value(s) in the uint12 range [0, 4095]. Can be a scalar or NumPy array.
 
     Returns
     -------
-    :class:`Any`
-        A version of the input that is safe for JSON serialization.
+    np.ndarray or float
+        Scaled value(s) in the float range [0.0, 65535.0]. Output dtype is float64.
+
+    Raises
+    ------
+    ValueError
+        If any input values are outside the valid uint12 range.
+
     """
-    if isinstance(v, PIL.TiffImagePlugin.IFDRational):
-        return v._numerator / v.denominator
-    elif isinstance(v, tuple):
-        return tuple(cast(t) for t in v)
-    elif isinstance(v, bytes):
-        return v.decode(errors="replace")
-    elif isinstance(v, dict):
-        for kk, vv in v.items():
-            v[kk] = cast(vv)
-        return v
-    else: return v
+    x = np.asarray(x)
+
+    max_uint12 = 2**12 - 1  # 4095
+    max_uint16 = 2**16 - 1  # 65535
+
+    if np.any((x < 0) | (x > max_uint12)):
+        raise ValueError(f"Input values must be in the range [0, {max_uint12}] for uint12.")
+
+    scaled = (x / max_uint12) * max_uint16
+    return scaled
 
 class FileType(Enum):
     """
@@ -150,7 +156,15 @@ class GONetFile:
 
     CHANNELS = ['red', 'green', 'blue']
 
-    def __init__(self, filename: str, red: np.ndarray, green: np.ndarray, blue: np.ndarray, meta: dict, filetype: FileType) -> None:
+    def __init__(
+        self,
+        filename: str,
+        red: np.ndarray,
+        green: np.ndarray,
+        blue: np.ndarray,
+        meta: Optional[dict],
+        filetype: FileType
+    ) -> None:
         """
         Initialize a :class:`GONetFile` instance with image data and metadata.
 
@@ -167,10 +181,17 @@ class GONetFile:
             Pixel data for the green channel. Will be cast to float64.
         blue : :class:`numpy.ndarray`
             Pixel data for the blue channel. Will be cast to float64.
-        meta : :class:`dict`
-            Dictionary of extracted metadata.
+        meta : :class:`dict` or :data:`None`
+            Dictionary of extracted metadata, or None if no metadata is available.
         filetype : :class:`FileType`
             Type of GONet file (e.g., :attr:`FileType.SCIENCE`).
+
+        Raises
+        ------
+        TypeError
+            If input types are incorrect.
+        ValueError
+            If image arrays are not 2D.
         """
         # --- Runtime type checking ---
         if not isinstance(filename, str):
@@ -182,8 +203,8 @@ class GONetFile:
             if arr.ndim != 2:
                 raise ValueError(f"{name} must be a 2D array")
 
-        if not isinstance(meta, dict):
-            raise TypeError("meta must be a dict")
+        if meta is not None and not isinstance(meta, dict):
+            raise TypeError("meta must be a dict or None")
 
         if not isinstance(filetype, FileType):
             raise TypeError("filetype must be an instance of FileType")
@@ -295,33 +316,63 @@ class GONetFile:
             raise ValueError(f"Invalid channel name: {channel_name}. Allowed channels: {self.CHANNELS}")
         return getattr(self, channel_name)
     
-    def write_to_jpeg(self, output_filename: str) -> None:
+    def write_to_jpeg(self, output_filename: str, white_balance: bool = True) -> None:
         """
         Write the RGB image data to a JPEG file.
 
         This method assumes that the red, green, and blue channels are in the
         uint16 range [0, 65535], and rescales them to the standard 8-bit range
-        [0, 255] required for JPEG output. Values outside this range are clipped.
+        [0, 255] required for JPEG output. Values outside this range are clipped,
+        and the data is converted to 8-bit for JPEG compatibility.
+
+        If ``white_balance`` is True, the method applies red and blue channel gains
+        from ``self.meta['WB']`` prior to conversion, in order to produce a 
+        more natural-looking image. The white balance is expected to be a list 
+        or tuple of two floats: [R_gain, B_gain].
 
         Parameters
         ----------
         output_filename : :class:`str`
             Path where the resulting JPEG file will be saved.
+
+        white_balance : :class:`bool`, optional
+            Whether to apply white balance using gains from metadata (default is False).
+
+        Raises
+        ------
+        ValueError
+            If ``white_balance`` is True but the WB metadata is missing or invalid.
         """
         def convert_to_uint8(arr):
             arr = np.clip(arr, 0, 2**16 - 1)
             return np.round(arr / (2**16 - 1) * 255).astype(np.uint8)
 
+        red   = self.red.astype(np.float32)
+        green = self.green.astype(np.float32)
+        blue  = self.blue.astype(np.float32)
+
+        # Apply white balance if requested
+        if white_balance:
+            try:
+                r_gain, b_gain = self.meta["JPEG"]["WB"]
+                red   *= r_gain
+                blue  *= b_gain
+                # green *= 1.0 (implicitly)
+            except Exception as e:
+                raise ValueError("White balance metadata 'WB' is missing or invalid.") from e
+
+        # Convert to uint8 and stack
         rgb = np.stack([
-            convert_to_uint8(self.red),
-            convert_to_uint8(self.green),
-            convert_to_uint8(self.blue)
+            convert_to_uint8(red),
+            convert_to_uint8(green),
+            convert_to_uint8(blue)
         ], axis=-1)
 
         image = Image.fromarray(rgb, mode="RGB")
-        image.save(output_filename, format="JPEG")
+        image.save(output_filename, format="JPEG", quality=100)
 
-    def write_to_tiff(self, output_filename: str) -> None:
+
+    def write_to_tiff(self, output_filename: str, white_balance: bool = True) -> None:
         """
         Write the RGB image data to a TIFF file.
 
@@ -329,18 +380,44 @@ class GONetFile:
         uint16 range [0, 65535]. Values outside this range are clipped, and
         the data is cast to uint16 for TIFF compatibility.
 
+        If ``white_balance`` is True, the method applies red and blue channel gains
+        from ``self.meta['JPEG']['WB']`` prior to writing, in order to produce a 
+        more natural-looking image. The white balance is expected to be a list 
+        or tuple of two floats: [R_gain, B_gain].
+
         Parameters
         ----------
         output_filename : :class:`str`
             Path where the resulting TIFF file will be saved.
+
+        white_balance : :class:`bool`, optional
+            Whether to apply white balance using gains from metadata (default is True).
+
+        Raises
+        ------
+        ValueError
+            If ``white_balance`` is True but the WB metadata is missing or invalid.
         """
+        red   = self.red.astype(np.float32)
+        green = self.green.astype(np.float32)
+        blue  = self.blue.astype(np.float32)
+
+        if white_balance:
+            try:
+                r_gain, b_gain = self.meta["JPEG"]["WB"]
+                red *= r_gain
+                blue *= b_gain
+                # green remains unchanged
+            except Exception as e:
+                raise ValueError("White balance metadata 'WB' is missing or invalid.") from e
+
         rgb_stack = np.stack([
-            np.clip(self.red, 0, 2**16 - 1).astype(np.uint16),
-            np.clip(self.green, 0, 2**16 - 1).astype(np.uint16),
-            np.clip(self.blue, 0, 2**16 - 1).astype(np.uint16)
+            np.clip(red, 0, 2**16 - 1).astype(np.uint16),
+            np.clip(green, 0, 2**16 - 1).astype(np.uint16),
+            np.clip(blue, 0, 2**16 - 1).astype(np.uint16)
         ], axis=0)
 
-        tifffile.imwrite(output_filename, rgb_stack, photometric='rgb', metadata=self.meta)
+        tifffile.imwrite(output_filename, rgb_stack, photometric='rgb')
 
     def write_to_fits(self, output_filename: str) -> None:
         """
@@ -363,63 +440,66 @@ class GONetFile:
 
         Notes
         -----
-
         - The FITS file is created using the :mod:`astropy.io.fits` library.
         - Each color channel (red, green, blue) is stored in a separate image extension.
         - Metadata keys longer than 8 characters or containing lowercase letters or symbols
-          will be truncated or sanitized to conform to FITS header requirements.
-
+        will be truncated or sanitized to conform to FITS header requirements.
         """
-        
-        # Create the header for each extension based on the meta attribute
-        def create_header(channel_name: str):
+
+        def build_base_header():
             header = fits.Header()
-            
-            # Populate header with the meta dictionary's information
-            for key, value in self.meta.items():
-                # Convert labels to respect FITS standards (e.g., max 8 chars, uppercase)
-                if len(key) > 8:
-                    key = key[:8]
-                header[key.upper()] = value
-            
-            # Add specific channel information to the header
-            header['CHANNEL'] = channel_name.upper()  # Add channel info to header
-            header['EXTNAME'] = channel_name.upper()  # Extension name
+
+            if self.meta is None:
+                return header  # Return empty header if no metadata
+
+            header['GONETCAM'] = (self.meta.get('hostname', 'Unknown'), 'GONet camera identifier')
+            header['GONETVER'] = (self.meta.get('version', 'Unknown'), 'GONet software version')
+            header['MAKE']     = (self.meta.get('Make', 'Unknown'), 'Camera manufacturer')
+            header['MODEL']    = (self.meta.get('Model', 'Unknown'), 'Camera model')
+
+            header['BAYWIDTH'] = (self.meta.get('bayer_width', -1), 'Raw Bayer array width')
+            header['BAYHEIGH'] = (self.meta.get('bayer_height', -1), 'Raw Bayer array height')
+            header['IMGWIDTH'] = (self.meta.get('image_width', -1), 'Demosaiced image width')
+            header['IMGHEIGH'] = (self.meta.get('image_height', -1), 'Demosaiced image height')
+
+            header['ISOSET']   = (self.meta.get('ISOSpeedRatings', -1), 'ISO sensitivity rating (log2-scaled index)')
+            header['WBAUTO']   = (self.meta.get('WhiteBalance', -1), 'White balance mode (0=Auto)')
+
+            header['DATE-OBS'] = (self.meta.get('DateTime', 'Unknown'), 'File creation date/time')
+            header['EXPTIME']  = (float(self.meta.get('exposure_time', -1)), 'Exposure time in seconds')
+            header['SHUTSPD']  = (float(self.meta.get('shutter_speed', -1)), 'Shutter speed value (log2 scale)')
+
+            header['RESUNIT']  = (self.meta.get('ResolutionUnit', -1), 'Resolution unit')
+            header['LAT']      = (self.meta.get('latitude', 0.0), 'Latitude in decimal degrees')
+            header['LON']      = (self.meta.get('longitude', 0.0), 'Longitude in decimal degrees')
+            header['ALT']      = (self.meta.get('altitude', 0.0), 'Altitude in meters')
+
+            header['LENSCAP']  = (self.meta.get('lenscap', 'Unknown'), 'Lenscap status')
+            header['ANAGAIN']  = (self.meta.get('analog_gain', -1.0), 'Analog gain used during capture')
 
             return header
 
-        # Create the data for each channel
-        red_data = self.red
-        green_data = self.green
-        blue_data = self.blue
+        # Base metadata header
+        base_header = build_base_header()
 
-        # Create the FITS HDUs (Header/Data Units) for each channel
-        hdu_list = []
+        # Create each image HDU with proper extensions
+        def make_channel_hdu(data: np.ndarray, channel: str) -> fits.ImageHDU:
+            hdr = base_header.copy()
+            hdr['CHANNEL'] = (channel.upper(), 'Image channel')
+            hdr['EXTNAME'] = (channel.upper(), 'Extension name')
+            return fits.ImageHDU(data=data, header=hdr)
 
-        # Red channel extension
-        red_header = create_header('red')
-        red_hdu = fits.ImageHDU(data=red_data, header=red_header)
-        hdu_list.append(red_hdu)
+        red_hdu = make_channel_hdu(self.red, 'red')
+        green_hdu = make_channel_hdu(self.green, 'green')
+        blue_hdu = make_channel_hdu(self.blue, 'blue')
 
-        # Green channel extension
-        green_header = create_header('green')
-        green_hdu = fits.ImageHDU(data=green_data, header=green_header)
-        hdu_list.append(green_hdu)
-
-        # Blue channel extension
-        blue_header = create_header('blue')
-        blue_hdu = fits.ImageHDU(data=blue_data, header=blue_header)
-        hdu_list.append(blue_hdu)
-
-        # Create the Primary HDU (needed for a valid FITS file)
+        # Create primary HDU (no data)
         primary_hdu = fits.PrimaryHDU()
-        hdu_list.insert(0, primary_hdu)
 
-        # Create the HDU list (multi-extension FITS file)
-        hdul = fits.HDUList(hdu_list)
-
-        # Write the FITS file to disk
+        # Assemble HDUList
+        hdul = fits.HDUList([primary_hdu, red_hdu, green_hdu, blue_hdu])
         hdul.writeto(output_filename, overwrite=True)
+
 
     @classmethod
     def from_file(cls, filepath: str, filetype: FileType = FileType.SCIENCE, meta: bool = True) -> 'GONetFile':
@@ -457,17 +537,30 @@ class GONetFile:
         ValueError
             If the file extension is not supported (only `.tif`, `.tiff`, or `.jpg` are allowed).
 
-    
+        Notes
+        -----
+        Metadata extraction is supported only for `.jpg` files. TIFF files will be read for
+        image data only, and their metadata (if any) will be ignored.
         """
 
         if not os.path.isfile(filepath):
             raise FileNotFoundError(f'Could not find file {filepath}.')
         if filepath.split('.')[-1] in ['tiff','TIFF','tif','TIF']:
-            parsed_data, parsed_meta = cls._parse_tiff_file(filepath, meta)
+            parsed_data = cls._parse_tiff_file(filepath)
         elif filepath.split('.')[-1] in ['jpg']:
-            parsed_data, parsed_meta = cls._parse_raw_file(filepath, meta)
+            parsed_data = cls._parse_raw_file(filepath)
         else:
             raise ValueError("Extension must be '.tiff', '.TIFF', '.tif', '.TIF' or the original '.jpg' from a GONet camera.")
+        
+        if meta:
+            if filepath.split('.')[-1] in ['jpg']:
+                jpeg = Image.open(filepath)
+                raw_exif = jpeg._getexif()
+                parsed_meta = cls._parse_exif_metadata(raw_exif)
+        
+            else:
+                # No metadata for TIFF files
+                parsed_meta = None
 
         return cls(
             filename = filepath,
@@ -479,30 +572,22 @@ class GONetFile:
         )
 
     @staticmethod
-    def _parse_tiff_file(filepath: str, meta: bool) -> tuple[np.ndarray, dict]:
+    def _parse_tiff_file(filepath: str) -> tuple[np.ndarray, dict]:
         """
         Parse a TIFF file and extract RGB channel data and optional metadata.
 
         This static method reads a TIFF file and separates the image into red, green, 
-        and blue channels. If ``meta`` is True, it also extracts metadata from the file 
-        header and returns it alongside the image data.
+        and blue channels.
 
         Parameters
         ----------
         filepath : :class:`str`
             Path to the TIFF file to be parsed.
-        
-        meta : :class:`bool`
-            Whether to extract metadata from the file. If True, metadata will be 
-            returned as a dictionary. If False, the metadata will be an empty dictionary.
-
+ 
         Returns
         -------
-        :class:`tuple` [ :class:`numpy.ndarray`, :class:`dict` ]
-            A tuple containing:
-            
-            - A NumPy array of shape ``(3, H, W)`` representing the red, green, and blue channels.
-            - A dictionary of metadata (empty if ``meta`` is False).
+        :class:``numpy.ndarray``
+            A NumPy array of shape ``(3, H, W)`` representing the red, green, and blue channels.
 
         Raises
         ------
@@ -514,44 +599,26 @@ class GONetFile:
 
         with tifffile.TiffFile(filepath) as tif:
             tiff_data = tif.asarray()
-            tiff_meta = tif.shaped_metadata[0]
-            if meta:
-                return tiff_data, tiff_meta
-            else:
-                return tiff_data, None
+            return tiff_data
 
     @staticmethod
-    def _parse_raw_file(filepath: str, meta: bool) -> tuple[np.ndarray, dict]:
+    def _parse_raw_file(filepath: str) -> tuple[np.ndarray, dict]:
         """
         Parse a raw GONet file and extract RGB channel data and optional metadata.
 
         This static method reads a GONet raw file—typically with a `.jpg` extension 
         but not in standard JPEG format—and extracts the red, green, and blue image 
-        channels. If ``meta`` is True, it also extracts metadata from the embedded 
-        header.
+        channels.
 
         Parameters
         ----------
         filepath : :class:`str`
             Path to the raw file to be parsed.
         
-        meta : :class:`bool`
-            Whether to extract metadata from the file. If True, metadata will be 
-            returned as a dictionary. If False, the metadata will be an empty dictionary.
-
         Returns
         -------
-        :class:`tuple` [ :class:`numpy.ndarray`, :class:`dict` ]
-            A tuple containing:
-
-            - A NumPy array of shape ``(3, H, W)`` representing the red, green, and blue channels.
-            - A dictionary of metadata (empty if ``meta`` is False).
-
-        Notes
-        -----
-
-        - The file is assumed to follow the GONet binary structure with embedded metadata 
-          and interleaved RGB pixel data.
+        :class:``numpy.ndarray``
+            A NumPy array of shape ``(3, H, W)`` representing the red, green, and blue channels.
 
         Raises
         ------
@@ -570,8 +637,8 @@ class GONetFile:
                 # read in 6112 bytes, but only 6084 will be used
                 bdLine = file.read(GONetFile.PADDED_LINE_BYTES)
                 gg = np.frombuffer(bdLine[0:GONetFile.USED_LINE_BYTES], dtype=np.uint8)
-                s[0::2,i] = (gg[0::3]<<4) + (gg[2::3]&15)
-                s[1::2,i] = (gg[1::3]<<4) + (gg[2::3]>>4)
+                s[0::2, i] = (gg[0::3].astype(np.uint16) << 4) + (gg[2::3].astype(np.uint16) & 15)
+                s[1::2, i] = (gg[1::3].astype(np.uint16) << 4) + (gg[2::3].astype(np.uint16) >> 4)
 
         # form superpixel array
         sp=np.empty((int(GONetFile.PIXEL_PER_LINE/2),int(GONetFile.PIXEL_PER_COLUMN/2),3))
@@ -579,21 +646,156 @@ class GONetFile:
         sp[:,:,1]=(s[0::2,1::2]+s[1::2,0::2])/2     # green
         sp[:,:,2]=s[0::2,0::2]                      # blue
 
-        array=sp.transpose()
+        array=scale_uint12_to_16bit_range(sp.transpose())
 
-        # Extracting the metadata
-        if meta:
-            jpeg = Image.open(filepath)
-            meta_data = jpeg._getexif()
-            tiff_meta = {}
-            for k,v in meta_data.items():
-                v = cast(v)
-                tiff_meta[TAGS[k]] = v
-        else:
-            tiff_meta = None
+        return array
+    
+    @staticmethod
+    def _parse_exif_metadata(exif: dict) -> dict:
+        """
+        Extract and restructure EXIF metadata from a JPEG file into a structured dictionary.
+
+        Parameters
+        ----------
+        exif : dict
+            A dictionary containing raw EXIF metadata extracted from the JPEG file.
+
+        Returns
+        -------
+        dict
+            A structured metadata dictionary, with JPEG-related keys under 'JPEG'.
+        """
+    
+        structured = {}
+        jpeg_meta = {}
+
+        for tag_id, value in exif.items():
+            tag = TAGS.get(tag_id, str(tag_id))
+
+            if tag == "Artist":
+                # Use a regex to match key-value pairs, including tuples inside parentheses
+                # This avoids splitting on commas inside values
+                matches = re.finditer(r'(\w+):\s*(\([^)]+\)|[^,]+)', value)
+                for match in matches:
+                    k, v = match.groups()
+                    k = k.strip().lower()
+                    v = v.strip()
+
+                    if k == "wb":
+                        try:
+                            jpeg_meta["WB"] = [float(x.strip()) for x in v.strip("()").split(',')]
+                        except Exception:
+                            continue  # skip malformed white balance
+                    elif k in {"lat", "long", "alt"}:
+                        try:
+                            structured["latitude" if k == "lat" else "longitude" if k == "long" else "altitude"] = float(v)
+                        except ValueError:
+                            continue
+                    else:
+                        structured[k] = v
+                continue
+
+            # It looks like Software repeats stuff in the artist fiels, so I'll ignore it
+            # I will leave the logic in here in case it is useful
+            elif tag == "Software":
+                continue
+                # Parse: 'GONetDolus X.X WB: (3.35, 1.59)'
+                wb_match = re.search(r'WB:\s*\(([^)]+)\)', value)
+                if wb_match:
+                    structured["WB"] = [float(x) for x in wb_match.group(1).split(',')]
+
+                # Also extract software version if useful
+                parts = value.split()
+                if parts:
+                    structured["software"] = parts[0]
+                    if len(parts) > 1 and parts[1] != "WB:":
+                        structured["version"] = parts[1]
+                continue
+
+            elif tag == "GPSInfo":
+                gps = value
+                def dms_to_deg(dms): return dms[0] + dms[1]/60.0 + dms[2]/3600.0
+
+                if "1" in gps and "2" in gps:
+                    lat = dms_to_deg(gps["2"])
+                    if gps["1"] == "S":
+                        lat = -lat
+                    structured["latitude"] = lat
+                if "3" in gps and "4" in gps:
+                    lon = dms_to_deg(gps["4"])
+                    if gps["3"] == "W":
+                        lon = -lon
+                    structured["longitude"] = lon
+                if "6" in gps:
+                    structured["altitude"] = gps["6"]
+                continue
+
+            elif tag == "MakerNote":
+                # Parse values like 'gain_r=1.000 gain_b=1.000'
+                if isinstance(value, bytes):
+                    value = value.decode("latin1")
+
+                for match in re.finditer(r'(\w+)=([-\d.]+)', value):
+                    k, v = match.groups()
+                    if k.lower() == 'ag':
+                        structured['analog_gain'] = float(v)
+                    else:
+                        continue
+                    #structured[k.lower()] = float(v)
+                continue
+
+            elif tag == "ComponentsConfiguration":
+                decoded = {
+                    1: "Y", 2: "Cb", 3: "Cr", 4: "R", 5: "G", 6: "B", 0: ""
+                }
+                component_str = "".join(decoded.get(b, "?") for b in value)
+                jpeg_meta["ComponentsConfiguration"] = component_str
+                continue
+
+            elif tag == "YCbCrPositioning":
+                YCBCR_POSITIONING_MAP = {
+                    1: "Centered",
+                    2: "Co-sited"
+                }
+                jpeg_meta["YCbCrPositioning"] = YCBCR_POSITIONING_MAP.get(value, f"Unknown ({value})")
+                continue
 
 
-        return array, tiff_meta
+            elif tag == "ColorSpace":
+                COLORSPACE_MAP = {
+                    1: "sRGB",
+                    65535: "Uncalibrated"
+                }
+                jpeg_meta["ColorSpace"] = COLORSPACE_MAP.get(value, f"Reserved ({value})")
+                continue
+
+            elif tag == "ExifImageWidth":
+                structured["bayer_width"] = value
+                continue
+            elif tag == "ExifImageHeight":
+                structured["bayer_height"] = value
+                continue
+            elif tag == "ExposureTime":
+                structured["exposure_time"] = value
+                continue
+            elif tag == "ShutterSpeedValue":
+                structured["shutter_speed"] = value
+                continue
+
+            elif tag in ["ImageLength", "ImageWidth", "MeteringMode", "ExposureMode", "ExposureProgram", "Flash"]:
+                continue
+
+            else:
+                if isinstance(value, (int, float, str)) and len(str(value)) < 100:
+                    structured[tag] = value
+
+        # Derive real image dimensions from Bayer size
+        if "bayer_width" in structured and "bayer_height" in structured:
+            structured["image_width"] = structured["bayer_width"] // 2
+            structured["image_height"] = structured["bayer_height"] // 2
+
+        structured["JPEG"] = jpeg_meta
+        return structured
 
     '''
     ---------------------
