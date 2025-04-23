@@ -194,8 +194,8 @@ class GONetFile:
             If image arrays are not 2D.
         """
         # --- Runtime type checking ---
-        if not isinstance(filename, str):
-            raise TypeError("filename must be a string")
+        if filename is not None and not isinstance(filename, str):
+            raise TypeError("filename must be a string or None")
 
         for name, arr in zip(['red', 'green', 'blue'], [red, green, blue]):
             if not isinstance(arr, np.ndarray):
@@ -206,8 +206,8 @@ class GONetFile:
         if meta is not None and not isinstance(meta, dict):
             raise TypeError("meta must be a dict or None")
 
-        if not isinstance(filetype, FileType):
-            raise TypeError("filetype must be an instance of FileType")
+        if filetype is not None and not isinstance(filetype, FileType):
+            raise TypeError("filetype must be an instance of FileType or None")
 
         # --- Safe assignment ---
         self._filename = filename
