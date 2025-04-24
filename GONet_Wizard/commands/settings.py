@@ -100,25 +100,57 @@ class GONetConfig:
     """
     Environment-based configuration for interacting with a remote GONet device.
 
+    This class retrieves configuration settings from environment variables,
+    including SSH credentials, paths to scripts and image directories, and
+    output locations.
+
+    ⚠️ Implementation Note:
+    ------------------------
+    Environment variables are not read as default values at class definition time.
+    Instead, they are loaded dynamically in the `__post_init__` method.
+
+    Why?
+        If we define fields like:
+            gonet_user: str = os.environ.get("GONET_USER", "pi")
+        then the environment lookup occurs when the class is *parsed*, not when it is
+        *instantiated*. This means:
+
+        - Changes to `os.environ` made during testing (e.g. via `monkeypatch.setenv`) 
+          won't affect `GONetConfig`, because the values have already been locked in.
+
+        - This breaks test isolation and makes it difficult to override environment 
+          variables for different use cases (e.g. switching users or output folders).
+
+    Solution:
+        All environment lookups are deferred to `__post_init__()` to ensure they
+        reflect the current state of the environment when the object is created.
+
     Attributes
     ----------
-    gonet_user : :class:`str`
-        Username for SSH connection to the GONet device. Defaults to `pi`.
-    gonet4_path : :class:`str`
-        Remote path to the gonet4.py script on the GONet device. Defaults to `/home/pi/Tools/Camera/gonet4.py`.
-    gonet_config_folder : :class:`str`
-        Directory on the GONet device where configuration files are stored. Defaults to `/home/pi/Tools/Camera/`.
-    gonet_images_folder : :class:`str`
-        Directory on the GONet device where captured images are saved. Defaults to `/home/pi/images/`.
-    local_output_folder : :class:`str`
-        Local path where downloaded files should be stored. Defaults to `./downloaded_files/`.
+    gonet_user : str
+        Username for SSH connection to the GONet device.
+    gonet4_path : str
+        Path to `gonet4.py` script on the remote device.
+    gonet_config_folder : str
+        Remote folder containing camera config files.
+    gonet_images_folder : str
+        Remote folder where images are stored.
+    local_output_folder : str
+        Local folder where downloaded files should be saved.
     """
 
-    gonet_user: str = os.environ.get("GONET_USER", "pi")
-    gonet4_path: str = os.environ.get("GONET4_PATH", "/home/pi/Tools/Camera/gonet4.py")
-    gonet_config_folder: str = os.environ.get("GONET_CONFIG_FOLDER", "/home/pi/Tools/Camera/")
-    gonet_images_folder: str = os.environ.get("GONET_IMAGES_FOLDER", "/home/pi/images/")
-    local_output_folder: str = os.environ.get("LOCAL_OUTPUT_FOLDER", "./downloaded_files/")
+    gonet_user: str = None
+    gonet4_path: str = None
+    gonet_config_folder: str = None
+    gonet_images_folder: str = None
+    local_output_folder: str = None
+
+    def __post_init__(self):
+        self.gonet_user = os.environ.get("GONET_USER", "pi")
+        self.gonet4_path = os.environ.get("GONET4_PATH", "/home/pi/Tools/Camera/gonet4.py")
+        self.gonet_config_folder = os.environ.get("GONET_CONFIG_FOLDER", "/home/pi/Tools/Camera/")
+        self.gonet_images_folder = os.environ.get("GONET_IMAGES_FOLDER", "/home/pi/images/")
+        self.local_output_folder = os.environ.get("LOCAL_OUTPUT_FOLDER", "./downloaded_files/")
 
     @property
     def gonet_password(self) -> str:

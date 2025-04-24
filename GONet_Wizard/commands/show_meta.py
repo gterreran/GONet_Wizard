@@ -15,7 +15,7 @@ from typing import Union, List
 import pprint, os
 
 
-def show_meta(files: Union[str, List[str]]) -> None:
+def show_metadata(files: Union[str, List[str]]) -> None:
     """
     Display the metadata content of one or more GONet files.
 

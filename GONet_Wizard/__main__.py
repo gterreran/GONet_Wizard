@@ -84,14 +84,14 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "show":
-        commands.show(args.filenames, args.save, args.red, args.green, args.blue)
+        commands.show_gonet_files(args.filenames, args.save, args.red, args.green, args.blue)
     elif args.command == "show_meta":
-        commands.show_meta(args.filenames)
+        commands.show_metadata(args.filenames)
     elif args.command == "dashboard":
-        commands.run_dashboard()
+        commands.run()
     elif args.command == "connect":
         if args.subcommand == "snap":
-            commands.snap(args.gonet_ip, args.config_file)
+            commands.take_snapshot(args.gonet_ip, args.config_file)
         elif args.subcommand == "terminate_imaging":
             commands.terminate_imaging(args.gonet_ip)
     else:

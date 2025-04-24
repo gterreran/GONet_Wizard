@@ -20,7 +20,7 @@ from GONet_Wizard.GONet_dashboard.src.app import app
 from GONet_Wizard.commands.settings import DashboardConfig
 
 
-def run_dashboard():
+def run():
     """
     Start the GONet Dashboard server using `Dash <https://dash.plotly.com/>`_.
 

@@ -48,3 +48,8 @@ GONet_Wizard = "GONet_Wizard.__main__:main"
 [tool.setuptools_scm]
 version_scheme = "post-release"
 local_scheme = "node-and-date"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:.*FigureCanvasAgg is non-interactive.*"
+]

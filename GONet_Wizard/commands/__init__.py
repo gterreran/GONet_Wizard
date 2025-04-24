@@ -15,9 +15,9 @@ or scripted interaction with GONet devices and their associated data products.
 
 """
 
-from GONet_Wizard.commands.run_dashboard import run_dashboard
-from GONet_Wizard.commands.show import show
-from GONet_Wizard.commands.show_meta import show_meta
-from GONet_Wizard.commands.snap import snap
+from GONet_Wizard.commands.run_dashboard import run
+from GONet_Wizard.commands.show import show_gonet_files
+from GONet_Wizard.commands.show_meta import show_metadata
+from GONet_Wizard.commands.snap import take_snapshot
 
-from GONet_Wizard.commands.terminate_imaging import terminate_imaging
+from GONet_Wizard.commands.terminate import terminate_imaging

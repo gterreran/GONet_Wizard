@@ -150,7 +150,7 @@ def run_remote_script_with_live_output(ssh: paramiko.SSHClient, command: str) ->
 
 
 @ssh_connect
-def snap(ssh: paramiko.SSHClient, config_file_path: str = None) -> None:
+def take_snapshot(ssh: paramiko.SSHClient, config_file_path: str = None) -> None:
     """
     Run the GONet imaging script remotely and download new files.
 

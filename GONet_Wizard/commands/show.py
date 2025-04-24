@@ -115,7 +115,7 @@ def auto_vmin_vmax(data: np.ndarray, lower_percentile: float = 0.5, upper_percen
     vmax = np.percentile(data, upper_percentile)
     return vmin, vmax
 
-def show(files: Union[str, List[str]], save: bool = False, red: bool = False, green: bool = False, blue: bool = False) -> None:
+def show_gonet_files(files: Union[str, List[str]], save: bool = False, red: bool = False, green: bool = False, blue: bool = False) -> None:
     """
     Display one or more GONet image files with optional channel filtering and saving.
 
@@ -164,11 +164,11 @@ def show(files: Union[str, List[str]], save: bool = False, red: bool = False, gr
     for gof in files:
         go = GONetFile.from_file(gof)
 
-        if 'Software' in go.meta:
+        if go.meta and 'Software' in go.meta:
             camera = go.meta['Software'].split()[0]
         else:
             camera = ''
-        if 'DateTime' in go.meta:
+        if go.meta and 'DateTime' in go.meta:
             date = go.meta['DateTime']
         else:
             date = ''
