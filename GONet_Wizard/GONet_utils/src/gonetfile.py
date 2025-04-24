@@ -668,6 +668,7 @@ class GONetFile:
     
         structured = {}
         jpeg_meta = {}
+        gps_meta = {}
 
         for tag_id, value in exif.items():
             tag = TAGS.get(tag_id, str(tag_id))
@@ -686,7 +687,9 @@ class GONetFile:
                             jpeg_meta["WB"] = [float(x.strip()) for x in v.strip("()").split(',')]
                         except Exception:
                             continue  # skip malformed white balance
+                    # We get the latitude, longitude and altitude from the GPS field so we skip them here
                     elif k in {"lat", "long", "alt"}:
+                        continue
                         try:
                             structured["latitude" if k == "lat" else "longitude" if k == "long" else "altitude"] = float(v)
                         except ValueError:
@@ -714,20 +717,32 @@ class GONetFile:
 
             elif tag == "GPSInfo":
                 gps = value
-                def dms_to_deg(dms): return dms[0] + dms[1]/60.0 + dms[2]/3600.0
 
-                if "1" in gps and "2" in gps:
-                    lat = dms_to_deg(gps["2"])
-                    if gps["1"] == "S":
+                # Normalize keys to integers (if they're strings)
+                gps_normalized = {}
+                for k, v in gps.items():
+                    try:
+                        gps_normalized[int(k)] = v
+                    except (ValueError, TypeError):
+                        gps_normalized[k] = v  # fallback for non-integer keys
+
+                def dms_to_deg(dms):
+                    return dms[0] + dms[1] / 60.0 + dms[2] / 3600.0
+
+                if 1 in gps_normalized and 2 in gps_normalized:
+                    lat = dms_to_deg(gps_normalized[2])
+                    if gps_normalized[1] in ("S", b"S"):
                         lat = -lat
-                    structured["latitude"] = lat
-                if "3" in gps and "4" in gps:
-                    lon = dms_to_deg(gps["4"])
-                    if gps["3"] == "W":
+                    gps_meta["latitude"] = lat
+
+                if 3 in gps_normalized and 4 in gps_normalized:
+                    lon = dms_to_deg(gps_normalized[4])
+                    if gps_normalized[3] in ("W", b"W"):
                         lon = -lon
-                    structured["longitude"] = lon
-                if "6" in gps:
-                    structured["altitude"] = gps["6"]
+                    gps_meta["longitude"] = lon
+
+                if 6 in gps_normalized:
+                    gps_meta["altitude"] = gps_normalized[6]
                 continue
 
             elif tag == "MakerNote":
@@ -770,16 +785,16 @@ class GONetFile:
                 continue
 
             elif tag == "ExifImageWidth":
-                structured["bayer_width"] = value
+                structured["bayer_width"] = int(value)
                 continue
             elif tag == "ExifImageHeight":
-                structured["bayer_height"] = value
+                structured["bayer_height"] = int(value)
                 continue
             elif tag == "ExposureTime":
-                structured["exposure_time"] = value
+                structured["exposure_time"] = float(value)
                 continue
             elif tag == "ShutterSpeedValue":
-                structured["shutter_speed"] = value
+                structured["shutter_speed"] = float(value)
                 continue
 
             elif tag in ["ImageLength", "ImageWidth", "MeteringMode", "ExposureMode", "ExposureProgram", "Flash"]:
@@ -794,6 +809,7 @@ class GONetFile:
             structured["image_width"] = structured["bayer_width"] // 2
             structured["image_height"] = structured["bayer_height"] // 2
 
+        structured["GPS"] = gps_meta
         structured["JPEG"] = jpeg_meta
         return structured
 

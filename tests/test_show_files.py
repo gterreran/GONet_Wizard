@@ -49,19 +49,6 @@ def test_cli_show_meta(dolus_path_in_tmp):
     assert "🧾 Metadata:" in result.stdout or "ℹ️ No metadata" in result.stdout
 
 
-@pytest.fixture(params=["jpg", "tiff"])
-def dolus_test_file(tmp_path, request):
-    """
-    Fixture that copies a .jpg or .tiff Dolus file to a temporary directory.
-    """
-    ext = request.param
-    filename = f"Dolus_250307_155311_1741362791.{ext}"
-    source = Path("tests") / filename
-    target = tmp_path / f"Dolus.{ext}"
-    target.write_bytes(source.read_bytes())
-    return target
-
-
 def test_show_all_channels_runs(dolus_test_file):
     """
     Test that show() runs successfully with all channels enabled implicitly.

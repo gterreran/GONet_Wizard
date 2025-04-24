@@ -2,6 +2,7 @@ import json
 import numpy as np
 import pytest
 from GONet_Wizard.GONet_utils import GONetFile
+from pathlib import Path
 from GONet_Wizard.GONet_utils.src.gonetfile import scale_uint12_to_16bit_range
 
 def verify_proper_load(source_file: str, tmp_path: str, pattern_red: np.ndarray, pattern_green: np.ndarray, pattern_blue: np.ndarray):
@@ -112,3 +113,31 @@ def test_loading_from_tiff_file(tmp_path):
 #     return GONetFile.from_file(str(test_file), meta=True)
 
 
+def is_safe_scalar(val):
+    return isinstance(val, (int, float, str, bool, type(None)))
+
+def assert_safe_meta(meta, path="meta"):
+    """
+    Recursively assert that all metadata values are safe scalars.
+    """
+    if isinstance(meta, dict):
+        for key, val in meta.items():
+            new_path = f"{path}.{key}"
+            assert_safe_meta(val, new_path)
+    elif isinstance(meta, (list, tuple)):
+        for i, val in enumerate(meta):
+            new_path = f"{path}[{i}]"
+            assert_safe_meta(val, new_path)
+    else:
+        assert is_safe_scalar(meta), f"{path} has unsafe type {type(meta).__name__}: {meta}"
+
+def test_metadata_is_safe_or_none(tmp_path):
+    filename = f"Dolus_250307_155311_1741362791.jpg"
+    source = Path("tests") / filename
+    target = tmp_path / f"Dolus.jpg"
+    target.write_bytes(source.read_bytes())
+
+    gnf = GONetFile.from_file(str(target))
+    
+    
+    assert_safe_meta(gnf.meta)
