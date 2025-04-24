@@ -114,18 +114,17 @@ def test_show_overwrite_handling(dolus_test_file, tmp_path):
 
 def test_cli_show_basic(tmp_path):
     """
-    CLI test: Run the `show` command on a .jpg file and confirm no errors.
+    CLI test: Run the `show` command on a .jpg file and confirm no GUI window opens.
     """
-    # Copy Dolus to temp dir
     source = Path("tests/Dolus_250307_155311_1741362791.jpg")
     test_file = tmp_path / "Dolus.jpg"
     test_file.write_bytes(source.read_bytes())
 
-    # Call the CLI with --red and --save
     output_pdf = tmp_path / "output.pdf"
+
     result = subprocess.run(
         [
-            sys.executable, "-m", "GONet_Wizard", "show",
+            sys.executable, "tests/_plt_patch.py", "show",
             str(test_file), "--red", "--save", str(output_pdf)
         ],
         capture_output=True,
