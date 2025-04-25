@@ -49,11 +49,11 @@ def test_cli_show_meta(dolus_path_in_tmp):
     assert "🧾 Metadata:" in result.stdout or "ℹ️ No metadata" in result.stdout
 
 
-def test_show_all_channels_runs(dolus_test_file):
+def test_show_all_channels_runs(dolus_path_in_tmp):
     """
     Test that show() runs successfully with all channels enabled implicitly.
     """
-    commands.show_gonet_files([str(dolus_test_file)])  # should show all channels (auto)
+    commands.show_gonet_files([str(dolus_path_in_tmp)])  # should show all channels (auto)
     # No error = pass
 
 
@@ -64,33 +64,33 @@ def test_show_all_channels_runs(dolus_test_file):
     {"red": True, "blue": True},
     {"green": True, "blue": True}
 ])
-def test_show_selected_channels(dolus_test_file, channels):
+def test_show_selected_channels(dolus_path_in_tmp, channels):
     """
     Test that show() works with selected channel combinations.
     """
-    commands.show_gonet_files([str(dolus_test_file)], **channels)
+    commands.show_gonet_files([str(dolus_path_in_tmp)], **channels)
     # No error = pass
 
 
-def test_show_saves_figure(dolus_test_file, tmp_path):
+def test_show_saves_figure(dolus_path_in_tmp, tmp_path):
     """
     Test that show() saves a figure when requested.
     """
     save_path = tmp_path / "output.pdf"
-    commands.show_gonet_files([str(dolus_test_file)], save=str(save_path), red=True)
+    commands.show_gonet_files([str(dolus_path_in_tmp)], save=str(save_path), red=True)
 
     assert save_path.exists() or save_path.with_name("output_1.pdf").exists(), "Expected saved PDF not found."
 
 
-def test_show_overwrite_handling(dolus_test_file, tmp_path):
+def test_show_overwrite_handling(dolus_path_in_tmp, tmp_path):
     """
     Test that repeated calls to save create non-conflicting filenames.
     """
     save_path = tmp_path / "plot.pdf"
 
     # Save twice with the same name
-    commands.show_gonet_files([str(dolus_test_file)], save=str(save_path), red=True)
-    commands.show_gonet_files([str(dolus_test_file)], save=str(save_path), red=True)
+    commands.show_gonet_files([str(dolus_path_in_tmp)], save=str(save_path), red=True)
+    commands.show_gonet_files([str(dolus_path_in_tmp)], save=str(save_path), red=True)
 
     first = save_path
     second = tmp_path / "plot_1.pdf"

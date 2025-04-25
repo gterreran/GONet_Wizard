@@ -1,9 +1,9 @@
-import json
+import json, sys, pytest
 import numpy as np
-import pytest
 from GONet_Wizard.GONet_utils import GONetFile
 from pathlib import Path
-from GONet_Wizard.GONet_utils.src.gonetfile import scale_uint12_to_16bit_range
+from GONet_Wizard.GONet_utils.src.gonetfile import scale_uint12_to_16bit_range, FileType
+from unittest.mock import MagicMock
 
 def verify_proper_load(source_file: str, tmp_path: str, pattern_red: np.ndarray, pattern_green: np.ndarray, pattern_blue: np.ndarray):
     """
@@ -141,3 +141,96 @@ def test_metadata_is_safe_or_none(tmp_path):
     
     
     assert_safe_meta(gnf.meta)
+
+@pytest.mark.parametrize("bad_filename", [123, 3.14, [], {}])
+def test_invalid_filename_type(bad_filename):
+    with pytest.raises(TypeError, match="filename must be a string or None"):
+        GONetFile(bad_filename, np.zeros((2, 2)), np.zeros((2, 2)), np.zeros((2, 2)), {}, FileType.SCIENCE)
+
+
+@pytest.mark.parametrize("channel_name, bad_value", [
+    ("red", "not an array"),
+    ("green", 42),
+    ("blue", {"array": True}),
+])
+def test_non_array_channels(channel_name, bad_value):
+    data = {"red": np.zeros((2, 2)), "green": np.zeros((2, 2)), "blue": np.zeros((2, 2))}
+    data[channel_name] = bad_value
+    with pytest.raises(TypeError, match=f"{channel_name} must be a numpy.ndarray"):
+        GONetFile("file", data["red"], data["green"], data["blue"], {}, FileType.SCIENCE)
+
+
+@pytest.mark.parametrize("channel_name", ["red", "green", "blue"])
+def test_invalid_array_dimensions(channel_name):
+    bad_shape = np.zeros((2, 2, 2))  # 3D instead of 2D
+    data = {"red": np.zeros((2, 2)), "green": np.zeros((2, 2)), "blue": np.zeros((2, 2))}
+    data[channel_name] = bad_shape
+    with pytest.raises(ValueError, match=f"{channel_name} must be a 2D array"):
+        GONetFile("file", data["red"], data["green"], data["blue"], {}, FileType.SCIENCE)
+
+
+@pytest.mark.parametrize("bad_meta", ["not a dict", 123, 3.14, [1, 2]])
+def test_invalid_meta_type(bad_meta):
+    with pytest.raises(TypeError, match="meta must be a dict or None"):
+        GONetFile("file", np.zeros((2, 2)), np.zeros((2, 2)), np.zeros((2, 2)), bad_meta, FileType.SCIENCE)
+
+
+@pytest.mark.parametrize("bad_filetype", ["science", 123, {}, [], 3.14])
+def test_invalid_filetype(bad_filetype):
+    with pytest.raises(TypeError, match="filetype must be an instance of FileType or None"):
+        GONetFile("file", np.zeros((2, 2)), np.zeros((2, 2)), np.zeros((2, 2)), {}, bad_filetype)
+
+def test_invalid_channel_request():
+    gnf = GONetFile(
+        filename="dummy",
+        red=np.zeros((2, 2)),
+        green=np.zeros((2, 2)),
+        blue=np.zeros((2, 2)),
+        meta={},
+        filetype=None
+    )
+
+    with pytest.raises(ValueError, match=r"Invalid channel name: fake."):
+        gnf.channel("fake")
+
+def test_from_file_nonexistent_path():
+    """
+    Test that from_file raises FileNotFoundError if the file does not exist.
+    """
+    with pytest.raises(FileNotFoundError):
+        GONetFile.from_file("nonexistent/path/to/file.jpg")
+
+def test_from_file_invalid_extension(tmp_path):
+    """
+    Test that from_file raises ValueError for unsupported file extensions.
+    """
+    bad_file = tmp_path / "invalid_extension.txt"
+    bad_file.write_text("This is not a supported GONet file.")
+
+    with pytest.raises(ValueError):
+        GONetFile.from_file(str(bad_file))
+
+def test_parse_exif_metadata_malformed_wb():
+    exif = {
+        315: "WB: (bad_format)"  # Tag 315 = "Artist"
+    }
+    result = GONetFile._parse_exif_metadata(exif)
+    assert "WB" not in result.get("JPEG", {}), "Malformed WB should be skipped"
+
+
+def test_parse_exif_metadata_unconvertible_gps_key():
+    exif = {
+        34853: {"not_a_number": "some_value", 2: (1, 2, 3), 1: "N"}  # Tag 34853 = "GPSInfo"
+    }
+    result = GONetFile._parse_exif_metadata(exif)
+    
+    # Should still parse the valid numeric keys correctly
+    assert "latitude" in result["GPS"]
+
+
+def test_parse_exif_metadata_southern_hemisphere():
+    exif = {
+        34853: {1: "S", 2: (10, 0, 0)}  # GPSInfo
+    }
+    result = GONetFile._parse_exif_metadata(exif)
+    assert result["GPS"]["latitude"] < 0, "Latitude should be negative for 'S'"

@@ -690,10 +690,10 @@ class GONetFile:
                     # We get the latitude, longitude and altitude from the GPS field so we skip them here
                     elif k in {"lat", "long", "alt"}:
                         continue
-                        try:
-                            structured["latitude" if k == "lat" else "longitude" if k == "long" else "altitude"] = float(v)
-                        except ValueError:
-                            continue
+                        # try:
+                        #     structured["latitude" if k == "lat" else "longitude" if k == "long" else "altitude"] = float(v)
+                        # except ValueError:
+                        #     continue
                     else:
                         structured[k] = v
                 continue
@@ -703,17 +703,17 @@ class GONetFile:
             elif tag == "Software":
                 continue
                 # Parse: 'GONetDolus X.X WB: (3.35, 1.59)'
-                wb_match = re.search(r'WB:\s*\(([^)]+)\)', value)
-                if wb_match:
-                    structured["WB"] = [float(x) for x in wb_match.group(1).split(',')]
+                # wb_match = re.search(r'WB:\s*\(([^)]+)\)', value)
+                # if wb_match:
+                #     structured["WB"] = [float(x) for x in wb_match.group(1).split(',')]
 
-                # Also extract software version if useful
-                parts = value.split()
-                if parts:
-                    structured["software"] = parts[0]
-                    if len(parts) > 1 and parts[1] != "WB:":
-                        structured["version"] = parts[1]
-                continue
+                # # Also extract software version if useful
+                # parts = value.split()
+                # if parts:
+                #     structured["software"] = parts[0]
+                #     if len(parts) > 1 and parts[1] != "WB:":
+                #         structured["version"] = parts[1]
+                # continue
 
             elif tag == "GPSInfo":
                 gps = value
@@ -733,16 +733,16 @@ class GONetFile:
                     lat = dms_to_deg(gps_normalized[2])
                     if gps_normalized[1] in ("S", b"S"):
                         lat = -lat
-                    gps_meta["latitude"] = lat
+                    gps_meta["latitude"] = float(lat)
 
                 if 3 in gps_normalized and 4 in gps_normalized:
                     lon = dms_to_deg(gps_normalized[4])
                     if gps_normalized[3] in ("W", b"W"):
                         lon = -lon
-                    gps_meta["longitude"] = lon
+                    gps_meta["longitude"] = float(lon)
 
                 if 6 in gps_normalized:
-                    gps_meta["altitude"] = gps_normalized[6]
+                    gps_meta["altitude"] = float(gps_normalized[6])
                 continue
 
             elif tag == "MakerNote":

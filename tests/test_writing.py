@@ -4,6 +4,7 @@ from GONet_Wizard.GONet_utils import GONetFile
 import tifffile
 from PIL import Image
 from astropy.io import fits
+from GONet_Wizard.GONet_utils.src.gonetfile import scale_uint12_to_16bit_range
 
 @pytest.fixture
 def dolus_gonetfile(tmp_path) -> GONetFile:
@@ -125,3 +126,100 @@ def test_write_to_fits(dolus_gonetfile, tmp_path):
         np.testing.assert_array_almost_equal(blue_hdu.data, dolus_gonetfile.blue)
 
 
+@pytest.mark.parametrize("invalid_input", [-1, 4096, 9999, np.array([-5, 100]), np.array([0, 2048, 5000])])
+def test_scale_uint12_to_16bit_range_out_of_bounds(invalid_input):
+    with pytest.raises(ValueError, match=r"Input values must be in the range \[0, 4095\]"):
+        scale_uint12_to_16bit_range(invalid_input)
+
+@pytest.fixture
+def gonetfile_missing_wb():
+    """GONetFile with missing 'WB' key in 'JPEG' metadata."""
+    return GONetFile(
+        filename="dummy.jpg",
+        red=np.ones((10, 10)),
+        green=np.ones((10, 10)),
+        blue=np.ones((10, 10)),
+        meta={"JPEG": {}},  # No 'WB'
+        filetype=None
+    )
+
+
+@pytest.fixture
+def gonetfile_invalid_wb_1():
+    """GONetFile with non-numeric 'WB' value in 'JPEG' metadata."""
+    return GONetFile(
+        filename="dummy.jpg",
+        red=np.ones((10, 10)),
+        green=np.ones((10, 10)),
+        blue=np.ones((10, 10)),
+        meta={"JPEG": {"WB": "not-a-list"}},
+        filetype=None
+    )
+
+@pytest.fixture
+def gonetfile_invalid_wb_2():
+    """GONetFile with non-numeric 'WB' value in 'JPEG' metadata."""
+    return GONetFile(
+        filename="dummy.jpg",
+        red=np.ones((10, 10)),
+        green=np.ones((10, 10)),
+        blue=np.ones((10, 10)),
+        meta={"JPEG": {"WB": ['1.1','1.2']}},
+        filetype=None
+    )
+
+@pytest.fixture
+def gonetfile_invalid_wb_3():
+    """GONetFile with non-numeric 'WB' value in 'JPEG' metadata."""
+    return GONetFile(
+        filename="dummy.jpg",
+        red=np.ones((10, 10)),
+        green=np.ones((10, 10)),
+        blue=np.ones((10, 10)),
+        meta={"JPEG": {"WB": [1.1,'1.2']}},
+        filetype=None
+    )
+
+
+@pytest.mark.parametrize("fixture_name", ["gonetfile_missing_wb", "gonetfile_invalid_wb_1", "gonetfile_invalid_wb_2", "gonetfile_invalid_wb_3"])
+def test_write_to_jpeg_white_balance_error(tmp_path, request, fixture_name):
+    gonetfile = request.getfixturevalue(fixture_name)
+    jpeg_path = tmp_path / "test.jpg"
+
+    with pytest.raises(ValueError, match="White balance metadata 'WB' is missing or invalid"):
+        gonetfile.write_to_jpeg(str(jpeg_path), white_balance=True)
+
+
+@pytest.mark.parametrize("fixture_name", ["gonetfile_missing_wb", "gonetfile_invalid_wb_1", "gonetfile_invalid_wb_2", "gonetfile_invalid_wb_3"])
+def test_write_to_tiff_white_balance_error(tmp_path, request, fixture_name):
+    gonetfile = request.getfixturevalue(fixture_name)
+    tiff_path = tmp_path / "test.tiff"
+
+    with pytest.raises(ValueError, match="White balance metadata 'WB' is missing or invalid"):
+        gonetfile.write_to_tiff(str(tiff_path), white_balance=True)
+
+def test_write_to_fits_with_no_metadata(tmp_path):
+    """
+    Ensure that write_to_fits gracefully handles the case where meta is None.
+    """
+    gnf = GONetFile(
+        filename="dummy.tiff",
+        red=np.zeros((5, 5), dtype=np.uint16),
+        green=np.zeros((5, 5), dtype=np.uint16),
+        blue=np.zeros((5, 5), dtype=np.uint16),
+        meta=None,  # <- the key condition
+        filetype=None
+    )
+
+    output_path = tmp_path / "no_meta_output.fits"
+    gnf.write_to_fits(str(output_path))
+
+    assert output_path.exists()
+
+    with fits.open(output_path) as hdul:
+        assert len(hdul) == 4  # Primary + 3 image HDUs
+
+        primary_keys = list(hdul[0].header.keys())
+        expected_keys = {"SIMPLE", "BITPIX", "NAXIS", "EXTEND", "NAXIS1", "NAXIS2"}  # these are always added by astropy
+        # Allow the header to include exactly those keys (and END, which is implicit)
+        assert set(primary_keys).issubset(expected_keys)

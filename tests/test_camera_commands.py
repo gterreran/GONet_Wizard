@@ -1,4 +1,4 @@
-import pytest, os, sys, subprocess
+import pytest, os, sys
 from unittest.mock import patch, MagicMock
 from GONet_Wizard.commands.connect import ssh_connect
 from GONet_Wizard.commands.settings import GONetConfig

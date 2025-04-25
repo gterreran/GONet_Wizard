@@ -17,9 +17,6 @@ PackageNotFoundError
     If the GONet_Wizard package is not installed or cannot be found in the environment.
 """
 
-try:
-    from importlib.metadata import version
-except ImportError:
-    from importlib_metadata import version  # for Python <3.8
+from importlib.metadata import version
 
 __version__ = version("GONet_Wizard")
