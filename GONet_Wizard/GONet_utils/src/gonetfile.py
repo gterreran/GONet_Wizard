@@ -51,8 +51,9 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 import numpy as np
 from enum import Enum, auto
-from typing import Any, Optional
+from typing import Any, Optional, Union
 from astropy.io import fits
+from pathlib import Path
 
 
 def scale_uint12_to_16bit_range(x):
@@ -502,7 +503,7 @@ class GONetFile:
 
 
     @classmethod
-    def from_file(cls, filepath: str, filetype: FileType = FileType.SCIENCE, meta: bool = True) -> 'GONetFile':
+    def from_file(cls, filepath: Union[str, Path], filetype: FileType = FileType.SCIENCE, meta: bool = True) -> 'GONetFile':
         """
         Create a :class:`GONetFile` instance from a TIFF or JPEG file.
 
@@ -512,63 +513,60 @@ class GONetFile:
 
         Parameters
         ----------
-        filepath : :class:`str`
+        filepath : :class:`str` or :class:`pathlib.Path`
             Full path to the image file. The file must be in `.tif`, `.tiff`, or `.jpg` format.
         
         filetype : :class:`FileType`, optional
-            Type of the file, chosen from the :class:`FileType` enumeration 
-            (e.g., ``SCIENCE``, ``FLAT``, ``BIAS``, ``DARK``). Defaults to ``FileType.SCIENCE``.
+            Type of the file, chosen from the :class:`FileType` enumeration.
+            Defaults to ``FileType.SCIENCE``.
         
         meta : :class:`bool`, optional
-            If True (default), metadata will be extracted and included in the resulting object.
-            If False, metadata will be skipped.
+            If True (default), metadata will be extracted and included. If False, metadata will be skipped.
 
         Returns
         -------
         :class:`GONetFile`
-            A new instance of the :class:`GONetFile` class initialized with the file's pixel data
-            and (optionally) metadata.
+            A new instance initialized with the file's pixel data and metadata.
 
         Raises
         ------
         FileNotFoundError
-            If the specified file does not exist or cannot be accessed.
+            If the specified file does not exist.
         
         ValueError
-            If the file extension is not supported (only `.tif`, `.tiff`, or `.jpg` are allowed).
+            If the file extension is unsupported (must be `.tif`, `.tiff`, `.jpg`).
 
         Notes
         -----
-        Metadata extraction is supported only for `.jpg` files. TIFF files will be read for
-        image data only, and their metadata (if any) will be ignored.
+        Metadata extraction is supported only for `.jpg` files. TIFF files are read for image data only.
         """
+        # Normalize filepath
+        filepath = Path(filepath)
 
-        if not os.path.isfile(filepath):
+        if not filepath.is_file():
             raise FileNotFoundError(f'Could not find file {filepath}.')
-        if filepath.split('.')[-1] in ['tiff','TIFF','tif','TIF']:
-            parsed_data = cls._parse_tiff_file(filepath)
-        elif filepath.split('.')[-1] in ['jpg']:
-            parsed_data = cls._parse_raw_file(filepath)
-        else:
-            raise ValueError("Extension must be '.tiff', '.TIFF', '.tif', '.TIF' or the original '.jpg' from a GONet camera.")
-        
-        if meta:
-            if filepath.split('.')[-1] in ['jpg']:
+
+        suffix = filepath.suffix.lower()
+        if suffix in ['.tif', '.tiff']:
+            parsed_data = cls._parse_tiff_file(str(filepath))
+            parsed_meta = None  # No metadata for TIFFs
+        elif suffix == '.jpg':
+            parsed_data = cls._parse_raw_file(str(filepath))
+            parsed_meta = None
+            if meta:
                 jpeg = Image.open(filepath)
                 raw_exif = jpeg._getexif()
                 parsed_meta = cls._parse_exif_metadata(raw_exif)
-        
-            else:
-                # No metadata for TIFF files
-                parsed_meta = None
+        else:
+            raise ValueError("Extension must be '.tiff', '.tif', or original '.jpg' from a GONet camera.")
 
         return cls(
-            filename = filepath,
-            red = parsed_data[0],
-            green = parsed_data[1],
-            blue = parsed_data[2],
-            meta = parsed_meta,
-            filetype = filetype
+            filename=str(filepath.name),  # Only the filename part, no directory
+            red=parsed_data[0],
+            green=parsed_data[1],
+            blue=parsed_data[2],
+            meta=parsed_meta,
+            filetype=filetype
         )
 
     @staticmethod
@@ -1064,6 +1062,29 @@ class GONetFile:
         """
         return self._operate(other, operator.truediv)
     
+    def __getitem__(self, key) -> 'GONetFile':
+        """
+        Slice the GONetFile spatially.
+
+        This allows spatial slicing of the pixel data (red, green, blue channels) using
+        standard NumPy-style indexing. The result is a new :class:`GONetFile` instance.
+
+        Parameters
+        ----------
+        key : slice, int, or tuple
+            Slice or index to apply, e.g., [:, 10:20].
+
+        Returns
+        -------
+        :class:`GONetFile`
+            A new instance with sliced red, green, and blue arrays.
+
+        Raises
+        ------
+        TypeError
+            If the key is invalid or cannot be applied.
+        """
+        return self._operate(key, lambda arr, k=key: arr[k])
     # I'd like to start writing some tests. But first I need to understand why in line 144 we add 0.5 (to avoid zeros?) and wether we can use uint32 
 
     

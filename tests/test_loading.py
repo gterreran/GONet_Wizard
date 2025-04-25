@@ -21,14 +21,14 @@ def verify_proper_load(source_file: str, tmp_path: str, pattern_red: np.ndarray,
 
     # Copy the Dolus file into a temp directory for isolated testing
     extension = source_file.split('.')[-1]
-    test_file = str(tmp_path / f"Dolus.{extension}")
-    with open(source_file, 'rb') as src, open(test_file, 'wb') as dst:
+    test_file = tmp_path / f"Dolus.{extension}"
+    with open(source_file, 'rb') as src, open(str(test_file), 'wb') as dst:
         dst.write(src.read())
 
     # Parse the file using the full class pipeline with metadata extraction
     gonet = GONetFile.from_file(test_file, meta=True)
 
-    assert gonet.filename == test_file
+    assert gonet.filename == str(test_file.name)
 
     # Confirm that each channel was parsed and scaled correctly
     np.testing.assert_array_equal(gonet.red, pattern_red)

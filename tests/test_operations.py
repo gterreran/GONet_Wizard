@@ -157,3 +157,29 @@ def test_breaks_16bit_range(fake_gonetfile):
     assert result_neg.red.min() < 0, "Red channel did not go negative as expected"
     assert result_neg.green.min() < 0, "Green channel did not go negative as expected"
     assert result_neg.blue.min() < 0, "Blue channel did not go negative as expected"
+
+def test_gonetfile_getitem(fake_gonetfile):
+    go = fake_gonetfile
+
+    # Apply slicing
+    cropped = go[:, 1:3]
+
+    # --- Assertions ---
+
+    # Check that the output is a GONetFile
+    assert isinstance(cropped, GONetFile)
+
+    # Check shape changes
+    assert cropped.red.shape == (4, 2)
+    assert cropped.green.shape == (4, 2)
+    assert cropped.blue.shape == (4, 2)
+
+    # Check that the values are correct
+    np.testing.assert_array_equal(cropped.red, np.ones((4, 2)) * 100)
+    np.testing.assert_array_equal(cropped.green, np.ones((4, 2)) * 200)
+    np.testing.assert_array_equal(cropped.blue, np.ones((4, 2)) * 300)
+
+    # Check that filename and meta are preserved
+    assert cropped.filename == 'fake'
+    assert cropped._meta == {"dummy": True}
+    assert cropped._filetype == go._filetype
