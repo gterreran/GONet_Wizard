@@ -6,6 +6,9 @@ from GONet_Wizard.commands.settings import GONetConfig
 import GONet_Wizard.commands.snap as snap
 from GONet_Wizard.commands import terminate
 
+from GONet_Wizard.commands.settings import require_env_var
+from GONet_Wizard.commands.settings import DashboardConfig
+
 def test_ssh_connect_success():
     mock_ssh = MagicMock()
 
@@ -37,8 +40,7 @@ def test_ssh_connect_failure(monkeypatch):
         mock_ssh_class.return_value = mock_ssh
 
         @ssh_connect
-        def dummy(_ssh):
-            return True
+        def dummy(_ssh): ...
 
         with pytest.raises(Exception, match="fail!"):
             dummy("192.168.1.10")
@@ -152,28 +154,6 @@ def test_run_remote_script_with_live_output(fake_ssh):
     snap.run_remote_script_with_live_output(fake_ssh, "echo test")
     fake_stdout.channel.recv.assert_called()
 
-
-def test_snap_runs_full_flow(fake_ssh, tmp_path):
-    with patch.object(snap, "list_remote_files", side_effect=[{"a.jpg"}, {"a.jpg", "b.jpg"}]), \
-         patch.object(snap, "upload_if_different") as mock_upload, \
-         patch.object(snap, "run_remote_script_with_live_output") as mock_run, \
-         patch.object(snap, "SCPClient") as mock_scp, \
-         patch("GONet_Wizard.commands.snap.GONetConfig") as MockConfig, \
-         patch("GONet_Wizard.commands.settings.require_env_var", return_value="fake_pw"):
-
-
-        config = MockConfig.return_value
-        config.gonet4_path = "/home/pi/gonet4.py"
-        config.gonet_config_folder = "/home/pi/config"
-        config.gonet_images_folder = "/home/pi/images"
-        config.local_output_folder = str(tmp_path)
-
-        snap.take_snapshot(fake_ssh, "local.cfg")
-
-        mock_upload.assert_called_once()
-        mock_run.assert_called_once()
-        mock_scp.return_value.__enter__.return_value.get.assert_called_once()
-
 def test_snap_runs_full_flow(fake_ssh, tmp_path):
     with patch.object(snap, "list_remote_files", side_effect=[{"a.jpg"}, {"a.jpg", "b.jpg"}]), \
          patch.object(snap, "upload_if_different") as mock_upload, \
@@ -247,6 +227,27 @@ def test_snapshot_script_crash(fake_ssh):
         with pytest.raises(RuntimeError, match="Script crashed"):
             snap.take_snapshot.__wrapped__(fake_ssh, "config.cfg")
 
+def test_snap_no_config_and_no_new_files(fake_ssh, tmp_path):
+    """
+    Triggers both:
+    - line 189: no config file provided
+    - line 214: no new images created
+    """
+    with patch.object(snap, "list_remote_files", side_effect=[{"only.jpg"}, {"only.jpg"}]), \
+         patch.object(snap, "run_remote_script_with_live_output"), \
+         patch("GONet_Wizard.commands.snap.GONetConfig") as MockConfig:
+
+        config = MockConfig.return_value
+        config.gonet4_path = "/home/pi/gonet4.py"
+        config.gonet_config_folder = "/home/pi/config"
+        config.gonet_images_folder = "/home/pi/images"
+        config.local_output_folder = str(tmp_path)
+
+        # ⚠️ No config file passed
+        snap.take_snapshot.__wrapped__(fake_ssh)
+
+        # No exception expected; should print the line at 214
+
 
 def test_terminate_imaging_success(fake_ssh):
     mock_stdout = MagicMock()
@@ -304,3 +305,12 @@ def test_cli_dispatch_snap(monkeypatch, tmp_path):
         monkeypatch.setattr(sys, "argv", ["GONet_Wizard", "connect", "1.2.3.4", "snap", str(config_file)])
         main()
         mock_snap.assert_called_once_with("1.2.3.4", str(config_file))
+
+def test_require_env_var_uses_default_prompt(monkeypatch):
+    monkeypatch.delenv("MISSING_VAR", raising=False)
+
+    with patch("builtins.input", return_value="my_value") as mock_input, \
+         patch("builtins.print") as mock_print:
+        value = require_env_var("MISSING_VAR")
+        assert value == "my_value"
+        mock_input.assert_called_once_with("Enter a value for MISSING_VAR: ")

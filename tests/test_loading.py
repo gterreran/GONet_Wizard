@@ -97,21 +97,6 @@ def test_loading_from_tiff_file(tmp_path):
 
     verify_proper_load(source_file, tmp_path, red, green, blue)
 
-    
-
-
-# @pytest.fixture
-# def dolus_gonetfile(tmp_path) -> GONetFile:
-#     """
-#     Fixture that loads the verified Dolus file using GONetFile.from_file.
-#     Only used after the method is independently tested.
-#     """
-#     source_file = "tests/Dolus_250307_155311_1741362791.jpg"
-#     test_file = tmp_path / "Dolus.jpg"
-#     with open(source_file, 'rb') as src, open(test_file, 'wb') as dst:
-#         dst.write(src.read())
-#     return GONetFile.from_file(str(test_file), meta=True)
-
 
 def is_safe_scalar(val):
     return isinstance(val, (int, float, str, bool, type(None)))

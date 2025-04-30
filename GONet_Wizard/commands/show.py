@@ -164,8 +164,8 @@ def show_gonet_files(files: Union[str, List[str]], save: bool = False, red: bool
     for gof in files:
         go = GONetFile.from_file(gof)
 
-        if go.meta and 'Software' in go.meta:
-            camera = go.meta['Software'].split()[0]
+        if go.meta and 'hostname' in go.meta:
+            camera = go.meta['hostname']
         else:
             camera = ''
         if go.meta and 'DateTime' in go.meta:
@@ -187,6 +187,7 @@ def show_gonet_files(files: Union[str, List[str]], save: bool = False, red: bool
 
 
     plt.show()
+    plt.close('all')
 
 
 

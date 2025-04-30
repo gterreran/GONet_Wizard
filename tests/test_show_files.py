@@ -1,4 +1,5 @@
 import pytest, subprocess, sys
+from unittest.mock import patch
 from GONet_Wizard import commands
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -22,6 +23,43 @@ def dolus_path_in_tmp(tmp_path, request):
     target = tmp_path / f"Dolus.{ext}"
     target.write_bytes(source.read_bytes())
     return target
+
+def test_show_metadata_accepts_single_string_path(tmp_path, capsys):
+    from GONet_Wizard.commands.show_meta import show_metadata
+
+    file = tmp_path / "dummy.jpg"
+    file.write_bytes(b"not a real image, but enough to exist")
+
+    # Convert string to list
+    show_metadata(str(file))
+
+    captured = capsys.readouterr()
+    assert f"📂 File: {file}" in captured.out
+
+def test_show_metadata_handles_missing_file(capsys):
+    from GONet_Wizard.commands.show_meta import show_metadata
+
+    non_existent = "/this/file/does/not_exist.jpg"
+    show_metadata(non_existent)
+
+    captured = capsys.readouterr()
+    assert f"📂 File: {non_existent}" in captured.out
+    assert "❌ File does not exist." in captured.out
+
+def test_show_metadata_handles_parsing_error(tmp_path, monkeypatch, capsys):
+    from GONet_Wizard.commands.show_meta import show_metadata
+    from GONet_Wizard.GONet_utils.src import gonetfile
+
+    file = tmp_path / "bad.jpg"
+    file.write_text("invalid JPEG content")
+
+    # Monkeypatch from_file to raise an exception
+    monkeypatch.setattr(gonetfile.GONetFile, "from_file", lambda _: (_ for _ in ()).throw(ValueError("simulated failure")))
+
+    show_metadata(str(file))
+
+    captured = capsys.readouterr()
+    assert "⚠️ Error reading metadata: simulated failure" in captured.out
 
 def test_show_meta_prints_expected_output(capsys, dolus_path_in_tmp):
     from GONet_Wizard import commands
@@ -56,6 +94,15 @@ def test_show_all_channels_runs(dolus_path_in_tmp):
     commands.show_gonet_files([str(dolus_path_in_tmp)])  # should show all channels (auto)
     # No error = pass
 
+def test_show_empty_list():
+    with pytest.raises(ValueError):
+        commands.show_gonet_files([])
+
+def test_show_uneven_number_of_plots(dolus_path_in_tmp):
+    """
+    Test that show() runs successfully with all channels enabled implicitly.
+    """
+    commands.show_gonet_files([str(dolus_path_in_tmp)]*5, red=True)
 
 @pytest.mark.parametrize("channels", [
     {"red": True},
@@ -71,15 +118,18 @@ def test_show_selected_channels(dolus_path_in_tmp, channels):
     commands.show_gonet_files([str(dolus_path_in_tmp)], **channels)
     # No error = pass
 
-
-def test_show_saves_figure(dolus_path_in_tmp, tmp_path):
+@pytest.mark.parametrize("output", ['output.pdf', 'output'])
+def test_show_saves_figure(dolus_path_in_tmp, tmp_path, output):
     """
     Test that show() saves a figure when requested.
     """
-    save_path = tmp_path / "output.pdf"
+    save_path = tmp_path / output
     commands.show_gonet_files([str(dolus_path_in_tmp)], save=str(save_path), red=True)
 
-    assert save_path.exists() or save_path.with_name("output_1.pdf").exists(), "Expected saved PDF not found."
+    if not output.endswith(".pdf"):
+        assert save_path.with_suffix(".pdf").exists()
+    else:
+        assert save_path.exists() or save_path.with_name("output_1.pdf").exists(), "Expected saved PDF not found."
 
 
 def test_show_overwrite_handling(dolus_path_in_tmp, tmp_path):
@@ -121,3 +171,16 @@ def test_cli_show_basic(tmp_path):
     assert result.returncode == 0, result.stderr
     assert output_pdf.exists(), "Expected output PDF was not created"
 
+from GONet_Wizard.__main__ import main
+
+def test_cli_dispatch_show(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["GONet_Wizard", "show", "file.npy", "--red"])
+    with patch("GONet_Wizard.__main__.commands.show_gonet_files") as mock_show:
+        main()
+        mock_show.assert_called_once_with(["file.npy"], None, True, False, False)
+
+def test_cli_dispatch_show_meta(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["GONet_Wizard", "show_meta", "file.jpg"])
+    with patch("GONet_Wizard.__main__.commands.show_metadata") as mock_meta:
+        main()
+        mock_meta.assert_called_once_with(["file.jpg"])
