@@ -108,15 +108,16 @@ layout = dcc.Loading(
     type="circle", 
     overlay_style={"visibility":"visible", "filter": "blur(2px)"},
     children=html.Div([
-        html.Div(id='title-container', children=[
-            html.H1("GONet Wizard", className="main-title"),
-            html.Img(id='logo',src=r'assets/logo.png', alt='logo'),
-        ]),
-        html.Div(id='dummy-div'),
         dcc.Store(id='data-json'),
         dcc.Store(id='big-points'),
         dcc.Store(id='active-filters', data=[]),
         dcc.Store(id='status-data'),
+        html.Div(id='dummy-div'),
+        html.Div(id='title-container', children=[
+            html.H1("GONet Wizard", className="main-title"),
+            html.Img(id='logo',src=r'assets/logo.png', alt='logo'),
+        ]),
+        html.Div(id='alert-container', className='alert-box', children=[]),
         html.Div(id='top-container',children=[
             html.Div(className='main-plot', children=[
                     dcc.Graph(id="main-plot", figure = place_holder_main_plot),

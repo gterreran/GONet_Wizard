@@ -24,99 +24,106 @@ plot generation, UI synchronization, and exporting/importing dashboard state.
 
 """
 
+import json, base64
+import numpy as np
+
+from dash import no_update, ctx, html, clientside_callback
+from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State, ALL, MATCH
+
 from GONet_Wizard.GONet_dashboard.src.server import app
-import os, json, datetime, base64
+from GONet_Wizard.GONet_utils import GONetFile
 from GONet_Wizard.GONet_dashboard.src import env
 from GONet_Wizard.GONet_dashboard.src import utils
-from dash import no_update, ctx, html, clientside_callback
-import numpy as np
-from GONet_Wizard.GONet_utils import GONetFile
-from typing import Any
+
+
+@app.callback(
+    Output("alert-container", "data-dummy"),  # can be non-existent — Dash ignores it
+    Input("alert-container", "className"),
+    prevent_initial_call=True
+)
+def raise_if_error(classname):
+    """
+    Forces Dash to treat a callback as failed when an error is detected.
+
+    This listens to changes in the `alert-container.className`. If the class
+    includes "error", this indicates that a prior callback caught an exception
+    and returned an alert with that classification.
+
+    Raising an exception here causes Dash to invalidate the entire chain of
+    dependent callbacks, preventing execution based on faulty or incomplete state.
+
+    Parameters
+    ----------
+    classname : str
+        The class name of the alert container, passed as Input.
+
+    Raises
+    ------
+    Exception
+        Generic exception to halt Dash execution flow when 'error' is present.
+
+    Returns
+    -------
+    Nothing. Always raises or prevents update.
+    """
+    if isinstance(classname, str) and "error" in classname:
+        raise Exception("Previous callback failed — halting update chain.")
+    raise PreventUpdate
+
 
 @app.callback(
     Output('data-json', 'data'),
     Output("x-axis-dropdown",'options'),
     Output("y-axis-dropdown",'options'),
+    Output("alert-container", "children"),
+    Output("alert-container", "className"),
+    Output("alert-container", "style"),
     #---------------------
     Input("top-container",'children')
 )
+@utils.debug_print
+@utils.handle_errors(n_outputs=3)
 def load(_):
     """
-    Load and prepare all available GONet data for visualization in the dashboard.
+    Dash callback to initialize the dashboard data store and dropdown options.
 
-    This function runs **once** when the dashboard page first loads. It scans the directory 
-    specified by the ``GONET_ROOT`` environment variable, reads the JSON files for each night 
-    of observation, and builds a structured dictionary containing both metadata and 
-    channel-specific measurements. This dictionary is stored in a hidden dcc.Store component 
-    and is used as the central dataset for all further visualizations and filtering.
+    This function is triggered once when the layout is rendered. It delegates the
+    actual data-loading logic to :func:`utils.load_data`, which scans the directory
+    specified by the ``GONET_ROOT`` environment variable, loads GONet JSON files,
+    and returns a flat dictionary of observations along with axis selection options.
 
-    Additionally, the function extracts all available quantities (labels) and constructs the 
-    dropdown options for the x-axis and y-axis selectors.
-
-    The following derived color ratios are also computed and included:
-    
-    - ``blue-green`` = blue mean / green mean
-    - ``green-red``  = green mean / red mean
-    - ``blue-red``   = blue mean / red mean
+    The callback is wrapped in :func:`handle_errors` to display any exceptions in the
+    alert container and halt further callback execution if a failure occurs.
 
     Parameters
     ----------
-    _ : :class:`Any`
-        Dummy input triggered by the `Dash <https://dash.plotly.com/>`_ page layout; not used directly.
+    _ : Any
+        Dummy input triggered by layout initialization; unused.
 
     Returns
     -------
-    data : :class:`dict`
-        A flat dictionary where each key maps to a list of values for all GONet images.
-        Includes general metadata (e.g., solar angle, date) and per-channel fitted values
-        (e.g., mean, sigma).
+    data : dict
+        Flattened dictionary of GONet metadata and per-channel measurements,
+        to be stored in a hidden dcc.Store component.
 
-    options_x : :class:`list` of :class:`dict`
-        Dropdown options derived from the available labels for the x-axis selector.
+    options_x : list of dict
+        Dropdown options for selecting the x-axis quantity.
 
-    options_y : :class:`list` of :class:`dict`
-        Dropdown options derived from the available labels for the y-axis selector.
+    options_y : list of dict
+        Dropdown options for selecting the y-axis quantity.
+
+    alert_message : str
+        Content for `alert-container.children` (empty on success).
+
+    alert_class : str
+        CSS class for `alert-container.className` (empty or "alert-box error").
+
+    alert_style : dict
+        Display style for `alert-container.style` (e.g., visible on error).
     """
-    utils.debug()
+    return utils.load_data(env)
 
-    data = {'night':[], 'idx':[], 'channel':[]}
-
-    image_idx = -1
-
-    for n,night in enumerate(sorted(os.listdir(env.ROOT))):
-        if not os.path.isdir(env.ROOT+night): continue
-        json_file = env.ROOT+night+f'/{night}.json'
-        if not os.path.isfile(json_file): continue
-        with open(json_file) as inp:
-            night_dict = json.load(inp)
-            if len(data['night'])==0:
-                env.LABELS['gen'] = [l for l in night_dict[0] if l not in env.CHANNELS]
-                env.LABELS['gen'] = env.LABELS['gen'] + ['blue-green', 'green-red', 'blue-red']
-                data={**data, **{l:[] for l in env.LABELS['gen']}}
-                env.LABELS['fit'] = [l for l in night_dict[0]['red']]
-                data={**data, **{l:[] for l in env.LABELS['fit']}}
-            for img in night_dict:
-                image_idx += 1
-                for c in env.CHANNELS:
-                    data['idx'].append(image_idx)
-                    data['channel'].append(c)
-                    data['blue-green'].append(img['blue']['mean']/img['green']['mean'])
-                    data['green-red'].append(img['green']['mean']/img['red']['mean'])
-                    data['blue-red'].append(img['blue']['mean']/img['red']['mean'])
-                    for label in env.LABELS['gen']:
-                        if label not in img:continue
-                        if label == "date":
-                            data[label].append(datetime.datetime.fromisoformat(img[label]).astimezone(env.LOCAL_TZ))
-                        else:
-                            data[label].append(img[label])
-                    for label in env.LABELS['fit']:
-                        data[label].append(img[c][label])
-
-    labels_dropdown = [{"label": l, "value": l} for l in env.LABELS['gen'] if l != 'filename']
-    labels_dropdown = labels_dropdown + [{"label": l, "value": l} for l in env.LABELS['fit']]
-
-    return data, labels_dropdown, labels_dropdown
 
 
 @app.callback(
@@ -136,6 +143,7 @@ def load(_):
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_switch, fig, all_data, big_point_idx):
     """
     Update the main scatter plot and statistics table based on the selected parameters and filters.
@@ -183,7 +191,6 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
     stats : :class:`list`
         Table rows representing statistical summaries (mean ± std) of the plotted data.
     """
-    utils.debug()
 
     if x_label is None or y_label is None:
         return no_update, no_update
@@ -296,6 +303,7 @@ def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def info(clickdata, fig, data, fold_switch):
     """
     Handle click interactions on the main scatter plot and update the UI accordingly.
@@ -331,7 +339,7 @@ def info(clickdata, fig, data, fold_switch):
     real_idx : :class:`int`
         Index of the clicked observation in the full dataset.
     """
-    utils.debug()
+
     plot_index = clickdata['points'][0]['curveNumber']
     idx = fig['data'][plot_index]['idx'][clickdata['points'][0]['pointIndex']]
     original_channel = fig['data'][plot_index]['channel']
@@ -398,6 +406,7 @@ def info(clickdata, fig, data, fold_switch):
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def activate_fold_switch(x_label):
     """
     Toggle the availability of the fold-time switch based on the x-axis selection.
@@ -414,7 +423,6 @@ def activate_fold_switch(x_label):
     on : :class:`bool`
         State of the switch.
     """
-    utils.debug()
 
     if x_label == 'date':
         return False, False
@@ -432,6 +440,7 @@ def activate_fold_switch(x_label):
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def add_filter(_, filter_div, labels):
     """
     Add a new empty filter block to the filter container in the UI.
@@ -450,7 +459,6 @@ def add_filter(_, filter_div, labels):
     filter_div : :class:`list`
         Updated list of filter components with one new filter added.
     """
-    utils.debug()
     
     n_filter = len(filter_div)
     new_empty_filter = utils.new_empty_filter(n_filter, labels)
@@ -468,6 +476,7 @@ def add_filter(_, filter_div, labels):
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def add_or_filter(_, id, labels):
     """
     Add an additional (OR-based) condition to an existing filter block.
@@ -486,7 +495,6 @@ def add_or_filter(_, id, labels):
     new_filter : dash component
         A new filter component to be added to the filter block.
     """
-    utils.debug()
     
     idx = id['index']
     new_filter = utils.new_empty_second_filter(idx, labels)
@@ -501,6 +509,7 @@ def add_or_filter(_, id, labels):
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def update_main_filters_value(label):
     """
     Automatically update the value of the main filter when a filter label is selected.
@@ -515,7 +524,6 @@ def update_main_filters_value(label):
     value : :class:`Any` or :class:`None`
         Default value corresponding to the label, or None if not found.
     """
-    utils.debug()
     
     if label in env.DEFAULT_FILTER_VALUES:
         return env.DEFAULT_FILTER_VALUES[label]
@@ -529,6 +537,7 @@ def update_main_filters_value(label):
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def update_secondary_filters_value(label):
     """
     Automatically update the value of the secondary (OR) filter when a label is selected.
@@ -543,7 +552,6 @@ def update_secondary_filters_value(label):
     value : :class:`Any` or :class:`None`
         Default value corresponding to the label, or None if not found.
     """
-    utils.debug()
     
     if label in env.DEFAULT_FILTER_VALUES:
         return env.DEFAULT_FILTER_VALUES[label]
@@ -569,6 +577,7 @@ def update_secondary_filters_value(label):
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def update_filters(switches, ops, values, selections, second_ops, second_values, labels, second_labels, second_ids, selections_ids, filters_before):
     """
     Assemble and update the active filters list based on user-defined filter inputs.
@@ -607,7 +616,6 @@ def update_filters(switches, ops, values, selections, second_ops, second_values,
     :class:`list` of :class:`dict` or :class:`dash.no_update`
         Updated list of active filters, or `no_update` if unchanged.
     """
-    utils.debug()
 
     active_filters=[]
     for i,s in enumerate(switches):
@@ -641,6 +649,7 @@ def update_filters(switches, ops, values, selections, second_ops, second_values,
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def export_data(_, fig, data):#, channels):
     """
     Export filtered data from the plot to a downloadable JSON file.
@@ -669,7 +678,6 @@ def export_data(_, fig, data):#, channels):
         - 'filename': Suggested filename for the download ("filtered_data.json").
 
     """
-    utils.debug()
 
     json_out = []
 
@@ -849,6 +857,7 @@ clientside_callback(
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def save_status(_,*args):
     """
     Save the current dashboard state, including axis selections and filter configurations.
@@ -876,7 +885,6 @@ def save_status(_,*args):
 
         The structure is compatible with later reloading via the :func:`load_status` function.
     """
-    utils.debug()
 
     out_dict = {'filters':[]}
     for i,el in enumerate(args):
@@ -911,6 +919,7 @@ def save_status(_,*args):
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def load_status(contents, filter_div, labels):
     """
     Load a previously saved dashboard state from a base64-encoded JSON file.
@@ -943,7 +952,6 @@ def load_status(contents, filter_div, labels):
     filter_div : :class:`list`
         Updated list of filter UI components reflecting the saved configuration.
     """
-    utils.debug()
     decoded_string = base64.b64decode(contents.split(',')[1]).decode('utf-8')
     base64.b64decode(decoded_string)
     status_dict = json.loads(decoded_string)
@@ -976,6 +984,7 @@ def load_status(contents, filter_div, labels):
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def update_filter_selection_state(relayout_data, fig, all_data):
     """
     Enable or disable the "Add Selection Filter" button based on current selection in the plot.
@@ -998,7 +1007,7 @@ def update_filter_selection_state(relayout_data, fig, all_data):
     :class:`bool`
         `False` if a valid selection exists (enabling the button), `True` otherwise (disabling it).
     """
-    utils.debug()
+
     if relayout_data and 'selections' in relayout_data:
         selection = relayout_data['selections']
         if isinstance(selection, list) and len(selection) > 0 and isinstance(selection[0], dict) and 'path' in selection[0]:
@@ -1019,6 +1028,7 @@ def update_filter_selection_state(relayout_data, fig, all_data):
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def add_selection_filter(_, filter_div, relayout_data, figure):
     """
     Create and add a new filter based on the current selection region in the plot.
@@ -1048,7 +1058,6 @@ def add_selection_filter(_, filter_div, relayout_data, figure):
     figure : :class:`dict`
         The updated figure with the selection metadata removed.
     """
-    utils.debug()
 
     if not relayout_data or 'selections' not in relayout_data:
         return no_update, no_update, no_update

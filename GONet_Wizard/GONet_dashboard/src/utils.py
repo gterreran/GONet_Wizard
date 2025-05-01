@@ -25,12 +25,14 @@ used in the callback system.
 - :func:`new_selection_filter` : Create a `Dash <https://dash.plotly.com/>`_ component for a selection-based filter using manually selected points.
 
 """
-import inspect, datetime
+import inspect, datetime, operator, traceback, os, json
+from functools import wraps
 import numpy as np
-from GONet_Wizard.GONet_dashboard.src import env
-import operator
-from dash import html, dcc
+
+from dash import html, dcc, no_update
 import dash_daq as daq
+
+from GONet_Wizard.GONet_dashboard.src import env
 
 op = {
     '<': operator.lt ,
@@ -41,17 +43,170 @@ op = {
     '>': operator.gt ,
 }
 
-def debug():
-    '''
-    This is just for debugging purposes.
-    It prints the function in which it is called,
-    and the line at which it is called.
-    '''
 
-    print(
-        '{} fired. Line {}.'.format(
-            inspect.stack()[1][3],
-            inspect.stack()[1][2]))
+def debug_print(func):
+    """
+    Decorator that prints the name and line number of a function when called,
+    but only if Dash is running in debug mode (i.e., via Werkzeug reloader).
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+            caller = inspect.stack()[1]
+            print(f"{func.__name__} fired (called from line {caller.lineno} in {caller.function}).")
+        return func(*args, **kwargs)
+    return wrapper
+
+def handle_errors(n_outputs: int):
+    """
+    Decorator to handle exceptions in Dash callbacks and display them in an alert container.
+
+    This decorator appends three additional outputs to the decorated callback:
+
+      - `alert-container.children` (displays the message)
+      - `alert-container.className` (CSS class for styling)
+      - `alert-container.style` (visibility control)
+
+    If the decorated callback runs successfully, the alert outputs are cleared.
+    If an exception occurs, the function:
+
+      - Logs the full traceback to the server console.
+      - Returns `no_update` for all regular outputs.
+      - Populates the alert container with a specially formatted error string:
+        ``__GONET_ERROR__:<error message>``
+      - This string is intended to be intercepted by a separate callback that
+        raises an actual exception, halting further chained or dependent updates.
+
+    Parameters
+    ----------
+    n_outputs : int
+        Number of regular outputs returned by the decorated function (excluding the 3 alert-related ones).
+
+    Returns
+    -------
+    callable
+        The wrapped callback function, with appended alert output logic.
+    """
+    def decorator(callback_fn):
+        @wraps(callback_fn)
+        def wrapper(*args, **kwargs):
+            try:
+                result = callback_fn(*args, **kwargs)
+                if not isinstance(result, (tuple, list)):
+                    result = (result,)
+                return (*result, "", "", {"display": "none"})
+            except Exception as e:
+                print("Exception in callback:", callback_fn.__name__)
+                print(traceback.format_exc())
+                return (
+                    *[no_update] * n_outputs,
+                    f"__GONET_ERROR__:{str(e)}",  # special flag for secondary callback
+                    "alert-box error",
+                    {"display": "block"}
+                )
+        return wrapper
+    return decorator
+
+def load_data(env):
+    """
+    Load and prepare all available GONet data from JSON files in the GONET_ROOT folder.
+
+    This simplified version assumes that every valid `.json` file in `env.ROOT`
+    contains nightly observation data in the expected GONet format.
+
+    Parameters
+    ----------
+    env : module-like
+        Object with required attributes:
+        - env.ROOT: str — path to the folder containing JSON files.
+        - env.CHANNELS: list of str — e.g., ['red', 'green', 'blue']
+        - env.LABELS: dict to be populated with 'gen' and 'fit' keys.
+        - env.LOCAL_TZ: tzinfo object for localizing timestamps.
+
+    Returns
+    -------
+    data : dict
+        Flattened dictionary of all GONet metadata and channel-specific values.
+
+    options_x : list of dict
+        Dropdown options for the x-axis selector.
+
+    options_y : list of dict
+        Dropdown options for the y-axis selector.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the directory is empty or contains no valid JSON files.
+
+    ValueError
+        If the JSON files are malformed or missing required fields.
+    """
+    if not os.path.isdir(env.ROOT):
+        raise FileNotFoundError(f"The directory '{env.ROOT}' does not exist.")
+
+    json_files = sorted(f for f in os.listdir(env.ROOT) if f.endswith(".json"))
+    if not json_files:
+        raise FileNotFoundError(f"No JSON files found in GONET_ROOT: {env.ROOT}")
+
+    data = {'idx': [], 'channel': []}
+    image_idx = -1
+    data_initialized = False
+
+    for file_name in json_files:
+        json_path = os.path.join(env.ROOT, file_name)
+        try:
+            with open(json_path) as inp:
+                night_dict = json.load(inp)
+        except Exception as e:
+            raise ValueError(f"Failed to parse JSON file '{file_name}': {e}")
+
+        if not data_initialized:
+            try:
+                env.LABELS['gen'] = [l for l in night_dict[0] if l not in env.CHANNELS]
+                env.LABELS['gen'] += ['blue-green', 'green-red', 'blue-red']
+                data.update({l: [] for l in env.LABELS['gen']})
+
+                env.LABELS['fit'] = list(night_dict[0]['red'].keys())
+                data.update({l: [] for l in env.LABELS['fit']})
+                data_initialized = True
+            except Exception as e:
+                raise ValueError(f"Could not initialize data structures from '{file_name}': {e}")
+
+        for img in night_dict:
+            image_idx += 1
+            for c in env.CHANNELS:
+                try:
+                    data['idx'].append(image_idx)
+                    data['channel'].append(c)
+
+                    data['blue-green'].append(img['blue']['mean'] / img['green']['mean'])
+                    data['green-red'].append(img['green']['mean'] / img['red']['mean'])
+                    data['blue-red'].append(img['blue']['mean'] / img['red']['mean'])
+
+                    for label in env.LABELS['gen']:
+                        if label not in img:
+                            data[label].append(None)
+                        elif label == "date":
+                            data[label].append(datetime.datetime.fromisoformat(img[label]).astimezone(env.LOCAL_TZ))
+                        else:
+                            data[label].append(img[label])
+
+                    for label in env.LABELS['fit']:
+                        data[label].append(img[c][label])
+                except Exception as e:
+                    raise ValueError(f"Error parsing image {image_idx} in file '{file_name}': {e}")
+
+    if image_idx == -1:
+        raise FileNotFoundError("No valid data was extracted from any JSON file.")
+
+    labels_dropdown = [
+        {"label": l, "value": l}
+        for l in env.LABELS['gen'] + env.LABELS['fit']
+        if l != 'filename'
+    ]
+
+    return data, labels_dropdown, labels_dropdown
 
 def sort_figure(fig: dict) -> dict:
     """
@@ -391,6 +546,8 @@ def get_stats(fig: dict) -> list:
                             'value': f"{np.mean(data_figs[c][axis]):.2f} ± {np.std(data_figs[c][axis]):.2f}"
                         })
         except np.core._exceptions._UFuncNoLoopError:
+            stats_table[axis]=[]
+        except TypeError:
             stats_table[axis]=[]
 
     formatted_stats_table = [html.Tr([html.Td(el[val]) for el in stats_table[axis] for val in ['label', 'value']]) for axis in ['x', 'y']]

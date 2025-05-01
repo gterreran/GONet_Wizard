@@ -60,8 +60,12 @@ def warn_env_var_missing(name: str, prompt: str = None) -> str | None:
     """
     Warn the user if an optional environment variable is not set.
 
-    If the variable is missing, the user is asked whether they want to define it now.
-    If confirmed, the value is stored in :py:data:`os.environ` for the current session only.
+    This function checks whether a given environment variable is defined.
+    If it's missing, the user is prompted to define it interactively.
+
+    To avoid duplicate prompts when running a Dash app in debug mode,
+    the function only executes its logic in the reloader child process
+    (i.e., when the environment variable 'WERKZEUG_RUN_MAIN' is set to 'true').
 
     Parameters
     ----------
@@ -73,10 +77,21 @@ def warn_env_var_missing(name: str, prompt: str = None) -> str | None:
     Returns
     -------
     :class:`str` or :class:`None`
-        The value of the environment variable, or None if skipped.
-    """
-    value = os.environ.get(name)
+        The value of the environment variable if already set or newly defined,
+        or None if the user chooses not to define it.
 
+    Notes
+    -----
+    When `app.run_server(debug=True)` is used in Dash, the server restarts
+    itself in a child process for hot reloading. To avoid running this prompt
+    logic multiple times, we check for the environment variable
+    'WERKZEUG_RUN_MAIN' which is only 'true' in the child process.
+    """
+    # Only run in main or reloader child process to avoid duplicate prompts
+    if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        return None
+
+    value = os.environ.get(name)
     if value is not None:
         return value
 

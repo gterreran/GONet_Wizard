@@ -6,6 +6,7 @@ callbacks
 Dash callbacks:
 ---------------
 
+.. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.raise_if_error
 .. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.load
 .. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.plot
 .. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.info

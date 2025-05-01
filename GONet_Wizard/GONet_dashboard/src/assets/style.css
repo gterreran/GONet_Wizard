@@ -303,3 +303,34 @@ input:focus, select:focus, button:focus {
 #info-table {
     max-width: 300px;         /* optional: keep the table narrow */
 }
+
+.alert-box {
+    margin: 10px auto;
+    padding: 12px 16px;
+    width: 90%;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: center;
+    display: none; /* hidden by default */
+}
+
+/* Example color variants for use via callback or className */
+
+.alert-box.error {
+    background-color: #ffe5e5;
+    color: #a30000;
+    border: 1px solid #ff9999;
+}
+
+.alert-box.warning {
+    background-color: #fff4e5;
+    color: #a35c00;
+    border: 1px solid #ffc966;
+}
+
+.alert-box.info {
+    background-color: #e6f2ff;
+    color: #004080;
+    border: 1px solid #99ccff;
+}
