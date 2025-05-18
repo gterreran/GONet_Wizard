@@ -7,13 +7,7 @@ Functions:
 ---------------
 
 .. autofunction:: GONet_Wizard.GONet_dashboard.src.utils.debug_print
-.. autofunction:: GONet_Wizard.GONet_dashboard.src.utils.handle_errors
-.. autofunction:: GONet_Wizard.GONet_dashboard.src.utils.load_data
-.. autofunction:: GONet_Wizard.GONet_dashboard.src.utils.sort_figure
-.. autofunction:: GONet_Wizard.GONet_dashboard.src.utils.get_labels
-.. autofunction:: GONet_Wizard.GONet_dashboard.src.utils.plot_scatter
-.. autofunction:: GONet_Wizard.GONet_dashboard.src.utils.plot_big_points
-.. autofunction:: GONet_Wizard.GONet_dashboard.src.utils.get_stats
+.. autofunction:: GONet_Wizard.GONet_dashboard.src.utils.gonet_callback
 .. autofunction:: GONet_Wizard.GONet_dashboard.src.utils.new_empty_filter
 .. autofunction:: GONet_Wizard.GONet_dashboard.src.utils.new_empty_second_filter
 .. autofunction:: GONet_Wizard.GONet_dashboard.src.utils.new_selection_filter

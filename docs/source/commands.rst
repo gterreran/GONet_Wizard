@@ -1,5 +1,5 @@
-commands Module
-===============
+commands Package
+================
 
 .. automodule:: GONet_Wizard.commands
    :members:
@@ -12,10 +12,9 @@ Submodules
 .. toctree::
    :maxdepth: 3
 
-   commands/settings
    commands/run_dashboard
    commands/show
    commands/show_meta
    commands/connect
    commands/snap
-   commands/terminate_imaging
+   commands/terminate

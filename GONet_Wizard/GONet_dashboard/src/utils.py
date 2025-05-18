@@ -8,10 +8,6 @@ used in the callback system.
 
 `Dash <https://dash.plotly.com/>`_ components from `dash` and `dash_daq` are used to construct UI elements dynamically.
 
-**Globals**
-
-- ``op`` :class:`dict` : Dictionary mapping string operators (e.g., '<', '!=') to their Python equivalents.
-
 **Functions**
 
 - :func:`debug` : debugging. 
@@ -25,534 +21,148 @@ used in the callback system.
 - :func:`new_selection_filter` : Create a `Dash <https://dash.plotly.com/>`_ component for a selection-based filter using manually selected points.
 
 """
-import inspect, datetime, operator, traceback, os, json
+import traceback, inspect, warnings, os
 from functools import wraps
-import numpy as np
 
-from dash import html, dcc, no_update
+from dash import html, dcc, ctx, no_update
+from dash.dependencies import Output, State
 import dash_daq as daq
 
 from GONet_Wizard.GONet_dashboard.src import env
+from GONet_Wizard.GONet_dashboard.src.server import app
 
-op = {
-    '<': operator.lt ,
-    '<=': operator.le ,
-    '=': operator.eq ,
-    '!=': operator.ne ,
-    '=>': operator.ge ,
-    '>': operator.gt ,
-}
-
-
-def debug_print(func):
+def debug_print(callback_fn):
     """
-    Decorator that prints the name and line number of a function when called,
-    but only if Dash is running in debug mode (i.e., via Werkzeug reloader).
-    """
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-            caller = inspect.stack()[1]
-            print(f"{func.__name__} fired (called from line {caller.lineno} in {caller.function}).")
-        return func(*args, **kwargs)
-    return wrapper
+    Decorator that logs when a Dash callback is triggered, including the triggering component ID and source line.
 
-def handle_errors(n_outputs: int):
-    """
-    Decorator to handle exceptions in Dash callbacks and display them in an alert container.
-
-    This decorator appends three additional outputs to the decorated callback:
-
-      - `alert-container.children` (displays the message)
-      - `alert-container.className` (CSS class for styling)
-      - `alert-container.style` (visibility control)
-
-    If the decorated callback runs successfully, the alert outputs are cleared.
-    If an exception occurs, the function:
-
-      - Logs the full traceback to the server console.
-      - Returns `no_update` for all regular outputs.
-      - Populates the alert container with a specially formatted error string:
-        ``__GONET_ERROR__:<error message>``
-      - This string is intended to be intercepted by a separate callback that
-        raises an actual exception, halting further chained or dependent updates.
+    This decorator is useful for debugging and tracing which callbacks are being executed during development.
+    Logging only occurs when the ``WERKZEUG_RUN_MAIN`` environment variable is set to "true", which ensures
+    the message is printed only by the reloader's main process.
 
     Parameters
     ----------
-    n_outputs : int
-        Number of regular outputs returned by the decorated function (excluding the 3 alert-related ones).
+    callback_fn : callable
+        The Dash callback function to wrap.
 
     Returns
     -------
     callable
-        The wrapped callback function, with appended alert output logic.
+        The wrapped function that logs on invocation and then calls the original function.
     """
+    @wraps(callback_fn)
+    def wrapper(*args, **kwargs):
+        if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+            caller = inspect.stack()[1]
+            print(f"{callback_fn.__name__} fired (line {caller.lineno}) triggered by {ctx.triggered_id}.")
+        return callback_fn(*args, **kwargs)
+    return wrapper
+
+
+def gonet_callback(*args, **kwargs):
+    """
+    Custom Dash callback decorator that extends the original callback with automatic alert handling,
+    debug logging, and error state protection.
+
+    This decorator automatically appends three additional outputs for managing an alert container:
+
+    - `alert-container.children` (message content)
+    - `alert-container.className` (CSS class for styling)
+    - `alert-container.style` (visibility/display logic)
+
+    It also adds one hidden State:
+
+    - `alert-container.className` (used to suppress execution if an error is already active)
+
+    The wrapped callback will:
+    - Suppress execution if the alert container is currently showing an error (`"alert-box error"`).
+    - Capture and display any warnings issued during execution.
+    - Catch exceptions and display a red alert box with the error message.
+    - Log a message when the callback is triggered, including the triggering component (if `WERKZEUG_RUN_MAIN == "true"`).
+
+    Parameters
+    ----------
+    *args : dash.Output, dash.Input, dash.State
+        Positional arguments defining the Dash callback's outputs, inputs, and states.
+        All initial Output(...) arguments are treated as actual user outputs.
+    **kwargs : dict
+        Additional keyword arguments passed to Dash's `app.callback`.
+
+    Returns
+    -------
+    callable
+        The decorated function registered as a Dash callback.
+    """
+    # Detect real outputs (all Output objects at the start of args)
+    real_outputs = []
+    for arg in args:
+        if isinstance(arg, Output):
+            real_outputs.append(arg)
+        else:
+            break
+    n_real_outputs = len(real_outputs)
+
+    # Add extra alert outputs
+    alert_outputs = [
+        Output("alert-container", "children", allow_duplicate=True),
+        Output("alert-container", "className", allow_duplicate=True),
+        Output("alert-container", "style", allow_duplicate=True),
+    ]
+    all_outputs = real_outputs + alert_outputs
+
+    # Append hidden State to check alert status
+    alert_state_input = State("alert-container", "className")
+
     def decorator(callback_fn):
         @wraps(callback_fn)
-        def wrapper(*args, **kwargs):
+        def wrapped_fn(*fargs, **fkwargs):
+            # Check for active error alert before proceeding
+            alert_classname = fargs[-1]  # The last argument is the State
+            if alert_classname == "alert-box error":
+                return tuple([no_update] * (n_real_outputs + 3))
+
             try:
-                result = callback_fn(*args, **kwargs)
-                if not isinstance(result, (tuple, list)):
-                    result = (result,)
+                if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+                    caller = inspect.stack()[1]
+                    print(f"{callback_fn.__name__} fired (line {caller.lineno}) triggered by {ctx.triggered_id}.")
+
+                # Capture warnings
+                with warnings.catch_warnings(record=True) as wlist:
+                    warnings.simplefilter("always")
+                    result = callback_fn(*fargs[:-1], **fkwargs)  # Remove last arg (alert className)
+
+                    # Ensure result is a tuple with the correct number of outputs
+                    if n_real_outputs == 1:
+                        result = (result,)  # wrap even lists as single output
+                    elif not isinstance(result, (tuple, list)):
+                        raise ValueError(
+                            f"Callback must return {n_real_outputs} outputs, got a single value of type {type(result).__name__}"
+                        )
+
+                    if wlist:
+                        msg = "; ".join(str(w.message) for w in wlist)
+                        return (
+                            *result,
+                            f"⚠️ {msg}",
+                            "alert-box warning",
+                            {"display": "block"},
+                        )
+
                 return (*result, "", "", {"display": "none"})
+
             except Exception as e:
-                print("Exception in callback:", callback_fn.__name__)
+                print(f"Exception in callback: {callback_fn.__name__}")
                 print(traceback.format_exc())
                 return (
-                    *[no_update] * n_outputs,
-                    f"__GONET_ERROR__:{str(e)}",  # special flag for secondary callback
+                    *[no_update] * n_real_outputs,
+                    f"🚨 {str(e)}",
                     "alert-box error",
-                    {"display": "block"}
+                    {"display": "block"},
                 )
-        return wrapper
+
+        # Register callback with appended State
+        return app.callback(all_outputs, *args[n_real_outputs:], alert_state_input, **kwargs)(wrapped_fn)
+
     return decorator
-
-def load_data(env):
-    """
-    Load and prepare all available GONet data from JSON files in the GONET_ROOT folder.
-
-    This simplified version assumes that every valid `.json` file in `env.ROOT`
-    contains nightly observation data in the expected GONet format.
-
-    Parameters
-    ----------
-    env : module-like
-        Object with required attributes:
-        - env.ROOT: str — path to the folder containing JSON files.
-        - env.CHANNELS: list of str — e.g., ['red', 'green', 'blue']
-        - env.LABELS: dict to be populated with 'gen' and 'fit' keys.
-        - env.LOCAL_TZ: tzinfo object for localizing timestamps.
-
-    Returns
-    -------
-    data : dict
-        Flattened dictionary of all GONet metadata and channel-specific values.
-
-    options_x : list of dict
-        Dropdown options for the x-axis selector.
-
-    options_y : list of dict
-        Dropdown options for the y-axis selector.
-
-    Raises
-    ------
-    FileNotFoundError
-        If the directory is empty or contains no valid JSON files.
-
-    ValueError
-        If the JSON files are malformed or missing required fields.
-    """
-    if not os.path.isdir(env.ROOT):
-        raise FileNotFoundError(f"The directory '{env.ROOT}' does not exist.")
-
-    json_files = sorted(f for f in os.listdir(env.ROOT) if f.endswith(".json"))
-    if not json_files:
-        raise FileNotFoundError(f"No JSON files found in GONET_ROOT: {env.ROOT}")
-
-    data = {'idx': [], 'channel': []}
-    image_idx = -1
-    data_initialized = False
-
-    for file_name in json_files:
-        json_path = os.path.join(env.ROOT, file_name)
-        try:
-            with open(json_path) as inp:
-                night_dict = json.load(inp)
-        except Exception as e:
-            raise ValueError(f"Failed to parse JSON file '{file_name}': {e}")
-
-        if not data_initialized:
-            try:
-                env.LABELS['gen'] = [l for l in night_dict[0] if l not in env.CHANNELS]
-                env.LABELS['gen'] += ['blue-green', 'green-red', 'blue-red']
-                data.update({l: [] for l in env.LABELS['gen']})
-
-                env.LABELS['fit'] = list(night_dict[0]['red'].keys())
-                data.update({l: [] for l in env.LABELS['fit']})
-                data_initialized = True
-            except Exception as e:
-                raise ValueError(f"Could not initialize data structures from '{file_name}': {e}")
-
-        for img in night_dict:
-            image_idx += 1
-            for c in env.CHANNELS:
-                try:
-                    data['idx'].append(image_idx)
-                    data['channel'].append(c)
-
-                    data['blue-green'].append(img['blue']['mean'] / img['green']['mean'])
-                    data['green-red'].append(img['green']['mean'] / img['red']['mean'])
-                    data['blue-red'].append(img['blue']['mean'] / img['red']['mean'])
-
-                    for label in env.LABELS['gen']:
-                        if label not in img:
-                            data[label].append(None)
-                        elif label == "date":
-                            data[label].append(datetime.datetime.fromisoformat(img[label]).astimezone(env.LOCAL_TZ))
-                        else:
-                            data[label].append(img[label])
-
-                    for label in env.LABELS['fit']:
-                        data[label].append(img[c][label])
-                except Exception as e:
-                    raise ValueError(f"Error parsing image {image_idx} in file '{file_name}': {e}")
-
-    if image_idx == -1:
-        raise FileNotFoundError("No valid data was extracted from any JSON file.")
-
-    labels_dropdown = [
-        {"label": l, "value": l}
-        for l in env.LABELS['gen'] + env.LABELS['fit']
-        if l != 'filename'
-    ]
-
-    return data, labels_dropdown, labels_dropdown
-
-def sort_figure(fig: dict) -> dict:
-    """
-    Reorders the traces in a Plotly figure based on filtering and highlight status.
-
-    This function reorders the entries in the ``fig['data']`` list so that:
-
-    1. Filtered points (not highlighted) are drawn first.
-    2. Unfiltered points are drawn next (these should be visually dominant).
-    3. Highlighted "big points" are drawn last so they appear on top.
-
-    Parameters
-    ----------
-    fig : :class:`dict`
-        A Plotly figure dictionary with a "data" key containing traces.
-        Each trace is expected to include boolean keys: "filtered" and "big_point".
-
-    Returns
-    -------
-    :class:`dict`
-        The modified Plotly figure with reordered data traces.
-    """
-    new_order = []
-    for img in fig['data']:
-        if img['filtered'] and not img['big_point']:
-            new_order.append(img)
-    for img in fig['data']:
-        if not img['filtered'] and not img['big_point']:
-            new_order.append(img)
-    for img in fig['data']:
-        if img['big_point']:
-            new_order.append(img)
-    
-    fig['data'] = new_order[:]
-    return fig
-
-def get_labels(fig: dict) -> dict:
-    """
-    Extracts the axis label text from a Plotly figure layout.
-
-    This function retrieves the `xaxis` and `yaxis` title strings from the figure's layout
-    and returns them as a dictionary keyed by `'x'` and `'y'`.
-
-    Parameters
-    ----------
-    fig : :class:`dict`
-        A Plotly figure dictionary expected to have keys: `'layout' → 'xaxis'/'yaxis' → 'title' → 'text'`.
-
-    Returns
-    -------
-    :class:`dict`
-        A dictionary with keys `'x'` and `'y'`, mapping to the corresponding axis labels as strings.
-    """
-    return {'x': fig['layout']['xaxis']['title']['text'], 'y': fig['layout']['yaxis']['title']['text']}
-
-def plot_scatter(
-    all_data: dict,
-    channels: list,
-    fig: dict,
-    active_filters: list,
-    show_filtered_points: bool,
-    fold_switch: bool
-) -> dict:
-    """
-    Update a Plotly figure by adding scatter traces for selected and filtered data.
-
-    This function builds the main scatter plot based on selected channels, applied filters,
-    and folding settings. It appends new traces to the input figure dictionary for both
-    visible (selected) and hidden (filtered out) data points.
-
-    Parameters
-    ----------
-    all_data : :class:`dict`
-        The full data dictionary containing all measured quantities. Each key corresponds
-        to a column, with values as lists of entries (e.g., 'idx', 'channel', 'date', etc.).
-    channels : :class:`list`
-        A list of channel names (e.g., ['red', 'green', 'blue']) to include in the plot.
-    fig : :class:`dict`
-        A Plotly figure dictionary that will be modified in-place by appending scatter traces.
-    active_filters : :class:`list`
-        A list of active filters, each represented as a dictionary with keys like 'label',
-        'operator', 'value', and optionally 'secondary'.
-    show_filtered_points : :class:`bool`
-        Whether to display the filtered-out points in the plot (with lower opacity).
-    fold_switch : :class:`bool`
-        Whether to fold time-based x-axis values into a 24-hour night-based view.
-
-    Returns
-    -------
-    :class:`dict`
-        The modified Plotly figure with updated 'data' containing scatter traces for each channel.
-    """
-
-    # Retrieving the quantities I am currently plotting
-    labels = get_labels(fig)
-
-    # For every GONet image, all_data contains a 3 rows, one for every channel
-    # Here I identify what channels I am plotting, and I create a mask isolating
-    # the elements in all_data corresponding to those channels.
-    channel_filter = {}
-    if labels['x'] in env.LABELS['gen'] and labels['y'] in env.LABELS['gen']:
-        # If the labels are not channel-specific, the row of any channel can be used
-        channel_filter['gen'] = np.array(all_data['channel']) == 'red'
-    else:
-        for c in channels:
-            channel_filter[c] = np.array(all_data['channel']) == c
-    
-    # The filters array will have a list of masks, one for every active filter
-    # Each mask will have len equal to the full all_data database, i.e. the
-    # len of any of each column, for instance all_data['channel'].
-    filters = []
-    for f in active_filters:
-        # I will take care of selection filters later
-        if f['label'].split()[0]=='Selection':
-            primary_filter = np.isin(all_data['idx'],f['value'])
-            primary_filter = np.logical_and(primary_filter, channel_filter[c])
-            if f['operator'] == 'out':
-                primary_filter = ~primary_filter
-            filters.append(primary_filter)
-    
-        else:
-            primary_filter = op[f['operator']](np.array(all_data[f['label']]),type(all_data[f['label']][0])(f['value']))
-
-            if 'secondary' in f:
-                secondary_filter = op[f['secondary']['operator']](np.array(all_data[f['secondary']['label']]),type(all_data[f['secondary']['label']][0])(f['secondary']['value']))
-            else:
-                # If there is no secondary filter, I just create an array with all True values
-                secondary_filter = np.full(len(all_data['channel']), False)
-            filters.append(np.logical_or(primary_filter, secondary_filter))
-
-        # if f['label'].split()[0]=='Selection':
-    #             np.full(len(all_data['channel']), True)  # Initialize with all False
-    #             mask[fig['data'][0]['idx'][f['value']]] = True
-    #             filters.append(mask)
-    #         else:
-
-    # I recursively apply all the masks in filters, starting from an array with all True values
-    total_filter = np.full(len(all_data['channel']), True)
-    for f in filters:
-        total_filter = np.logical_and(total_filter,f)
-
-    # copying the columns we are interested in, plus the index column
-    # to 3 more generic x_data, y_data, real_idx arrays, and making 
-    # them numpy arrays. Also taking care of any folding needed
-    # if we want to visualize the night evolution rather than
-    # the whole time evolution.
-    if labels['x'] == 'date' and fold_switch:
-        time = []
-        for t in all_data[labels['x']]:
-            if datetime.datetime.fromisoformat(t).time()>env.DAY_START:
-                time.append('2025-01-01T'+t.split('T')[1])
-            else:
-                time.append('2025-01-02T'+t.split('T')[1])
-        x_data = np.array(time)
-        fig['layout']['xaxis']['tickformat'] = "%H:%M"
-    else:
-        x_data = np.array(all_data[labels['x']])
-    y_data = np.array(all_data[labels['y']])
-    real_idx = np.array(all_data['idx'])
-
-
-    for c in channel_filter:
-        marker = {
-                'color': env.COLORS[c](1),
-                'symbol': 'circle'
-            }
-        filtered_out_marker = {
-                        'color': env.COLORS[c](0.2) if show_filtered_points else env.COLORS[c](0),
-                        'symbol': 'circle'
-                    }
-        selected_data_filter = np.logical_and(total_filter, channel_filter[c])
-        fig['data'].append({
-            'hovertemplate': labels['x']+'=%{x}<br>'+labels['y']+'=%{y}',
-            'x': x_data[selected_data_filter],
-            'y': y_data[selected_data_filter],
-            'type': 'scatter',
-            'mode': 'markers',
-            'marker': marker,
-            'unselected': {'marker': marker},
-            'channel': c,
-            'showlegend': True,
-            'idx': real_idx[selected_data_filter],
-            'filtered': False,
-            'hidden': False,
-            'big_point': False
-        })
-        filtered_out_data = np.logical_and(~total_filter, channel_filter[c])
-        if len(x_data[filtered_out_data])>0:
-            fig['data'].append({
-                'hovertemplate': labels['x']+'=%{x}<br>'+labels['y']+'=%{y}',
-                'x': x_data[filtered_out_data],
-                'y': y_data[filtered_out_data],
-                'type': 'scatter',
-                'mode': 'markers',
-                'marker': filtered_out_marker,
-                'unselected': {'marker': filtered_out_marker},
-                'channel': c,
-                'showlegend': True,
-                'idx': real_idx[filtered_out_data],
-                'filtered': True,
-                'hidden': not show_filtered_points,
-                'big_point': False
-            })
-
-    return fig
-
-def plot_big_points(data: dict, idx_big_point: int, fig: dict, fold_switch: bool) -> dict:
-    """
-    Highlight a selected point in the scatter plot by adding enlarged "big point" markers.
-
-    This function removes any previously plotted big points and appends new, enlarged markers
-    corresponding to the selected index. It supports time-folding if the x-axis is temporal.
-
-    Parameters
-    ----------
-    data : :class:`dict`
-        The full data dictionary containing measurement entries. Each key corresponds to a quantity
-        such as 'channel', 'idx', or a plotted axis label.
-    idx_big_point : :class:`int`
-        Index of the selected point to be highlighted.
-    fig : :class:`dict`
-        The Plotly figure to be modified. New traces will be appended to its `'data'` field.
-    fold_switch : :class:`bool`
-        Whether to fold time values to a 24-hour display anchored to the astronomical day.
-
-    Returns
-    -------
-    :class:`dict`
-        The updated Plotly figure dictionary with big point highlights added.
-    """
-
-    labels = get_labels(fig)
-
-    # Big point in main figure
-    big_point_figs = []
-
-    idx_epoch = data['idx'][idx_big_point]
-    points = np.array(data['idx']) == idx_epoch
-
-    for i,img in reversed(list(enumerate(fig['data']))):
-        # Removing eventual big points
-        if img['big_point']:
-            fig['data'].pop(i)
-            continue
-
-        if idx_epoch not in img['idx']:
-            continue
-
-        if img['channel'] == 'gen':
-            channel = 'green'
-        else:
-            channel = img['channel']
-
-        selected_data_filter = np.logical_and(points, np.array(data['channel']) == channel)
-
-        x_data = np.array(data[labels['x']])[selected_data_filter]
-        y_data = np.array(data[labels['y']])[selected_data_filter]
-
-        if labels['x'] == 'date' and fold_switch:
-            if datetime.datetime.fromisoformat(x_data[0]).time()>env.DAY_START:
-                x_data = ['2025-01-01T'+x_data[0].split('T')[1]]
-            else:
-                x_data = ['2025-01-02T'+x_data[0].split('T')[1]]
-
-        marker_big_point = {
-                'color': img['marker']['color'],
-                'symbol': 'circle',
-                'size': 15,
-                'line':{
-                    'width':0 if img['hidden'] else 2,
-                    'color':'DarkSlateGrey'
-                }
-            }
-
-        big_point_figs.append({
-            'x': x_data,
-            'y': y_data,
-            'type': 'scatter',
-            'mode': 'markers',
-            'marker': marker_big_point,
-            'unselected': {'marker': marker_big_point},
-            'channel': img['channel'],
-            'showlegend': False,
-            'filtered': img['filtered'],
-            'hidden':img['hidden'],
-            'big_point': True
-        })
-
-    fig['data'] = fig['data'] + big_point_figs
-
-    return fig
-
-def get_stats(fig: dict) -> list:
-    """
-    Compute summary statistics (mean and standard deviation) for plotted x and y values.
-
-    This function extracts unfiltered, non-highlighted data from the figure and calculates
-    per-axis statistics. It builds an HTML table as a list of `Dash <https://dash.plotly.com/>`_ row components to be
-    rendered in the dashboard's stats panel.
-
-    Parameters
-    ----------
-    fig : :class:`dict`
-        A Plotly figure dictionary containing the data traces used for plotting.
-
-    Returns
-    -------
-    :class:`list`
-        A list of :class:`dash.html.Tr` elements representing the statistics table rows.
-    """
-
-    labels = get_labels(fig)
-
-    data_figs = {img['channel']:img for img in fig['data'] if not img['filtered'] and not img['big_point']}
-
-    stats_table = {}
-
-    for axis in ['x','y']:
-        stats_table[axis] = []
-        try:
-            if labels[axis] in env.LABELS['gen']:
-                stats_table[axis].append({'label':labels[axis]})
-                if 'gen' in data_figs:
-                    m = np.mean(data_figs['gen'][axis])
-                    s = np.std(data_figs['gen'][axis])
-                else:
-                    m = np.mean(data_figs[list(data_figs.keys())[0]][axis])
-                    s = np.std(data_figs[list(data_figs.keys())[0]][axis])
-
-                stats_table[axis][-1]['value'] = f"{m:.2f} ± {s:.2f}"
-
-            else:
-                for c in env.CHANNELS:
-                    if c in data_figs:
-                        stats_table[axis].append({
-                            'label': f"{labels[axis]}_{c}",
-                            'value': f"{np.mean(data_figs[c][axis]):.2f} ± {np.std(data_figs[c][axis]):.2f}"
-                        })
-        except np.core._exceptions._UFuncNoLoopError:
-            stats_table[axis]=[]
-        except TypeError:
-            stats_table[axis]=[]
-
-    formatted_stats_table = [html.Tr([html.Td(el[val]) for el in stats_table[axis] for val in ['label', 'value']]) for axis in ['x', 'y']]
-
-    return formatted_stats_table
 
 
 def new_empty_filter(idx: int, labels: list) -> html.Div:
@@ -584,7 +194,7 @@ def new_empty_filter(idx: int, labels: list) -> html.Div:
                         daq.BooleanSwitch(className='switch', id={"type":'filter-switch', "index":idx}, on=False),
                     ),
                     dcc.Dropdown(className="custom-filter-dropdown", id={"type":'filter-dropdown', "index":idx}, options=labels),
-                    dcc.Dropdown(className="custom-filter-operator", id={"type":'filter-operator', "index":idx}, options=['<','<=','=','!=','=>','>'], value = '<='),
+                    dcc.Dropdown(className="custom-filter-operator", id={"type":'filter-operator', "index":idx}, options=list(env.OP.keys()), value = env.DEFAULT_OP),
                     dcc.Input(className="custom-filter-value", id={"type":'filter-value', "index":idx}, type="text", debounce=True)
                 ]),
                 html.Div(className="second-filter-container", id = {"type":'second-filter-container', "index":idx}, children=[
@@ -593,6 +203,7 @@ def new_empty_filter(idx: int, labels: list) -> html.Div:
             ])
 
     return new_filter
+
 
 def new_empty_second_filter(idx: int, labels: list) -> list:
     """
@@ -617,7 +228,7 @@ def new_empty_second_filter(idx: int, labels: list) -> list:
     new_filter = [
         html.Div(className='or-div', id= {"type":'or-div', "index":idx}, children='OR'),
         dcc.Dropdown(className="custom-filter-dropdown", id={"type":'second-filter-dropdown', "index":idx}, options=labels),
-        dcc.Dropdown(className="custom-filter-operator", id={"type":'second-filter-operator', "index":idx}, options=['<','<=','=','!=','=>','>'], value = '<='),
+        dcc.Dropdown(className="custom-filter-operator", id={"type":'second-filter-operator', "index":idx}, options=list(env.OP.keys()), value = env.DEFAULT_OP),
         dcc.Input(className="custom-filter-value", id={"type":'second-filter-value', "index":idx}, type="text", debounce=True)
     ]
 

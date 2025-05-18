@@ -7,4 +7,4 @@ show_meta
 Functions:
 ---------------
 
-.. autofunction:: GONet_Wizard.commands.show_meta.show_meta
+.. autofunction:: GONet_Wizard.commands.show_meta.show_metadata

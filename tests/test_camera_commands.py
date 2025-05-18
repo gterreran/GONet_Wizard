@@ -1,13 +1,14 @@
 import pytest, os, sys
 from unittest.mock import patch, MagicMock
 from GONet_Wizard.commands.connect import ssh_connect
-from GONet_Wizard.commands.settings import GONetConfig
+from GONet_Wizard.settings import GONetConfig
 
 import GONet_Wizard.commands.snap as snap
 from GONet_Wizard.commands import terminate
 
-from GONet_Wizard.commands.settings import require_env_var
-from GONet_Wizard.commands.settings import DashboardConfig
+from GONet_Wizard.settings import require_env_var
+from GONet_Wizard.settings import warn_env_var_missing
+from GONet_Wizard.settings import EnvVar
 
 def test_ssh_connect_success():
     mock_ssh = MagicMock()
@@ -66,27 +67,32 @@ def test_config_prompts_for_password(monkeypatch):
 
 def test_require_env_var_returns_env(monkeypatch):
     monkeypatch.setenv("MY_VAR", "hello")
-    from GONet_Wizard.commands.settings import require_env_var
-    assert require_env_var("MY_VAR") == "hello"
+    from GONet_Wizard.settings import require_env_var
+    assert require_env_var(EnvVar("MY_VAR")) == "hello"
+
+@pytest.fixture(autouse=True)
+def simulate_dash_reloader(monkeypatch):
+    monkeypatch.setenv("WERKZEUG_RUN_MAIN", "true")
+
 
 def test_warn_env_var_returns_if_present(monkeypatch):
     monkeypatch.setenv("OPTIONAL_VAR", "yes")
-    from GONet_Wizard.commands.settings import warn_env_var_missing
-    assert warn_env_var_missing("OPTIONAL_VAR") == "yes"
+    assert warn_env_var_missing(EnvVar("OPTIONAL_VAR")) == "yes"
+
 
 def test_warn_env_var_sets_value(monkeypatch):
     monkeypatch.delenv("OPTIONAL_VAR", raising=False)
     with patch("builtins.input", side_effect=["y", "new_path"]):
-        from GONet_Wizard.commands.settings import warn_env_var_missing
-        result = warn_env_var_missing("OPTIONAL_VAR")
-        assert result == "new_path"
-        assert os.environ["OPTIONAL_VAR"] == "new_path"
+        result = warn_env_var_missing(EnvVar("OPTIONAL_VAR"))
+    assert result == "new_path"
+    assert os.environ["OPTIONAL_VAR"] == "new_path"
+
 
 def test_warn_env_var_skips(monkeypatch):
     monkeypatch.delenv("OPTIONAL_VAR", raising=False)
     with patch("builtins.input", return_value="n"):
-        from GONet_Wizard.commands.settings import warn_env_var_missing
-        assert warn_env_var_missing("OPTIONAL_VAR") is None
+        result = warn_env_var_missing(EnvVar("OPTIONAL_VAR"))
+    assert result is None
 
 
 @pytest.fixture
@@ -311,6 +317,6 @@ def test_require_env_var_uses_default_prompt(monkeypatch):
 
     with patch("builtins.input", return_value="my_value") as mock_input, \
          patch("builtins.print") as mock_print:
-        value = require_env_var("MISSING_VAR")
+        value = require_env_var(EnvVar("MISSING_VAR"))
         assert value == "my_value"
         mock_input.assert_called_once_with("Enter a value for MISSING_VAR: ")

@@ -19,7 +19,7 @@ and SCP connections securely and efficiently, including file hashing to avoid re
 import os
 import paramiko
 from scp import SCPClient
-from GONet_Wizard.commands.settings import GONetConfig
+from GONet_Wizard.settings import GONetConfig
 import hashlib
 from GONet_Wizard.commands.connect import ssh_connect
 

@@ -109,8 +109,7 @@ layout = dcc.Loading(
     overlay_style={"visibility":"visible", "filter": "blur(2px)"},
     children=html.Div([
         dcc.Store(id='data-json'),
-        dcc.Store(id='big-points'),
-        dcc.Store(id='active-filters', data=[]),
+        dcc.Store(id='active-filters'),
         dcc.Store(id='status-data'),
         html.Div(id='dummy-div'),
         html.Div(id='title-container', children=[
@@ -120,7 +119,15 @@ layout = dcc.Loading(
         html.Div(id='alert-container', className='alert-box', children=[]),
         html.Div(id='top-container',children=[
             html.Div(className='main-plot', children=[
-                    dcc.Graph(id="main-plot", figure = place_holder_main_plot),
+                    dcc.Graph(
+                        id="main-plot",
+                        figure = place_holder_main_plot,
+                        config={
+                            "modeBarButtonsToRemove": ["toImage","zoomIn2d", "zoomOut2d"],
+                            "modeBarButtonsToAdd": ["select2d", "lasso2d"],
+                            "displaylogo": False
+                        }
+                    ),
                     html.Div(id='stats-container', children=[
                         html.Table(id="stats-table", children=[html.Tr([html.Td(),html.Td()]),html.Tr([html.Td(),html.Td()])]),
                     ]),
@@ -136,12 +143,6 @@ layout = dcc.Loading(
                 html.Div([
                     "Y-axis",
                     dcc.Dropdown(id="y-axis-dropdown"),
-                ]),
-                html.Div(id = "folder-container", children=[
-                    html.Div(className = 'switch-container', children=
-                        daq.BooleanSwitch(className='switch', id='fold-time-switch', on=False, disabled=True),
-                    ),
-                    html.Div(className='switch-label', children = "Fold time axis", id='fold-time-label'),
                 ]),
                 html.Div(id = "export-button-container", children=[
                     html.Button('Export current data', id='export-data', n_clicks=0),
@@ -163,7 +164,7 @@ layout = dcc.Loading(
                     html.Button('Add filter', id='add-filter', n_clicks=0),
                     html.Div(id = "shower-container", children=[
                         html.Div(className = 'switch-container', children=
-                            daq.BooleanSwitch(className='switch', id='show-filtered-data-switch', on=True),
+                            daq.BooleanSwitch(className='switch', id='show-filtered-data-switch', on=True, disabled=True),
                         ),
                         html.Div(className='switch-label', children="Show filtered data", id='show-filtered-data-label'),
                     ]),

@@ -1,5 +1,5 @@
-GONet Dashboard Module
-======================
+GONet Dashboard Package
+=======================
 
 .. automodule:: GONet_Wizard.GONet_dashboard
    :members:
@@ -18,3 +18,4 @@ Submodules
    dashboard/layout
    dashboard/server
    dashboard/utils
+   dashboard/hood

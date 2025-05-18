@@ -15,7 +15,7 @@ See the :doc:`installation` page for details on how to install the package.
 
 See the :doc:`CLI <cli>` page a description on how to use some of the functionalities from the command line.
 
-The following modules are included in the GONet Wizard package:
+The following packages are included in the GONet Wizard:
 
 - :mod:`GONet_Wizard.GONet_dashboard`
 - :mod:`GONet_Wizard.GONet_utils`
@@ -29,6 +29,7 @@ Each module is documented in its own section below.
 
    installation
    cli
+   settings
    GONet_dashboard
    GONet_utils
    commands

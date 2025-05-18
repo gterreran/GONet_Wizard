@@ -1,5 +1,5 @@
-GONet Utils Module
-==================
+GONet Utils Package
+===================
 
 .. automodule:: GONet_Wizard.GONet_utils
    :members:

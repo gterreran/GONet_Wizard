@@ -6,11 +6,8 @@ callbacks
 Dash callbacks:
 ---------------
 
-.. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.raise_if_error
 .. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.load
-.. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.plot
-.. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.info
-.. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.activate_fold_switch
+.. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.update_main_plot
 .. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.add_filter
 .. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.add_or_filter
 .. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.update_main_filters_value

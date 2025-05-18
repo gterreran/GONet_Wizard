@@ -2,22 +2,11 @@
 GONet Dashboard Configuration Environment.
 
 This module defines constants and environment-specific settings shared across
-the GONet Wizard dashboard. It includes paths, plotting styles, default UI
-parameters, and display properties.
-
-Environment Variables
----------------------
-GONET_ROOT : :class:`str`
-    Path to the root directory containing nightly GONet JSON metadata files.
-GONET_ROOT_IMG : :class:`str`
-    Path to the directory containing raw image files for preview and extraction.
+the GONet Wizard dashboard. It includes plotting styles, default UI parameters,
+and display properties.
 
 Constants
 ---------
-ROOT : :class:`str`
-    Loaded from the ``GONET_ROOT`` environment variable.
-ROOT_EXT : :class:`str`
-    Loaded from the ``GONET_ROOT_IMG`` environment variable.
 CHANNELS : :class:`list` of :class:`str`
     Image channels used in processing and plotting (e.g., 'red', 'green', 'blue').
 BG_COLOR : :class:`str`
@@ -38,20 +27,51 @@ LABELS : :class:`dict`
     - 'gen': General labels not tied to specific channels.
     - 'fit': Fit-specific labels associated with individual channels.
 
+OP : :class:`dict`
+    Dictionary mapping string operators (e.g., '<', '!=') to their Python equivalents.
+DEFAULT_OP : :class:`str`
+    Default operator from the `OP` dictionary.
+DASHBOARD_DATA_PATH : :class:`pathlib.Path`
+    Loaded from the initialized :class:`GONet_Wizard.settings.DashboardConfig`.
+GONET_IMAGES_PATH : :class:`pathlib.Path` or :class:`None`
+    Loaded from the initialized :class:`GONet_Wizard.settings.DashboardConfig`.
+
 Notes
 -----
 - This module is imported across layout, callbacks, and plotting utilities.
 """
-import os,datetime
+import datetime, operator
 from dateutil import tz
 
-ROOT = os.getenv('GONET_ROOT')#'/Users/gterreran/Desktop/Work/data/GONet/AdlerRoof/'
-ROOT_EXT = os.getenv('GONET_ROOT_IMG')#'/Volumes/Jackbackup/FarHorizons/data/GONet/AdlerRoof/'
 CHANNELS = ['red', 'green', 'blue']
 
 BG_COLOR = 'rgb(42, 42, 42)'
 TEXT_COLOR = 'rgb(240, 240, 240)'
-COLORS = {'red':lambda a: f'rgba(200, 60, 60,{a})', 'green':lambda a: f'rgba(0, 150, 100,{a})', 'blue':lambda a: f'rgba(60, 100, 200,{a})', 'gen':lambda a: f'rgba(240,240,240,{a})'}
+BASE_COLORS = {
+    'red': [200, 60, 60],
+    'green': [0, 150, 100],
+    'blue': [60, 100, 200],
+    'gen': [240, 240, 240]
+}
+
+def rgba(channel: str, alpha: float) -> str:
+    """
+    Return an RGBA string for the given channel name and alpha transparency.
+
+    Parameters
+    ----------
+    channel : str
+        One of the known color keys ('red', 'green', 'blue', 'gen').
+    alpha : float
+        The alpha value (0.0 to 1.0) for transparency.
+
+    Returns
+    -------
+    str
+        The rgba(...) string.
+    """
+    r, g, b = BASE_COLORS[channel]
+    return f'rgba({r},{g},{b},{alpha})'
 
 LOCAL_TZ = tz.gettz('America/Chicago')
 DAY_START = datetime.datetime.strptime('12:00', '%H:%M').time()
@@ -64,3 +84,19 @@ DEFAULT_FILTER_VALUES = {
 }
 
 LABELS = {'gen':[], 'fit':[]}
+
+OP = {
+    '<': operator.lt ,
+    '<=': operator.le ,
+    '=': operator.eq ,
+    '!=': operator.ne ,
+    '=>': operator.ge ,
+    '>': operator.gt ,
+}
+
+DEFAULT_OP = '<='
+
+from GONet_Wizard.GONet_dashboard.src.app import config
+
+DASHBOARD_DATA_PATH = config.dashboard_data_path
+GONET_IMAGES_PATH = config.gonet_images_path

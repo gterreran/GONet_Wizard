@@ -22,7 +22,7 @@ Uses credentials from :class:`GONet_Wizard.commands.settings.GONetConfig`:
 import paramiko
 from typing import Callable, Any
 from functools import wraps
-from GONet_Wizard.commands.settings import GONetConfig
+from GONet_Wizard.settings import GONetConfig
 
 
 def ssh_connect(func: Callable[[paramiko.SSHClient, Any], Any]) -> Callable[[str, Any], Any]:
