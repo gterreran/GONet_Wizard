@@ -31,10 +31,6 @@ OP : :class:`dict`
     Dictionary mapping string operators (e.g., '<', '!=') to their Python equivalents.
 DEFAULT_OP : :class:`str`
     Default operator from the `OP` dictionary.
-DASHBOARD_DATA_PATH : :class:`pathlib.Path`
-    Loaded from the initialized :class:`GONet_Wizard.settings.DashboardConfig`.
-GONET_IMAGES_PATH : :class:`pathlib.Path` or :class:`None`
-    Loaded from the initialized :class:`GONet_Wizard.settings.DashboardConfig`.
 
 Notes
 -----
@@ -96,7 +92,3 @@ OP = {
 
 DEFAULT_OP = '<='
 
-from GONet_Wizard.GONet_dashboard.src.app import config
-
-DASHBOARD_DATA_PATH = config.dashboard_data_path
-GONET_IMAGES_PATH = config.gonet_images_path

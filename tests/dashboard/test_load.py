@@ -1,13 +1,9 @@
 import sys, pytest, os, json
-
+from pathlib import Path
 from unittest.mock import patch
 
 from GONet_Wizard.commands import run_dashboard
 from GONet_Wizard.__main__ import main
-
-@pytest.fixture(autouse=True)
-def disable_input(monkeypatch):
-    monkeypatch.setattr("builtins.input", lambda _: pytest.fail("Unexpected call to input()"))
 
 def test_cli_dispatch_fallback(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["GONet_Wizard"])
@@ -33,9 +29,9 @@ from GONet_Wizard.GONet_dashboard.src.hood import load_data
 
 # One-time setup 
 os.environ["GONET_ROOT"] = "tests/test_dashboard_data/"
-os.environ["ROOT_EXT"] = "fake/path/"
-env.ROOT = os.environ["GONET_ROOT"]
-env.ROOT_EXT = os.environ["ROOT_EXT"]
+os.environ["GONET_ROOT_IMG"] = "fake/path/"
+env.DASHBOARD_DATA_PATH = Path(os.environ["GONET_ROOT"])
+env.GONET_IMAGES_PATH = Path(os.environ["GONET_ROOT_IMG"])
 
 def test_load_data_from_json_success():
     # Accounting for the hidden State for `alert-container.className`

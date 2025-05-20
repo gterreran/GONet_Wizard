@@ -3,10 +3,15 @@ Defines the Flask server and `Dash <https://dash.plotly.com/>`_ app instance for
 
 This module initializes:
 
-- a :class:`flask.Flask` server named "GONet_dashboard", and
-- a `Dash <https://dash.plotly.com/>`_ `app` that uses this server and loads assets from the local `assets/` folder.
+- a :class:`flask.Flask` server named ``GONet_dashboard``,
+- a `Dash` app instance that uses this server and loads assets from the local ``assets/`` folder,
+- and the dashboard layout, which is now assigned here at startup.
 
-These objects are imported by the rest of the dashboard system (e.g. :mod:`GONet_Wizard.GONet_dashboard.src.app`).
+The `app` object is fully initialized and can be used as a WSGI entry point for deployment tools such as Gunicorn.
+
+These objects are imported by the rest of the dashboard system, including the main entry point
+(:mod:`GONet_Wizard.GONet_dashboard.src.app`) and the callback definitions in :mod:`callbacks`.
+
 """
 
 from flask import Flask
@@ -22,3 +27,6 @@ assets_path = os.path.join(this_dir, 'assets')
 
 #: The Dash app instance.
 app = Dash(server=server, assets_folder=assets_path)
+
+from GONet_Wizard.GONet_dashboard.src.layout import layout
+app.layout = layout

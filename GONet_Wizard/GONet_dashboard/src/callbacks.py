@@ -1,9 +1,46 @@
 """
 Callbacks for the GONet Dashboard.
 
-This module defines all `Dash <https://dash.plotly.com/>`_ callback functions used to power the interactivity
-of the GONet Wizard dashboard. These callbacks handle data loading, filter logic,
-plot generation, UI synchronization, and exporting/importing dashboard state.
+This module defines all `Dash <https://dash.plotly.com/>`_ callback functions that power the interactivity
+of the GONet Wizard dashboard. The callbacks handle core responsibilities such as:
+
+- Loading and parsing the GONet data archive
+- Applying and managing user-defined filters
+- Generating interactive plots and statistics
+- Managing UI state, selections, and saved configurations
+- Exporting data and application state to JSON
+
+**Callback Registration Decorators**
+
+Most callbacks in this module use the custom :func:`utils.gonet_callback` decorator, which extends
+Dash’s default callback mechanism to include:
+
+- Automatic alert handling (via the `alert-container`)
+- Inline warning and exception capture
+- Debug logging (including the triggering input and source line)
+
+This greatly simplifies development and debugging, especially for callbacks that modify user-facing
+components like figures and tables.
+
+**⚠️ Important Exception: MATCH/ALL Pattern-Matching Callbacks**
+
+Dash requires all Outputs in a callback to use the same wildcard keys when using pattern-matching IDs
+(`MATCH`, `ALL`, etc.). Since :func:`utils.gonet_callback` automatically adds static alert outputs,
+it **cannot** be used with callbacks that include pattern-matching outputs.
+
+For these cases, such as:
+
+.. code-block:: python
+
+    Output({"type": "filter-value", "index": MATCH}, "value")
+
+we used instead:
+
+- :func:`app.callback` directly
+- Decorate the callback with :func:`utils.debug_print` for logging
+
+This ensures compatibility with Dash's output constraints and avoids runtime errors.
+
 
 **Functions**
 
@@ -28,6 +65,7 @@ import numpy as np
 from dash import no_update, ctx, html, clientside_callback
 from dash.dependencies import Input, Output, State, ALL, MATCH
 
+from GONet_Wizard.GONet_dashboard.src.server import app
 from GONet_Wizard.GONet_dashboard.src import env
 from GONet_Wizard.GONet_dashboard.src import utils
 from GONet_Wizard.GONet_dashboard.src.hood import load_data
@@ -256,7 +294,7 @@ def add_filter(_, filter_div, labels):
 
     return filter_div
 
-@utils.gonet_callback(
+@app.callback(
     Output({"type": "second-filter-container", "index": MATCH}, 'children'),
     #---------------------
     Input({"type": "add-or-filter", "index": MATCH}, 'n_clicks'),
@@ -266,6 +304,7 @@ def add_filter(_, filter_div, labels):
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def add_or_filter(_, id, labels):
     """
     Add an additional (OR-based) condition to an existing filter block.
@@ -291,13 +330,14 @@ def add_or_filter(_, id, labels):
     return new_filter
 
 
-@utils.gonet_callback(
+@app.callback(
     Output({"type": "filter-value", "index": MATCH}, 'value'),
     #---------------------
     Input({"type": "filter-dropdown", "index": MATCH}, 'value'),
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def update_main_filters_value(label):
     """
     Automatically update the value of the main filter when a filter label is selected.
@@ -318,13 +358,14 @@ def update_main_filters_value(label):
     else:
         return None
 
-@utils.gonet_callback(
+@app.callback(
     Output({"type": "second-filter-value", "index": MATCH}, 'value'),
     #---------------------
     Input({"type": "second-filter-dropdown", "index": MATCH}, 'value'),
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def update_secondary_filters_value(label):
     """
     Automatically update the value of the secondary (OR) filter when a label is selected.
