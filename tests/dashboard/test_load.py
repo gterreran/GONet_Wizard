@@ -5,6 +5,10 @@ from unittest.mock import patch
 from GONet_Wizard.commands import run_dashboard
 from GONet_Wizard.__main__ import main
 
+@pytest.fixture(autouse=True)
+def disable_input(monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: pytest.fail("Unexpected call to input()"))
+
 def test_cli_dispatch_fallback(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["GONet_Wizard"])
     with patch("argparse.ArgumentParser.print_help") as mock_help:

@@ -10,6 +10,10 @@ from GONet_Wizard.settings import require_env_var
 from GONet_Wizard.settings import warn_env_var_missing
 from GONet_Wizard.settings import EnvVar
 
+@pytest.fixture(autouse=True)
+def disable_input(monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: pytest.fail("Unexpected call to input()"))
+
 def test_ssh_connect_success():
     mock_ssh = MagicMock()
 

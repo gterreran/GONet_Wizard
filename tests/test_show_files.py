@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use("Agg")
 
+@pytest.fixture(autouse=True)
+def disable_input(monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: pytest.fail("Unexpected call to input()"))
 
 @pytest.fixture(autouse=True)
 def disable_plt_show(monkeypatch):
