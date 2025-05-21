@@ -21,7 +21,7 @@ used in the callback system.
 - :func:`new_selection_filter` : Create a `Dash <https://dash.plotly.com/>`_ component for a selection-based filter using manually selected points.
 
 """
-import traceback, inspect, warnings, os
+import traceback, inspect, warnings, os, uuid
 from functools import wraps
 
 from dash import html, dcc, ctx, no_update
@@ -191,7 +191,9 @@ def new_empty_filter(idx: int, labels: list) -> html.Div:
     new_filter = html.Div(className="custom-filter-container", id = {"type":'custom-filter-container', "index":idx}, children=[
                 html.Div(className="first-filter-container", id = {"type":'first-filter-container', "index":idx}, children=[
                     html.Div(className = 'switch-container', id = {"type":'filter-switch-container', "index":idx}, children=
-                        daq.BooleanSwitch(className='switch', id={"type":'filter-switch', "index":idx}, on=False),
+                        # Injecting a random field `uuid` into the id dict that changes on reload, forcing the component to be re-rendered
+                        # and therefore the browser will cannot cache its status
+                        daq.BooleanSwitch(className='switch', id={"type":'filter-switch', "index":idx, "uuid": str(uuid.uuid4())}, on=False),
                     ),
                     dcc.Dropdown(className="custom-filter-dropdown", id={"type":'filter-dropdown', "index":idx}, options=labels),
                     dcc.Dropdown(className="custom-filter-operator", id={"type":'filter-operator', "index":idx}, options=list(env.OP.keys()), value = env.DEFAULT_OP),
@@ -258,7 +260,7 @@ def new_selection_filter(idx: int, selected_indexes: list) -> html.Div:
     new_filter = html.Div(className="custom-filter-container", id = {"type":'custom-filter-container', "index":idx}, children=[
                 html.Div(className="first-filter-container", id = {"type":'first-filter-container', "index":idx}, children=[
                     html.Div(className = 'switch-container', id = {"type":'filter-switch-container', "index":idx}, children=
-                        daq.BooleanSwitch(className='switch', id={"type":'filter-switch', "index":idx}, on=False),
+                        daq.BooleanSwitch(className='switch', id={"type":'filter-switch', "index":idx, "uuid": str(uuid.uuid4())}, on=False),
                     ),
                     dcc.Dropdown(className="custom-filter-dropdown", id={"type":'filter-dropdown', "index":idx}, options=[f'Selection {idx}'], value=f'Selection {idx}'),
                     dcc.Store(id={"type":'filter-selection-data', "index": idx}, data = selected_indexes),
