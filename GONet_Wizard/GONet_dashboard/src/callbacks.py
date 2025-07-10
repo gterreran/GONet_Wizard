@@ -467,12 +467,24 @@ def update_filters(_, switches, ops, values, selections, second_ops, second_valu
                 break
         if not value:
             value = values[i]
-        if s and labels[i] is not None and value is not None:
-            active_filters.append({'label': labels[i], 'operator': ops[i], 'value': value})
-            for j,id in enumerate(second_ids):
-                if id['index'] == i and second_labels[j] is not None and second_values[j] is not None:
-                    active_filters[-1]['secondary'] = {'label': second_labels[j], 'operator': second_ops[j], 'value': second_values[j]}
 
+        label = labels[i]
+        op = ops[i]
+
+        if s and label is not None and value is not None:
+            # converting date filters to unix time for an easier comparison
+            label, value = utils.parse_date_time(label, value)
+
+            active_filters.append({'label': label, 'operator': op, 'value': value})
+            for j,id in enumerate(second_ids):
+
+                second_label = second_labels[j]
+                second_op = second_ops[j]
+                second_value = second_values[j]
+
+                if id['index'] == i and second_label is not None and second_value is not None:
+                    second_label, second_value = utils.parse_date_time(second_label, second_value)
+                    active_filters[-1]['secondary'] = {'label': second_label, 'operator': second_op, 'value': second_value}
 
     if filters_before != active_filters:
         return active_filters, *activate_show_filters(active_filters)

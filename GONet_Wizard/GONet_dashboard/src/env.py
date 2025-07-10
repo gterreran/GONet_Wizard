@@ -9,6 +9,8 @@ Constants
 ---------
 CHANNELS : :class:`list` of :class:`str`
     Image channels used in processing and plotting (e.g., 'red', 'green', 'blue').
+CHANNEL_COLORS : :class:`list` of :class:`str`
+    Available ratios between channels (e.g. 'green/blue').
 BG_COLOR : :class:`str`
     Background color used across the dashboard and plot components.
 TEXT_COLOR : :class:`str`
@@ -17,8 +19,10 @@ COLORS : :class:`dict`
     Dictionary mapping each channel to an RGBA-generating function with configurable alpha.
 LOCAL_TZ : :class:`tzinfo`
     Local timezone for converting timestamps (America/Chicago).
-DAY_START : :class:`datetime.time`
+DAY_START_LOCAL : :class:`datetime.time`
     Starting time used to group nightly observations across local midnight.
+DAY_START_UTC : :class:`datetime.time`
+    Starting UTC time used to group nightly observations across local midnight.
 DEFAULT_FILTER_VALUES : :class:`dict`
     Predefined defaults for the interactive filtering interface.
 LABELS : :class:`dict`
@@ -40,6 +44,7 @@ import datetime, operator
 from dateutil import tz
 
 CHANNELS = ['red', 'green', 'blue']
+CHANNEL_COLORS = ['green/blue', 'red/green', 'red/blue']
 
 BG_COLOR = 'rgb(42, 42, 42)'
 TEXT_COLOR = 'rgb(240, 240, 240)'
@@ -70,7 +75,8 @@ def rgba(channel: str, alpha: float) -> str:
     return f'rgba({r},{g},{b},{alpha})'
 
 LOCAL_TZ = tz.gettz('America/Chicago')
-DAY_START = datetime.datetime.strptime('12:00', '%H:%M').time()
+DAY_START_LOCAL = datetime.datetime.strptime('12:00', '%H:%M').time()
+DAY_START_UTC = datetime.datetime.strptime('17:00', '%H:%M').time()
 
 DEFAULT_FILTER_VALUES = {
     'sunaltaz': -18,

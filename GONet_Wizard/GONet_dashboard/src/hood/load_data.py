@@ -33,6 +33,10 @@ def load_data_from_json(env):
     This simplified version assumes that every valid `.json` file in `env.DASHBOARD_DATA_PATH`
     contains nightly observation data in the expected GONet format.
 
+    ``time_unix``, ``float_hours_utc``, and ``float_hours_local`` are 3 hidden columns that cannot be
+    visualized in the main plot, since are not very human-readable. The purpose of these columns
+    is to provide some numerical values for time and dates, making them more easily filterable. 
+
     Parameters
     ----------
     env : module-like
@@ -45,13 +49,13 @@ def load_data_from_json(env):
 
     Returns
     -------
-    data : dict
+    data : :class:`dict`
         Flattened dictionary of all GONet metadata and channel-specific values.
 
-    options_x : list of dict
+    options_x : :class:`list` of :class:`dict`
         Dropdown options for the x-axis selector.
 
-    options_y : list of dict
+    options_y : :class:`list` of :class:`dict`
         Dropdown options for the y-axis selector.
 
     Raises
@@ -84,7 +88,7 @@ def load_data_from_json(env):
         if not data_initialized:
             try:
                 env.LABELS['gen'] = [l for l in night_dict[0] if l not in env.CHANNELS]
-                env.LABELS['gen'] += ['blue-green', 'green-red', 'blue-red']
+                env.LABELS['gen'] += env.CHANNEL_COLORS
                 data.update({l: [] for l in env.LABELS['gen']})
 
                 env.LABELS['fit'] = list(night_dict[0]['red'].keys())
@@ -100,18 +104,16 @@ def load_data_from_json(env):
                     data['idx'].append(image_idx)
                     data['channel'].append(c)
 
-                    data['blue-green'].append(img['blue']['mean'] / img['green']['mean'])
-                    data['green-red'].append(img['green']['mean'] / img['red']['mean'])
-                    data['blue-red'].append(img['blue']['mean'] / img['red']['mean'])
-
                     for label in env.LABELS['gen']:
-                        if label not in img:
+                        if label not in img and label not in env.CHANNEL_COLORS:
                             data[label].append(None)
                         elif label == "date":
                             data[label].append(datetime.datetime.fromisoformat(img[label]))
+                        elif label in env.CHANNEL_COLORS:
+                            ch1,ch2 = label.split('/')
+                            data[label].append(img[ch1]['mean_counts'] / img[ch2]['mean_counts'])
                         else:
                             data[label].append(img[label])
-
                     for label in env.LABELS['fit']:
                         data[label].append(img[c][label])
                 except Exception as e:
@@ -121,25 +123,46 @@ def load_data_from_json(env):
     data['time_unix'] = data.pop('time')
     data['date_utc'] = data.pop('date')
     data['date_local'] = []
+    data['MJD'] = []
     data['hours_utc'] = []
     data['hours_local'] = []
+    # This is just to make easier time of the day comparisons
+    data['float_hours_utc'] = []
+    data['float_hours_local'] = []
+    
+    mjd0 = datetime.datetime.fromisoformat('1858-01-11 00:00:00.000+00:00')
 
     for t in  data['date_utc']:
         data['date_local'].append(t.astimezone(env.LOCAL_TZ))
+        data['MJD'].append((t - mjd0).total_seconds() / 86400)
 
         parsed_time = t.time()
-        if parsed_time > env.DAY_START:
-            data['hours_utc'].append('2025-01-01 ' + str(parsed_time))
-        else:
-            data['hours_utc'].append('2025-01-02 ' + str(parsed_time))
+        decimal_time = data['MJD'][-1] - int(data['MJD'][-1])
 
-        parsed_time =  data['date_local'][-1].time()
-        if parsed_time > env.DAY_START:
-            data['hours_local'].append('2025-01-01 ' + str(parsed_time))
+        if parsed_time > env.DAY_START_UTC:
+            data['hours_utc'].append(datetime.datetime.fromisoformat(f'2025-01-01T{parsed_time}'))
+            
         else:
-            data['hours_local'].append('2025-01-02 ' + str(parsed_time))
+            data['hours_utc'].append(datetime.datetime.fromisoformat(f'2025-01-02T{parsed_time}'))
+            decimal_time = decimal_time + 1
+        data['float_hours_utc'].append(decimal_time)
 
-    for label in ['hours_local', 'hours_utc', 'date_local', 'date_utc', 'time_unix']:
+
+        parsed_time = data['date_local'][-1].time()
+        decimal_time = sum(x * int(t) for x, t in zip([3600, 60, 1], str(parsed_time).split(':'))) / 86400
+
+        if parsed_time > env.DAY_START_LOCAL:
+            data['hours_local'].append(datetime.datetime.fromisoformat(f'2025-01-01T{parsed_time}'))
+        else:
+            data['hours_local'].append(datetime.datetime.fromisoformat(f'2025-01-02T{parsed_time}'))
+            decimal_time = decimal_time + 1 
+
+        data['float_hours_local'].append(decimal_time)
+
+    # adding time related labels at the top of the labels list
+    # time_unix and float_hours are not very much human readable,
+    # so I removed them
+    for label in ['hours_local', 'hours_utc', 'date_local', 'date_utc', 'MJD']:
         env.LABELS['gen'].insert(0, label)
 
     for label in ['time', 'date']:

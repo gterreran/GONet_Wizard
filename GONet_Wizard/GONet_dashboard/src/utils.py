@@ -21,7 +21,7 @@ used in the callback system.
 - :func:`new_selection_filter` : Create a `Dash <https://dash.plotly.com/>`_ component for a selection-based filter using manually selected points.
 
 """
-import traceback, inspect, warnings, os, uuid
+import traceback, inspect, warnings, os, uuid, datetime
 from functools import wraps
 
 from dash import html, dcc, ctx, no_update
@@ -164,6 +164,102 @@ def gonet_callback(*args, **kwargs):
 
     return decorator
 
+def parse_date_time(label, value):
+    """
+    Parses and converts a date/time value based on the provided label.
+
+    This function processes a given date/time value and returns it in a standardized format. Depending on the label, it 
+    either converts an ISO datetime string to Unix time or a time string (hours:minutes:seconds) to a fraction of the day.
+    If the label corresponds to 'date', the value is converted to Unix time. If the label corresponds to 'hours', the value 
+    is converted to a fraction of the day, accounting for potential time zone shifts.
+
+    Parameters:
+    -----------
+    label : :class:`str`
+        A string representing the quantity parsed. If not time or date related it will return itself.
+    
+    value : :class:`str`
+        Value of the quantity parsed. If `label` is not time or date related it will return itself.
+
+    Returns:
+    --------
+    tuple
+        A tuple containing the processed label and the parsed value:
+        
+        - If the label starts with 'date', the value will be the corresponding Unix time as an integer.
+        - If the label starts with 'hours', the value will be a float representing the fraction of the day.
+        - If the time is earlier than the defined 'day start' (UTC or local), the function will adjust the value to the 
+          following day.
+
+    Raises:
+    -------
+    ValueError
+        If the 'value' cannot be parsed into a valid datetime or time string, the function will print an error message 
+        and return None.
+    """
+
+    # Function to convert ISO datetime to Unix time (int)
+    def convert_to_unix_time(value):
+        print(value)
+        try:
+            # Parse the value as an ISO datetime, which includes timezone info
+            dt = datetime.datetime.fromisoformat(value)
+            
+            # Convert to Unix time (timestamp in seconds)
+            unix_time = int(dt.timestamp())  # Returns the Unix time as an integer
+            return unix_time
+
+        except ValueError:
+            print(f"Error: Value '{value}' could not be parsed into a valid datetime.")
+            return None  # Or return a default value or raise an exception
+
+    def time_to_fraction_of_day(time_str):
+        # Split the time string by ':' to separate hours, minutes, and possibly seconds
+        parts = time_str.split(':')
+        
+        # Extract hours, minutes, and seconds or decimals based on the number of parts
+        hours = int(parts[0])
+        minutes = int(parts[1])
+        
+        # If there are seconds or decimals (i.e., the time format is hours:minutes:seconds or hours:minutes:seconds.decimals)
+        if len(parts) > 2:
+            # Handle seconds and possibly fractional seconds
+            seconds_and_fraction = parts[2]
+            if '.' in seconds_and_fraction:
+                # Split seconds and fraction
+                seconds, fraction = seconds_and_fraction.split('.')
+                seconds = int(seconds)
+                fraction = float(f'0.{fraction}')  # Convert the fractional part to a float
+            else:
+                seconds = int(seconds_and_fraction)
+                fraction = 0.0
+        else:
+            # No seconds provided, set them to 0
+            seconds = 0
+            fraction = 0.0
+        
+        # Convert the entire time to a fraction of the day
+        total_seconds = hours * 3600 + minutes * 60 + seconds + fraction
+        fraction_of_day = total_seconds / 86400  # 86400 seconds in one day
+        
+        return fraction_of_day
+
+    root_label = label.split('_')[0]
+    if root_label == 'date':
+        label = 'time_unix'
+        value = convert_to_unix_time(value)
+    elif root_label == 'hours':
+        label = 'float_'+label
+        value = time_to_fraction_of_day(value)
+        if label.split('_')[-1] == 'utc':
+            if value < time_to_fraction_of_day(str(env.DAY_START_UTC)):
+                value = value + 1
+        else:
+            if value < time_to_fraction_of_day(str(env.DAY_START_LOCAL)):
+                value = value + 1
+    
+    return label, value
+
 
 def new_empty_filter(idx: int, labels: list) -> html.Div:
     """
@@ -188,21 +284,59 @@ def new_empty_filter(idx: int, labels: list) -> html.Div:
         A fully constructed :dashdoc:`Dash Div <dash-html-components/div>` component containing the filter UI.
     """
 
-    new_filter = html.Div(className="custom-filter-container", id = {"type":'custom-filter-container', "index":idx}, children=[
-                html.Div(className="first-filter-container", id = {"type":'first-filter-container', "index":idx}, children=[
-                    html.Div(className = 'switch-container', id = {"type":'filter-switch-container', "index":idx}, children=
-                        # Injecting a random field `uuid` into the id dict that changes on reload, forcing the component to be re-rendered
-                        # and therefore the browser will cannot cache its status
-                        daq.BooleanSwitch(className='switch', id={"type":'filter-switch', "index":idx, "uuid": str(uuid.uuid4())}, on=False),
+    row_uuid = str(uuid.uuid4())
+    index = f"{idx}|{row_uuid}"  # flatten to string: '0|<uuid>'
+
+    new_filter = html.Div(
+        className="custom-filter-container",
+        id={"type": "custom-filter-container", "index": index},
+        children=[
+            html.Div(
+                className="first-filter-container",
+                id={"type": "first-filter-container", "index": index},
+                children=[
+                    html.Div(
+                        className='switch-container',
+                        id={"type": "filter-switch-container", "index": index},
+                        children=daq.BooleanSwitch(
+                            className='switch',
+                            id={"type": "filter-switch", "index": index},
+                            on=False
+                        ),
                     ),
-                    dcc.Dropdown(className="custom-filter-dropdown", id={"type":'filter-dropdown', "index":idx}, options=labels),
-                    dcc.Dropdown(className="custom-filter-operator", id={"type":'filter-operator', "index":idx}, options=list(env.OP.keys()), value = env.DEFAULT_OP),
-                    dcc.Input(className="custom-filter-value", id={"type":'filter-value', "index":idx}, type="text", debounce=True)
-                ]),
-                html.Div(className="second-filter-container", id = {"type":'second-filter-container', "index":idx}, children=[
-                    html.Button(className="OR-filter-button", children='Add OR filter', id = {"type":'add-or-filter', "index":idx}, n_clicks=0),
-                ])
-            ])
+                    dcc.Dropdown(
+                        className="custom-filter-dropdown",
+                        id={"type": "filter-dropdown", "index": index},
+                        options=labels
+                    ),
+                    dcc.Dropdown(
+                        className="custom-filter-operator",
+                        id={"type": "filter-operator", "index": index},
+                        options=list(env.OP.keys()),
+                        value=env.DEFAULT_OP
+                    ),
+                    dcc.Input(
+                        className="custom-filter-value",
+                        id={"type": "filter-value", "index": index},
+                        type="text",
+                        debounce=True
+                    )
+                ]
+            ),
+            html.Div(
+                className="second-filter-container",
+                id={"type": "second-filter-container", "index": index},
+                children=[
+                    html.Button(
+                        className="OR-filter-button",
+                        children='Add OR filter',
+                        id={"type": "add-or-filter", "index": index},
+                        n_clicks=0
+                    )
+                ]
+            )
+        ]
+    )
 
     return new_filter
 

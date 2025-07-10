@@ -516,7 +516,7 @@ class FigureWrapper:
         filtered_out_data = np.logical_and(~self.total_filter, channel_filter)
 
         for i, img in enumerate(self.fig['data']):
-            if img['channel'] != channel:
+            if img['channel'] != 'gen' and img['channel'] != channel:
                 continue
 
             if img['big_point']:
@@ -654,6 +654,9 @@ class FigureWrapper:
         """
         filters = []
 
+        for l in ['date_utc', 'date_local', 'hours_utc', 'hours_local']:
+            print(l, self.all_data[l][0])
+
         for f in active_filters:
             # Handle selection-based filters (match by index)
             if f['label'].split()[0] == 'Selection':
@@ -766,11 +769,6 @@ class FigureWrapper:
         per-axis statistics. It builds an HTML table as a list of `Dash <https://dash.plotly.com/>`_ row components to be
         rendered in the dashboard's stats panel.
 
-        Parameters
-        ----------
-        fig : :class:`dict`
-            A Plotly figure dictionary containing the data traces used for plotting.
-
         Returns
         -------
         :class:`list`
@@ -833,7 +831,12 @@ class FigureWrapper:
 
         # General labels are channel-independent, so we use the first occurrence
         for label in env.LABELS['gen']:
-            out_dict[label] = self.all_data[label][indices[0]]
+            if label.split('_')[0] == 'date':
+                out_dict[label] = self.all_data[label][indices[0]].replace('T',' ')
+            elif label.split('_')[0] == 'hours':
+                out_dict[label] = self.all_data[label][indices[0]].split()[1]
+            else:
+                out_dict[label] = self.all_data[label][indices[0]]
 
         # Fit labels are channel-specific, so we include one per index
         for label in env.LABELS['fit']:
