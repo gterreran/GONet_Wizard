@@ -1,12 +1,82 @@
-import os,datetime
+"""
+GONet Dashboard Configuration Environment.
+
+This module defines constants and environment-specific settings shared across
+the GONet Wizard dashboard. It includes plotting styles, default UI parameters,
+and display properties.
+
+Constants
+---------
+CHANNELS : :class:`list` of :class:`str`
+    Image channels used in processing and plotting (e.g., 'red', 'green', 'blue').
+CHANNEL_COLORS : :class:`list` of :class:`str`
+    Available ratios between channels (e.g. 'green/blue').
+BG_COLOR : :class:`str`
+    Background color used across the dashboard and plot components.
+TEXT_COLOR : :class:`str`
+    Foreground text color used for UI elements and figure labels.
+COLORS : :class:`dict`
+    Dictionary mapping each channel to an RGBA-generating function with configurable alpha.
+LOCAL_TZ : :class:`tzinfo`
+    Local timezone for converting timestamps (America/Chicago).
+DAY_START_LOCAL : :class:`datetime.time`
+    Starting time used to group nightly observations across local midnight.
+DAY_START_UTC : :class:`datetime.time`
+    Starting UTC time used to group nightly observations across local midnight.
+DEFAULT_FILTER_VALUES : :class:`dict`
+    Predefined defaults for the interactive filtering interface.
+LABELS : :class:`dict`
+    Dictionary storing metadata keys categorized as:
+    
+    - 'gen': General labels not tied to specific channels.
+    - 'fit': Fit-specific labels associated with individual channels.
+
+OP : :class:`dict`
+    Dictionary mapping string operators (e.g., '<', '!=') to their Python equivalents.
+DEFAULT_OP : :class:`str`
+    Default operator from the `OP` dictionary.
+
+Notes
+-----
+- This module is imported across layout, callbacks, and plotting utilities.
+"""
+import datetime, operator
 from dateutil import tz
 
-ROOT = os.getenv('GONET_ROOT')#'/Users/gterreran/Desktop/Work/data/GONet/AdlerRoof/'
-ROOT_EXT = os.getenv('GONET_ROOT_IMG')#'/Volumes/Jackbackup/FarHorizons/data/GONet/AdlerRoof/'
 CHANNELS = ['red', 'green', 'blue']
-COLORS = {'red':lambda a: f'rgba(255,0,0,{a})', 'green':lambda a: f'rgba(0,128,0,{a})', 'blue':lambda a: f'rgba(0,0,255,{a})', 'gen':lambda a: f'rgba(0,0,0,{a})'}
+CHANNEL_COLORS = ['green/blue', 'red/green', 'red/blue']
+
+BG_COLOR = 'rgb(42, 42, 42)'
+TEXT_COLOR = 'rgb(240, 240, 240)'
+BASE_COLORS = {
+    'red': [200, 60, 60],
+    'green': [0, 150, 100],
+    'blue': [60, 100, 200],
+    'gen': [240, 240, 240]
+}
+
+def rgba(channel: str, alpha: float) -> str:
+    """
+    Return an RGBA string for the given channel name and alpha transparency.
+
+    Parameters
+    ----------
+    channel : str
+        One of the known color keys ('red', 'green', 'blue', 'gen').
+    alpha : float
+        The alpha value (0.0 to 1.0) for transparency.
+
+    Returns
+    -------
+    str
+        The rgba(...) string.
+    """
+    r, g, b = BASE_COLORS[channel]
+    return f'rgba({r},{g},{b},{alpha})'
+
 LOCAL_TZ = tz.gettz('America/Chicago')
-DAY_START = datetime.datetime.strptime('12:00', '%H:%M').time()
+DAY_START_LOCAL = datetime.datetime.strptime('12:00', '%H:%M').time()
+DAY_START_UTC = datetime.datetime.strptime('17:00', '%H:%M').time()
 
 DEFAULT_FILTER_VALUES = {
     'sunaltaz': -18,
@@ -16,3 +86,15 @@ DEFAULT_FILTER_VALUES = {
 }
 
 LABELS = {'gen':[], 'fit':[]}
+
+OP = {
+    '<': operator.lt ,
+    '<=': operator.le ,
+    '=': operator.eq ,
+    '!=': operator.ne ,
+    '=>': operator.ge ,
+    '>': operator.gt ,
+}
+
+DEFAULT_OP = '<='
+

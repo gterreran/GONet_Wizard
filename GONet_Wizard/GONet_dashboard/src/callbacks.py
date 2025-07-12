@@ -1,241 +1,266 @@
-from dash.dependencies import Input, Output, State, ALL, MATCH
-from .server import app
-import os, json, datetime
-from . import env
-from . import utils
-from dash import no_update, ctx
-import numpy as np
-from dash import html
-from GONet_utils import GONetFile
-import dash_daq as daq
-from dash import dcc, html
+"""
+Callbacks for the GONet Dashboard.
 
-#upload image and storing the data.
-@app.callback(
+This module defines all `Dash <https://dash.plotly.com/>`_ callback functions that power the interactivity
+of the GONet Wizard dashboard. The callbacks handle core responsibilities such as:
+
+- Loading and parsing the GONet data archive
+- Applying and managing user-defined filters
+- Generating interactive plots and statistics
+- Managing UI state, selections, and saved configurations
+- Exporting data and application state to JSON
+
+**Callback Registration Decorators**
+
+Most callbacks in this module use the custom :func:`utils.gonet_callback` decorator, which extends
+Dash’s default callback mechanism to include:
+
+- Automatic alert handling (via the `alert-container`)
+- Inline warning and exception capture
+- Debug logging (including the triggering input and source line)
+
+This greatly simplifies development and debugging, especially for callbacks that modify user-facing
+components like figures and tables.
+
+**⚠️ Important Exception: MATCH/ALL Pattern-Matching Callbacks**
+
+Dash requires all Outputs in a callback to use the same wildcard keys when using pattern-matching IDs
+(`MATCH`, `ALL`, etc.). Since :func:`utils.gonet_callback` automatically adds static alert outputs,
+it **cannot** be used with callbacks that include pattern-matching outputs.
+
+For these cases, such as:
+
+.. code-block:: python
+
+    Output({"type": "filter-value", "index": MATCH}, "value")
+
+we used instead:
+
+- :func:`app.callback` directly
+- Decorate the callback with :func:`utils.debug_print` for logging
+
+This ensures compatibility with Dash's output constraints and avoids runtime errors.
+
+
+**Functions**
+
+- :func:`load` : Load available data from the configured ROOT directory and prepare dropdown options.
+- :func:`update_main_plot` : Update the main plot based on the selected axes, filters, and other plot parameters.
+- :func:`add_filter` : Add a new empty filter block to the filter container in the UI.
+- :func:`add_or_filter` : Add an additional (OR-based) condition to an existing filter block.
+- :func:`update_main_filters_value` : Automatically update the value of the main filter when a filter label is selected.
+- :func:`update_secondary_filters_value` : Automatically update the value of the secondary (OR) filter when a label is selected.
+- :func:`update_filters` : Assemble and update the active filters list based on user-defined filter inputs.
+- :func:`export_data` : Export filtered data from the plot to a downloadable JSON file.
+- :func:`save_status` : Save the current dashboard state, including axis selections and filter configurations.
+- :func:`load_status` : Load a previously saved dashboard state from a base64-encoded JSON file.
+- :func:`update_filter_selection_state` : Enable or disable the "Add Selection Filter" button based on current selection in the plot.
+- :func:`add_selection_filter` : Create and add a new filter based on the current selection region in the plot.
+
+"""
+
+import json, base64
+import numpy as np
+
+from dash import no_update, ctx, html, clientside_callback
+from dash.dependencies import Input, Output, State, ALL, MATCH
+
+from GONet_Wizard.GONet_dashboard.src.server import app
+from GONet_Wizard.GONet_dashboard.src import env
+from GONet_Wizard.GONet_dashboard.src import utils
+from GONet_Wizard.GONet_dashboard.src.hood import load_data
+from GONet_Wizard.GONet_dashboard.src.hood import plot
+
+
+@utils.gonet_callback(
     Output('data-json', 'data'),
     Output("x-axis-dropdown",'options'),
     Output("y-axis-dropdown",'options'),
     #---------------------
-    Input("top-container",'children')
+    Input("top-container",'children'),
+    #---------------------
+    prevent_initial_call='initial_duplicate'
 )
 def load(_):
-    utils.debug()
+    """
+    Dash callback to initialize the dashboard data store and dropdown options.
 
-    data = {'night':[], 'idx':[], 'channel':[]}
+    This function is triggered once when the layout is rendered. It delegates the
+    actual data-loading logic to :func:`load_data.load_data_from_json`, which scans the directory
+    specified by the ``GONET_ROOT`` environment variable, loads GONet JSON files,
+    and returns a flat dictionary of observations along with axis selection options.
 
-    image_idx = -1
+    The callback is wrapped in :func:`handle_errors` to display any exceptions in the
+    alert container and halt further callback execution if a failure occurs.
 
-    for n,night in enumerate(sorted(os.listdir(env.ROOT))):
-        if not os.path.isdir(env.ROOT+night): continue
-        json_file = env.ROOT+night+f'/{night}_nn.json'
-        if not os.path.isfile(json_file): continue
-        with open(json_file) as inp:
-            night_dict = json.load(inp)
-            if len(data['night'])==0:
-                env.LABELS['gen'] = [l for l in night_dict[0] if l not in env.CHANNELS]
-                env.LABELS['gen'] = env.LABELS['gen'] + ['blue-green', 'green-red', 'blue-red']
-                data={**data, **{l:[] for l in env.LABELS['gen']}}
-                env.LABELS['fit'] = [l for l in night_dict[0]['red']]
-                data={**data, **{l:[] for l in env.LABELS['fit']}}
-            for img in night_dict:
-                image_idx += 1
-                for c in env.CHANNELS:
-                    data['night'].append(night)
-                    data['idx'].append(image_idx)
-                    data['channel'].append(c)
-                    data['blue-green'].append(img['blue']['mean']/img['green']['mean'])
-                    data['green-red'].append(img['green']['mean']/img['red']['mean'])
-                    data['blue-red'].append(img['blue']['mean']/img['red']['mean'])
-                    for label in env.LABELS['gen']:
-                        if label not in img:continue
-                        if label == "date":
-                            data[label].append(datetime.datetime.fromisoformat(img[label]).astimezone(env.LOCAL_TZ))
-                        else:
-                            data[label].append(img[label])
-                    for label in env.LABELS['fit']:
-                        data[label].append(img[c][label])
+    Parameters
+    ----------
+    _ : Any
+        Dummy input triggered by layout initialization; unused.
 
-    labels_dropdown = [{"label": l, "value": l} for l in env.LABELS['gen'] if l != 'filename']
-    labels_dropdown = labels_dropdown + [{"label": l, "value": l} for l in env.LABELS['fit']]
+    Returns
+    -------
+    data : dict
+        Flattened dictionary of GONet metadata and per-channel measurements,
+        to be stored in a hidden dcc.Store component.
 
-    return data, labels_dropdown, labels_dropdown
+    options_x : list of dict
+        Dropdown options for selecting the x-axis quantity.
+
+    options_y : list of dict
+        Dropdown options for selecting the y-axis quantity.
+
+    """
 
 
-@app.callback(
-    Output("main-plot",'figure', allow_duplicate=True),
+    all_data = load_data.load_data_from_json(env)
+
+    labels_dropdown = [
+        {"label": l, "value": l}
+        for l in env.LABELS['gen'] + env.LABELS['fit']
+        if l != 'filename'
+    ]
+
+    return all_data, labels_dropdown, labels_dropdown
+
+
+@utils.gonet_callback(
+    Output("main-plot",'figure'),
+    Output("stats-table", 'children'),
+    Output("gonet-image",'figure'),
+    Output("info-table",'children'),
     #---------------------
     Input("x-axis-dropdown",'value'),
     Input("y-axis-dropdown",'value'),
     Input("active-filters",'data'),
     Input("channels",'value'),
     Input("show-filtered-data-switch", 'on'),
-    Input("fold-time-switch",'on'),
-    #---------------------
-    State("main-plot",'figure'),
-    State("data-json",'data'),
-    State("big-points",'data'),
-    prevent_initial_call=True
-)
-def plot(x_label, y_label, active_filters, channels, show_filtered_points, fold_switch, fig, all_data, big_point_idx):
-    utils.debug()
-
-    if x_label is None or y_label is None:
-        return no_update
-
-    if fig is not None:
-        # Showing/hiding filtered data
-        if ctx.triggered_id == 'show-filtered-data-switch':
-            if len([img for img in fig['data'] if img['filtered']])==0:
-                return no_update
-            # Showing
-            if show_filtered_points:
-                for i,img in reversed(list(enumerate(fig['data']))):
-                    if img['filtered']:
-                        fig['data'][i]['marker']['color'] = "rgba(" + ','.join(fig['data'][i]['marker']['color'][5:-1].split(',')[:-1]) + ",0.2)"
-                        fig['data'][i]['hoverinfo'] = "x+y+text+channel"
-                        fig['data'][i]['hovertemplate'] = x_label+'=%{x}<br>'+y_label+'=%{y}'
-                        fig['data'][i]['hidden'] = False
-                        if 'line' in fig['data'][i]['marker']:
-                            fig['data'][i]['marker']['line']['width']=2
-            # Hiding
-            else:
-                for i,img in reversed(list(enumerate(fig['data']))):
-                    if img['filtered']:
-                        fig['data'][i]['marker']['color'] = "rgba(" + ','.join(fig['data'][i]['marker']['color'][5:-1].split(',')[:-1]) + ",0)"
-                        fig['data'][i]['hoverinfo'] = "none"
-                        fig['data'][i]['hovertemplate'] = None
-                        fig['data'][i]['hidden'] = True
-                        if 'line' in fig['data'][i]['marker']:
-                            fig['data'][i]['marker']['line']['width']=0
-                            
-
-            return utils.sort_figure(fig)
-
-        # Showing/hiding filtered data
-        if ctx.triggered_id == 'channels':
-            if x_label in env.LABELS['gen'] and y_label in env.LABELS['gen']:
-                return no_update
-            # Showing filtered data
-            for to_be_plotted_f in channels:
-                if to_be_plotted_f not in set([img['channel'] for img in fig['data']]):
-                    fig = utils.plot_scatter(x_label, y_label, all_data, [to_be_plotted_f], fig, active_filters, show_filtered_points, fold_switch)
-                    if big_point_idx is not None:
-                        fig = utils.plot_big_points(all_data, big_point_idx, x_label, y_label, fig, fold_switch)
-                    return utils.sort_figure(fig)
-            # Hiding filtered data
-            for i,img in reversed(list(enumerate(fig['data']))):
-                if img['channel'] not in channels:
-                    fig['data'].pop(i)
-                return utils.sort_figure(fig)
-        
-        # If I get here, it means that a figure exists, but I'm probably activating or deactivating a filter
-        # So let's keep the axis ranges
-
-        if 'range' in fig['layout']['xaxis']:
-            xaxis_range = fig['layout']['xaxis']['range']
-            yaxis_range = fig['layout']['yaxis']['range']
-        
-
-    fig = {
-        'data': [],
-        'layout': {
-            'xaxis': {'title': {'text': x_label}},
-            'yaxis': {'title': {'text': y_label}}
-        }
-    }
-
-    if ctx.triggered_id in ['active-filters']:
-        try:
-            fig['layout']['xaxis']['range'] = xaxis_range[:]
-            fig['layout']['yaxis']['range'] = yaxis_range[:]
-        except:
-            pass
-
-
-    fig = utils.plot_scatter(x_label, y_label, all_data, channels, fig, active_filters, show_filtered_points, fold_switch)
-
-    if big_point_idx is not None:
-        fig = utils.plot_big_points(all_data, big_point_idx, x_label, y_label, fig, fold_switch)
-
-    return fig
-        
-
-@app.callback(
-    Output("gonet-image",'figure'),
-    Output("main-plot",'figure', allow_duplicate=True),
-    Output("info-table",'children'),
-    Output("big-points",'data'),
-    #---------------------
     Input("main-plot",'clickData'),
     #---------------------
     State("main-plot",'figure'),
+    State("gonet-image",'figure'),
+    State("info-table",'children'),
     State("data-json",'data'),
-    State("x-axis-dropdown",'value'),
-    State("y-axis-dropdown",'value'),
-    State("fold-time-switch",'on'),
     #---------------------
     prevent_initial_call=True
 )
-def info(clickdata, fig, data, x_label, y_label, fold_switch):
-    utils.debug()
-    plot_index = clickdata['points'][0]['curveNumber']
-    idx = fig['data'][plot_index]['idx'][clickdata['points'][0]['pointIndex']]
-    original_channel = fig['data'][plot_index]['channel']
-    if original_channel == 'gen':
-        original_channel = 'green'
-    points = np.array(data['idx']) == idx
-    real_idx = np.argmax([np.logical_and(points, np.array(data['channel']) == original_channel)])
+def update_main_plot(x_label, y_label, active_filters, channels, show_filtered_points, clickdata, fig, gonet_fig, info_table, all_data):
+    """
+    Update the main plot, statistics table, image preview, and info panel in response to user interaction.
+
+    This is the central callback for GONet dashboard interactivity. It responds to any change
+    that affects how data should be visualized or interpreted, and coordinates all downstream
+    updates accordingly. It ensures that the displayed figure remains synchronized with the
+    current filter set, axis choices, selected channels, and clicked data point.
+
+    Triggers that activate this callback include:
+
+    - Changing the selected x- or y-axis quantity
+    - Adding, removing, or modifying any active filters
+    - Toggling the visibility of filtered-out points
+    - Enabling or disabling channels in the channel selector
+    - Clicking a data point on the plot
+
+    This function manages the following visual components:
+
+    - The main scatter plot (created or updated using :class:`FigureWrapper`)
+    - The statistics summary table (mean ± std for x and y values)
+    - The GONet image heatmap of the selected "big point" (if applicable)
+    - The information table containing metadata for the selected data point
+
+    Depending on the triggering input, the function will:
+
+    - Rebuild the entire figure from scratch (on axis change)
+    - Reapply filters and update trace visibility (on filter change)
+    - Show or hide filtered-out points (on toggle)
+    - Add or remove traces corresponding to visible channels (on channel change)
+    - Highlight and load image + metadata for the selected point (on click)
+
+    Parameters
+    ----------
+    x_label : :class:`str`
+        Selected label for the x-axis (e.g., 'sky_brightness').
+    y_label : :class:`str`
+        Selected label for the y-axis (e.g., 'temperature').
+    active_filters : :class:`list` of :class:`dict`
+        User-defined filters to apply to the dataset. Each filter includes a label, operator, and value.
+    channels : :class:`list` of :class:`str`
+        List of active channels to display (e.g., ['red', 'green', 'blue']).
+    show_filtered_points : :class:`bool`
+        Whether to display data points that fail the filter criteria with reduced opacity.
+    clickdata : :class:`dict` or :class:`None`
+        Plotly clickData object containing information about the clicked point (if any).
+    fig : :class:`dict`
+        Current Plotly figure, passed in from the Dash state.
+    gonet_fig : :class:`dict`
+        Current heatmap image figure, passed in from the Dash state.
+    info_table : :class:`list`
+        Current info table rows, passed in from the Dash state.
+    all_data : :class:`dict`
+        Complete flattened dataset returned by :func:`load_data_from_json`.
+
+    Returns
+    -------
+    :class:`dict`
+        Updated Plotly figure reflecting current filters, axes, and channels.
+    :class:`list`
+        Updated statistics table rows with mean and standard deviation summaries.
+    :class:`dict` or :data:`dash.no_update`
+        Updated heatmap figure or :data:`dash.no_update` if no change is needed.
+    :class:`list`
+        Updated rows of the data point information table.
+    """
     
-    # Plotting big point
-    fig = utils.plot_big_points(data, real_idx, x_label, y_label, fig, fold_switch)
+    if x_label is None or y_label is None:
+        # If axes are not yet selected, abort update
+        return no_update, no_update, no_update, no_update
 
-    # Info table
-    table = [html.Tr([html.Td(el),html.Td(data[el][real_idx])]) for el in data]
-
-    # Getting file name of image to show
-    night = data['night'][real_idx]
-    filename = data['filename'][real_idx]
-
-    filename = env.ROOT_EXT + night + '/Horizontal/' + filename
-
-    go = GONetFile.from_file(filename)
-    outfig = {'data':[{'z':getattr(go,original_channel), 'type': 'heatmap'}], 'layout':{'showlegend': False}}
-    del go
-
-    # Overplotting extraction region
-    # Center
-    outfig['data'].append({'x': [data['center_x'][real_idx]], 'y': [data['center_y'][real_idx]], 'type': 'scatter', 'mode': 'markers', 'marker': {'color':'rgba(0, 0, 0, 1)', 'symbol': 'circle'}})
-
-    #Circle
-    c_x, c_y = [],[]
-    for ang in np.linspace(0,2*np.pi,25):
-        c_x.append(data['center_x'][real_idx]+data['extraction_radius'][real_idx]*np.cos(ang))
-        c_y.append(data['center_y'][real_idx]+data['extraction_radius'][real_idx]*np.sin(ang))
-
-    outfig['data'].append({'x': c_x, 'y': c_y, 'type': 'scatter', 'mode': 'lines', 'marker': {'color':'rgba(0, 0, 0, 1)', 'symbol': 'circle'}})
-
-    return outfig, fig, table, real_idx
-
-    
-@app.callback(
-    Output("fold-time-switch",'disabled'),
-    Output("fold-time-switch",'on'),
-    #---------------------
-    Input("x-axis-dropdown",'value'),
-    #---------------------
-    prevent_initial_call=True
-)
-def activate_fold_switch(x_label):
-    utils.debug()
-
-    if x_label == 'date':
-        return False, False
+    if ctx.triggered_id in ['x-axis-dropdown', 'y-axis-dropdown']:
+        # Axes changed → build a new figure from scratch
+        fig = plot.FigureWrapper.build(x_label, y_label, channels, all_data)
     else:
-        return True, False
-    
+        # Rehydrate the figure to retain state (filtered points, big point, etc.)
+        fig = plot.FigureWrapper.from_fig(fig, all_data)
 
-@app.callback(
-    Output("custom-filter-container",'children'),
+    # Apply filters to the dataset
+    fig.update_filters(active_filters)
+    for c in fig.channels:
+        fig.filter_traces(c)
+
+    # Toggle visibility of filtered points
+    if ctx.triggered_id == 'show-filtered-data-switch':
+        fig.update_visibility(show_filtered_points)
+        fig.apply_visibility()
+
+    # Add or remove channel traces
+    if ctx.triggered_id == 'channels':
+        fig.update_channels(channels)
+
+    # Generate statistics summary table
+    formatted_stats_table = [
+        html.Tr([html.Td(el[val]) for el in fig.get_stats()[axis] for val in ['label', 'value']])
+        for axis in ['x', 'y']
+    ]
+
+    # Handle data point selection ("big point")
+    if ctx.triggered_id == 'main-plot':
+        fig.gather_big_point(clickdata)
+        fig.plot_big_point()
+
+        # Extract point-specific metadata
+        info_dictionary = fig.get_data_point_info()
+        info_table = [html.Tr([html.Td(el), html.Td(info_dictionary[el])]) for el in info_dictionary]
+
+        # Attempt to render the corresponding image
+        gonet_fig = fig.gonet_image(clickdata)
+        if gonet_fig is None:
+            gonet_fig = no_update
+
+    return fig.to_dict(), formatted_stats_table, gonet_fig, info_table
+            
+
+@utils.gonet_callback(
+    Output("custom-filter-container",'children', allow_duplicate=True),
     #---------------------
     Input("add-filter",'n_clicks'),
     #---------------------
@@ -245,23 +270,28 @@ def activate_fold_switch(x_label):
     prevent_initial_call=True
 )
 def add_filter(_, filter_div, labels):
-    utils.debug()
+    """
+    Add a new empty filter block to the filter container in the UI.
 
+    Parameters
+    ----------
+    _ : :class:`Any`
+        Dummy input from the button click (not used).
+    filter_div : :class:`list`
+        Current list of filter components in the container.
+    labels : :class:`list` of :class:`dict`
+        List of label options for dropdowns.
+
+    Returns
+    -------
+    filter_div : :class:`list`
+        Updated list of filter components with one new filter added.
+    """
+    
     n_filter = len(filter_div)
+    new_empty_filter = utils.new_empty_filter(n_filter, labels)
+    filter_div.append(new_empty_filter)
 
-    new_filter = html.Div(id = {"type":'filter-container', "index":n_filter}, children=[
-                html.Div(id = {"type":'first-filter-container', "index":n_filter}, children=[
-                    daq.BooleanSwitch(id={"type":'filter-switch', "index":n_filter}, on=False, style={'display': 'inline-block'}),
-                    dcc.Dropdown(id={"type":'filter-dropdown', "index":n_filter}, options=labels, style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px', 'width':'200px'}),
-                    dcc.Dropdown(id={"type":'filter-operator', "index":n_filter}, options=['<','<=','=','!=','=>','>'], value = '<=', style={'display': 'inline-block', 'margin-left':'5px', 'margin-right':'5px', 'width':'40px'}),
-                    dcc.Input(id={"type":'filter-value', "index":n_filter}, type="text", debounce=True, style={'display': 'inline-block'})
-                ], style={'display': 'inline-block'}),
-                html.Div(id = {"type":'second-filter-container', "index":n_filter}, children=[
-                    html.Button('Add OR filter', id = {"type":'add-or-filter', "index":n_filter}, n_clicks=0),
-                ], style={'display': 'inline-block', 'margin-left':'15px'})
-            ])
-
-    filter_div.append(new_filter)
     return filter_div
 
 @app.callback(
@@ -274,17 +304,28 @@ def add_filter(_, filter_div, labels):
     #---------------------
     prevent_initial_call=True
 )
+@utils.debug_print
 def add_or_filter(_, id, labels):
-    utils.debug()
+    """
+    Add an additional (OR-based) condition to an existing filter block.
+
+    Parameters
+    ----------
+    _ : :class:`Any`
+        Dummy input from the OR-button click (not used).
+    id : :class:`dict`
+        Dictionary containing the index of the filter block to update.
+    labels : :class:`list` of :class:`dict`
+        List of label options for the dropdowns.
+
+    Returns
+    -------
+    new_filter : dash component
+        A new filter component to be added to the filter block.
+    """
     
     idx = id['index']
-
-    new_filter = [
-        html.Div('OR',style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px',}),
-        dcc.Dropdown(id={"type":'second-filter-dropdown', "index":idx}, options=labels, style={'display': 'inline-block', 'margin-left':'15px', 'margin-right':'15px', 'width':'200px'}),
-        dcc.Dropdown(id={"type":'second-filter-operator', "index":idx}, options=['<','<=','=','!=','=>','>'], value = '<=', style={'display': 'inline-block', 'margin-left':'5px', 'margin-right':'5px', 'width':'40px'}),
-        dcc.Input(id={"type":'second-filter-value', "index":idx}, type="text", debounce=True, value=0, style={'display': 'inline-block'})
-    ]
+    new_filter = utils.new_empty_second_filter(idx, labels)
 
     return new_filter
 
@@ -296,8 +337,21 @@ def add_or_filter(_, id, labels):
     #---------------------
     prevent_initial_call=True
 )
-def update_main_filters_label(label):
-    utils.debug()
+@utils.debug_print
+def update_main_filters_value(label):
+    """
+    Automatically update the value of the main filter when a filter label is selected.
+
+    Parameters
+    ----------
+    label : :class:`str`
+        The selected label from the main filter dropdown.
+
+    Returns
+    -------
+    value : :class:`Any` or :class:`None`
+        Default value corresponding to the label, or None if not found.
+    """
     
     if label in env.DEFAULT_FILTER_VALUES:
         return env.DEFAULT_FILTER_VALUES[label]
@@ -311,8 +365,21 @@ def update_main_filters_label(label):
     #---------------------
     prevent_initial_call=True
 )
-def update_secondary_filters_label(label):
-    utils.debug()
+@utils.debug_print
+def update_secondary_filters_value(label):
+    """
+    Automatically update the value of the secondary (OR) filter when a label is selected.
+
+    Parameters
+    ----------
+    label : :class:`str`
+        The selected label from the secondary filter dropdown.
+
+    Returns
+    -------
+    value : :class:`Any` or :class:`None`
+        Default value corresponding to the label, or None if not found.
+    """
     
     if label in env.DEFAULT_FILTER_VALUES:
         return env.DEFAULT_FILTER_VALUES[label]
@@ -320,36 +387,534 @@ def update_secondary_filters_label(label):
         return None
     
 
-@app.callback(
+@utils.gonet_callback(
     Output("active-filters",'data'),
+    Output("show-filtered-data-switch",'disabled'),
+    Output("show-filtered-data-switch",'on'),
     #---------------------
+    Input('data-json', 'data'),
     Input({"type": "filter-switch", "index": ALL}, 'on'),
     Input({"type": "filter-operator", "index": ALL}, 'value'),
     Input({"type": "filter-value", "index": ALL}, 'value'),
+    Input({"type": "filter-selection-data", "index": ALL}, 'data'),
     Input({"type": "second-filter-operator", "index": ALL}, 'value'),
     Input({"type": "second-filter-value", "index": ALL}, 'value'),
     #---------------------
     State({"type": "filter-dropdown", "index": ALL}, 'value'),
     State({"type": "second-filter-dropdown", "index": ALL}, 'value'),
     State({"type": "second-filter-value", "index": ALL}, 'id'),
+    State({"type": "filter-selection-data", "index": ALL}, 'id'),
     State("active-filters",'data'),
     #---------------------
     prevent_initial_call=True
 )
-def update_filters(switches, ops, values, second_ops, second_values, labels, second_labels, second_ids, filters_before):
-    utils.debug()
+def update_filters(_, switches, ops, values, selections, second_ops, second_values, labels, second_labels, second_ids, selections_ids, filters_before):
+    """
+    Assemble and update the active filters list based on user-defined filter inputs.
+
+    This function collects the current state of all active filters, including their
+    labels, operators, and values, and constructs a list of active filters. If a
+    secondary (OR) filter is present, it is added as a nested dictionary.
+
+    This function is also triggered at load up. Since initially ``active_filters``
+    is ``None``, when triggered the `show-filtered-data-switch` is reset to default
+    status. 
+
+    Parameters
+    ----------
+    switches : :class:`list` of :class:`bool`
+        States of the main filter switches indicating whether each filter is active.
+    ops : :class:`list` of :class:`str`
+        Comparison operators for each main filter (e.g., '>', '<=', '==').
+    values : :class:`list`
+        Values selected or entered for each main filter.
+    selections : :class:`list`
+        Lasso or box selection data used to override value-based filters.
+    second_ops : :class:`list` of :class:`str`
+        Comparison operators for each secondary filter.
+    second_values : :class:`list`
+        Values selected or entered for each secondary filter.
+    labels : :class:`list` of :class:`str`
+        Labels (field names) selected for each main filter.
+    second_labels : :class:`list` of :class:`str`
+        Labels selected for each secondary filter.
+    second_ids : :class:`list` of :class:`dict`
+        IDs of the secondary filter value fields, containing the filter index.
+    selections_ids : :class:`list` of :class:`dict`
+        IDs of the selection-based filters, containing the filter index.
+    filters_before : :class:`list` of :class:`dict`
+        Previously active filters, used to check whether an update is necessary.
+
+    Returns
+    -------
+    :class:`list` of :class:`dict` or :class:`dash.no_update`
+        Updated list of active filters, or `no_update` if unchanged.
+    """
+
+    def activate_show_filters(active_filters):
+        if len(active_filters) > 0:
+            return False, True
+        else:
+            return True, True
 
     active_filters=[]
-
     for i,s in enumerate(switches):
-        if s and labels[i] is not None and values[i] is not None:
-            active_filters.append({'label': labels[i], 'operator': ops[i], 'value': values[i]})
-            for j,id in enumerate(second_ids):
-                if id['index'] == i and second_labels[j] is not None and second_values[j] is not None:
-                    active_filters[-1]['secondary'] = {'label': second_labels[j], 'operator': second_ops[j], 'value': second_values[j]}
+        value = None
+        for k, id in enumerate(selections_ids):
+            if i == id['index']:
+                value = selections[k]
+                values.insert(i, None)
+                break
+        if not value:
+            value = values[i]
 
+        label = labels[i]
+        op = ops[i]
+
+        if s and label is not None and value is not None:
+            # converting date filters to unix time for an easier comparison
+            label, value = utils.parse_date_time(label, value)
+
+            active_filters.append({'label': label, 'operator': op, 'value': value})
+            for j,id in enumerate(second_ids):
+
+                second_label = second_labels[j]
+                second_op = second_ops[j]
+                second_value = second_values[j]
+
+                if id['index'] == i and second_label is not None and second_value is not None:
+                    second_label, second_value = utils.parse_date_time(second_label, second_value)
+                    active_filters[-1]['secondary'] = {'label': second_label, 'operator': second_op, 'value': second_value}
 
     if filters_before != active_filters:
-        return active_filters
+        return active_filters, *activate_show_filters(active_filters)
     else:
-        return no_update
+        return no_update, no_update, no_update
+
+
+
+@utils.gonet_callback(
+    Output("download-json", 'data'),
+    #---------------------
+    Input("export-data", 'n_clicks'),
+    #---------------------
+    State("main-plot",'figure'),
+    State("data-json",'data'),
+    #---------------------
+    prevent_initial_call=True
+)
+def export_data(_, fig, data):#, channels):
+    """
+    Export filtered data from the plot to a downloadable JSON file.
+
+    This function retrieves all points currently visible in the main plot that are not
+    filtered or marked as big points. It extracts relevant metadata and fit parameters
+    for each unique index across all channels, organizing the data into a structured JSON
+    format for export.
+
+    Parameters
+    ----------
+    _ : :class:`Any`
+        Unused placeholder for the n_clicks input from the export button.
+    fig : :class:`dict`
+        The Plotly figure dictionary containing plotted data and metadata.
+    data : :class:`dict`
+        The full dataset loaded into the application, including all measurements
+        and metadata for each point.
+
+    Returns
+    -------
+    :class:`dict`
+        A dictionary containing:
+
+        - 'content': JSON string representing the filtered and formatted dataset.
+        - 'filename': Suggested filename for the download ("filtered_data.json").
+
+    """
+
+    json_out = []
+
+    # The indexes will be the same for all the channels
+    # So I take the indexes from only one of them
+    idx_list = [img['idx'] for img in fig['data'] if not img['filtered'] and not img['big_point']][0]
+
+    # Converting the list into a numpy array only once here so that I can
+    # use np.where later multiple times
+    data_idx = np.array(data['idx'])
+    data_channel = np.array(data['channel'])
+
+    for i in idx_list:
+        out_dict = {}
+        # `data` will have 3 entries with the same idx (one per channel)
+        # so `matching_idx` will be a list of 3 elements.
+        # Taking just the first to fetch the labels unrelated to the channel
+        matching_idx = np.argwhere(data_idx == i)[0][0]
+
+        for label in ['filename'] + env.LABELS['gen']:
+            if label == 'idx': continue
+            out_dict[label] = data[label][matching_idx]
+        
+        for c in env.CHANNELS:
+            out_dict[c]={}
+            matching_idx_and_channel = np.argwhere((data_idx == i) & (data_channel==c))[0][0]
+            for label in env.LABELS['fit']:
+                out_dict[c][label] = data[label][matching_idx_and_channel]
+
+        json_out.append(out_dict)
+
+    return dict(content=json.dumps(json_out, indent=4), filename="filtered_data.json")
+
+# ------------------------------------------------------------------------------
+# Clientside Callback: Download Dashboard Status as JSON
+# ------------------------------------------------------------------------------
+#
+# This clientside callback enables users to export the current dashboard status
+# (e.g., selected axes, filters, and switches) as a downloadable JSON file.
+# The data is serialized on the client and offered as a file via the browser’s
+# native download mechanism, using a temporary Blob URL.
+#
+# Although this method is simple and effective for small payloads, it relies on
+# Data URLs, which are not ideal for large or binary content. In future versions,
+# it may be preferable to offload download handling to the backend (e.g., via Django).
+#
+# Parameters
+# ----------
+# data : object
+#     A small dictionary representing the dashboard’s state, typically stored in
+#     the `status-data` component. This includes axis values, filter configurations,
+#     and switch states.
+#
+# Returns
+# -------
+# str
+#     An empty string upon successful trigger of the download process,
+#     or `dash_clientside.no_update` if no action is taken.
+#
+# Behavior
+# --------
+# - Prompts the user to enter a filename (default: "status.json")
+# - Converts the input data to a formatted JSON string
+# - Creates a Blob and object URL for download
+# - Triggers the download using a temporary anchor tag
+# - Cleans up the temporary elements after the download completes
+#
+# Notes
+# -----
+# While the current solution provides a user-friendly browser-based download
+# experience, it bypasses the native file save dialog and may not be ideal for
+# production workflows. A more robust implementation using the File System Access API
+# is also provided below (commented out), offering deeper integration with the
+# operating system at the cost of browser compatibility and UI polish.
+#
+# Future versions may delegate this task to Django to provide cleaner handling,
+# especially for larger payloads or authenticated sessions.
+
+clientside_callback(
+    """
+    async function(data) {
+        if (data) {
+            try {
+                const jsonString = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+
+                const filename = prompt("Please enter the filename:", "status.json"); // Get filename
+
+                if (filename === null || filename.trim() === "") {
+                    return window.dash_clientside.no_update;
+                }
+
+                const url = window.URL.createObjectURL(blob); // Create URL for blob
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename; // Set filename
+                document.body.appendChild(a);
+                a.click(); // Trigger download
+                document.body.removeChild(a); // Clean up
+                window.URL.revokeObjectURL(url); // Release blob URL
+
+                return "";
+            } catch (err) {
+                console.error("Download error:", err);
+                alert("Download failed. Please try again. Check the console for more details.");
+                return window.dash_clientside.no_update;
+            }
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("dummy-div", 'children'),
+    #---------------------
+    Input("status-data", 'data'),
+    #---------------------
+    prevent_initial_call=True,
+)
+
+# """
+#     async function(data) {
+#         if (data) {
+#             try {
+#                 const jsonString = JSON.stringify(data, null, 2);
+#                 const blob = new Blob([jsonString], { type: 'application/json' });
+
+#                 // Let showSaveFilePicker handle the prompt:
+#                 const handle = await window.showSaveFilePicker({ suggestedName: "data.json" }); // Suggested filename
+#                 const writable = await handle.createWritable();
+#                 await writable.write(blob);
+#                 await writable.close();
+
+#                 // Explicitly set handle to null to release access:
+#                 handle = null; // Important: Release the handle!
+
+#                 return "downloaded";
+#             } catch (err) {
+#                 console.error("Download error:", err);
+#                 alert("Download failed. Please try again. Check the console for more details.");
+#                 return window.dash_clientside.no_update;
+#             }
+#         }
+#         return window.dash_clientside.no_update;
+#     }
+# """
+
+
+@utils.gonet_callback(
+    Output("status-data", 'data'),
+    #---------------------
+    Input("save-status", 'n_clicks'),
+    #---------------------
+    State("x-axis-dropdown",'id'),
+    State("x-axis-dropdown",'value'),
+    State("y-axis-dropdown",'id'),
+    State("y-axis-dropdown",'value'),
+    State({"type": "filter-switch", "index": ALL}, 'id'),
+    State({"type": "filter-switch", "index": ALL}, 'on'),
+    State({"type": "filter-dropdown", "index": ALL}, 'id'),
+    State({"type": "filter-dropdown", "index": ALL}, 'value'),
+    State({"type": "filter-operator", "index": ALL}, 'id'),
+    State({"type": "filter-operator", "index": ALL}, 'value'),
+    State({"type": "filter-value", "index": ALL}, 'id'),
+    State({"type": "filter-value", "index": ALL}, 'value'),
+    State({"type": "second-filter-dropdown", "index": ALL}, 'id'),
+    State({"type": "second-filter-dropdown", "index": ALL}, 'value'),
+    State({"type": "second-filter-operator", "index": ALL}, 'id'),
+    State({"type": "second-filter-operator", "index": ALL}, 'value'),
+    State({"type": "second-filter-value", "index": ALL}, 'id'),
+    State({"type": "second-filter-value", "index": ALL}, 'value'),
+    State("channels",'id'),
+    State("channels",'value'),
+    State("show-filtered-data-switch", 'id'),
+    State("show-filtered-data-switch", 'on'),
+    #---------------------
+    prevent_initial_call=True
+)
+def save_status(_,*args):
+    """
+    Save the current dashboard state, including axis selections and filter configurations.
+
+    This function collects the current state of all dashboard controls—such as axis dropdowns,
+    filters, channel selections, and switches—and assembles them into a dictionary suitable
+    for export or persistent storage. It supports both primary and secondary filters.
+
+    Parameters
+    ----------
+    _ : :class:`Any`
+        Unused placeholder for the `n_clicks` input from the "save status" button.
+    *args : :class:`list`
+        Interleaved list of (id, value) pairs for all input states. Each id can either be a string
+        (for global components like axis dropdowns and switches) or a dictionary (for indexed filters).
+
+    Returns
+    -------
+    :class:`dict`
+        A dictionary representing the current state of the dashboard, including:
+
+        - Axis selection values.
+        - All filters and their properties.
+        - Active channels and switch states.
+
+        The structure is compatible with later reloading via the :func:`load_status` function.
+    """
+
+    out_dict = {'filters':[]}
+    for i,el in enumerate(args):
+        if i%2==1: continue
+        if type(args[i]) == list:
+            for f,flt in enumerate(args[i]):
+                while True:
+                    if flt['index'] < len(out_dict['filters']):
+                        break
+                    else:
+                        out_dict['filters'].append({'secondary':{}})
+                if flt['type'].split('-')[0] == 'second':
+                    out_dict['filters'][flt['index']]['secondary'][flt['type']] = args[i+1][f]
+                else:
+                    out_dict['filters'][flt['index']][flt['type']] = args[i+1][f]
+        else:
+            out_dict[args[i]] = args[i+1]
+    return out_dict
+
+@utils.gonet_callback(
+    Output("x-axis-dropdown",'value', allow_duplicate=True),
+    Output("y-axis-dropdown",'value'),
+    Output("channels",'value'),
+    Output("show-filtered-data-switch", 'on', allow_duplicate=True),
+    Output("custom-filter-container",'children'),
+    #---------------------
+    Input("upload-status", 'contents'),
+    #---------------------
+    State("custom-filter-container",'children'),
+    State("x-axis-dropdown",'options'),
+    #---------------------
+    prevent_initial_call=True
+)
+def load_status(contents, filter_div, labels):
+    """
+    Load a previously saved dashboard state from a base64-encoded JSON file.
+
+    This function decodes and parses the uploaded status file and restores the application state,
+    including axis selections, active channels, switches, and filters. It dynamically reconstructs
+    each filter (both primary and secondary) and injects them into the dashboard.
+
+    Parameters
+    ----------
+    contents : :class:`str`
+        Base64-encoded string representing the uploaded file contents from the `Dash <https://dash.plotly.com/>`_ upload component.
+    filter_div : :class:`list`
+        List of existing filter components already present in the dashboard.
+    labels : :class:`list`
+        List of available labels used to populate new filters.
+
+    Returns
+    -------
+    x_axis_value : :class:`str`
+        Restored value for the x-axis dropdown.
+    y_axis_value : :class:`str`
+        Restored value for the y-axis dropdown.
+    channels : :class:`list`
+        Restored list of selected channels.
+    show_filtered : :class:`bool`
+        Whether to show filtered points, as restored from the saved state.
+    filter_div : :class:`list`
+        Updated list of filter UI components reflecting the saved configuration.
+    """
+    decoded_string = base64.b64decode(contents.split(',')[1]).decode('utf-8')
+    base64.b64decode(decoded_string)
+    status_dict = json.loads(decoded_string)
+
+    n_filter = len(filter_div)
+    for f,flt in enumerate(status_dict['filters']):
+        new_empty_filter = utils.new_empty_filter(n_filter+f, labels)
+
+        filter_div.append(new_empty_filter)
+        filter_div[-1].children[0].children[0].on = flt['filter-switch']
+        filter_div[-1].children[0].children[1].value = flt['filter-dropdown']
+        filter_div[-1].children[0].children[2].value = flt['filter-operator']
+        filter_div[-1].children[0].children[3].value = flt['filter-value']
+
+        if len(flt['secondary']) > 0:
+            filter_div[-1].children[1].children = utils.new_empty_second_filter(n_filter+f, labels)
+
+            filter_div[-1].children[1].children[1].value = flt['secondary']['second-filter-dropdown']
+            filter_div[-1].children[1].children[2].value = flt['secondary']['second-filter-operator']
+            filter_div[-1].children[1].children[3].value = flt['secondary']['second-filter-value']
+
+    return status_dict["x-axis-dropdown"], status_dict["y-axis-dropdown"], status_dict["channels"], status_dict["show-filtered-data-switch"], filter_div
+
+
+@utils.gonet_callback(
+    Output('selection-filter', 'disabled'),
+    Input('main-plot', 'relayoutData'),
+    State('main-plot', 'figure'),
+    State("data-json",'data'),
+    #---------------------
+    prevent_initial_call=True
+)
+def update_filter_selection_state(relayout_data, fig, all_data):
+    """
+    Enable or disable the "Add Selection Filter" button based on current selection in the plot.
+
+    This function checks whether a valid lasso or box selection exists in the main plot.
+    If such a selection is detected (i.e., a non-empty path is present), the filter button
+    becomes enabled; otherwise, it remains disabled.
+
+    Parameters
+    ----------
+    relayout_data : :class:`dict`
+        The relayout metadata from the Plotly plot, which may include a 'selections' field.
+    fig : :class:`dict`
+        The current figure displayed in the main plot (unused, but passed for context).
+    all_data : :class:`dict`
+        The full dataset shown in the dashboard (unused, but passed for context).
+
+    Returns
+    -------
+    :class:`bool`
+        `False` if a valid selection exists (enabling the button), `True` otherwise (disabling it).
+    """
+
+    if relayout_data and 'selections' in relayout_data:
+        selection = relayout_data['selections']
+        if isinstance(selection, list) and len(selection) > 0 and isinstance(selection[0], dict) and 'path' in selection[0]:
+            return False
+    return True
+
+
+@utils.gonet_callback(
+    Output("custom-filter-container",'children', allow_duplicate=True),
+    Output('main-plot', 'relayoutData'),
+    Output('main-plot', 'figure', allow_duplicate=True),
+    #---------------------
+    Input("selection-filter",'n_clicks'),
+    #---------------------
+    State("custom-filter-container",'children'),
+    State('main-plot', 'relayoutData'),
+    State('main-plot', 'figure'),
+    #---------------------
+    prevent_initial_call=True
+)
+def add_selection_filter(_, filter_div, relayout_data, figure):
+    """
+    Create and add a new filter based on the current selection region in the plot.
+
+    This function checks if a valid lasso or box selection exists in the plot's ``relayoutData``.
+    If so, it generates a new filter corresponding to the selected data points and appends it
+    to the list of existing filters. The selection is then removed from the plot layout to avoid
+    reprocessing.
+
+    Parameters
+    ----------
+    _ : :class:`Any`
+        Placeholder for the button click triggering the addition of a selection-based filter.
+    filter_div : :class:`list`
+        Existing list of `Dash <https://dash.plotly.com/>`_ filter components displayed in the UI.
+    relayout_data : :class:`dict`
+        Plotly relayout data containing information about lasso/box selections.
+    figure : :class:`dict`
+        The current figure dictionary shown in the main plot.
+
+    Returns
+    -------
+    filter_div : :class:`list`
+        Updated list of filter components, now including the new selection-based filter.
+    relayoutData : :class:`dict`
+        An empty dictionary to reset plot selection state.
+    figure : :class:`dict`
+        The updated figure with the selection metadata removed.
+    """
+
+    if not relayout_data or 'selections' not in relayout_data:
+        return no_update, no_update, no_update
+
+    selection = relayout_data['selections']
+    if not isinstance(selection, list) or len(selection) == 0 or not isinstance(selection[0], dict) or 'path' not in selection[0]:
+        return no_update, no_update, no_update
+
+
+    del figure['layout']['selections']
+
+    n_filter = len(filter_div)
+    new_empty_filter = utils.new_selection_filter(n_filter, figure['data'][0]['selectedpoints'])
+    filter_div.append(new_empty_filter)
+
+    return filter_div, {}, figure

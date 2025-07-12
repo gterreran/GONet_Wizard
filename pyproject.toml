@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=61", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "GONet_Wizard"
+dynamic = ["version"]
+description = "Tools and methods to handle GONet data."
+readme = { file = "README.rst", content-type = "text/x-rst" }
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+authors = [
+    { name = "Giacomo Terreran", email = "gterreran@adlerplanetarium.org" }
+]
+
+dependencies = [
+    "numpy",
+    "pillow",
+    "matplotlib",
+    "tifffile==2023.7.10",
+    "python-dateutil",
+    "dash==2.18.2",
+    "dash_daq",
+    "python-dotenv",
+    "paramiko",
+    "scp",
+    "astropy"
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "twine>=4.0.2"]
+docs = [
+    "sphinx>=7.0",
+    "sphinx-autodoc-typehints",
+    "sphinx-rtd-theme",
+    "myst-parser"
+]
+
+[project.urls]
+Homepage = "https://github.com/gterreran/GONet_Wizard"
+Source = "https://github.com/gterreran/GONet_Wizard"
+Issues = "https://github.com/gterreran/GONet_Wizard/issues"
+
+[project.scripts]
+GONet_Wizard = "GONet_Wizard.__main__:main"
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "node-and-date"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:.*FigureCanvasAgg is non-interactive.*"
+]

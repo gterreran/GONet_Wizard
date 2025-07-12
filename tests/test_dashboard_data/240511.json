@@ -1,0 +1,140 @@
+[
+    {
+        "filename": "214_240511_023050_1715394653.tiff",
+        "night": "240511",
+        "camera": "214",
+        "time": 1715394653,
+        "date": "2024-05-11T02:30:53.000+00:00",
+        "sunaltaz": -15.005415244521917,
+        "moonaltaz": 17.662922447404046,
+        "moon_illumination": 0.11179237337934067,
+        "temperature": 17.4,
+        "dew_point": 8.6,
+        "wind_speed": 13.0,
+        "pressure": 1007.8,
+        "humidity": 56.0,
+        "condition_code": 3.0,
+        "red": {
+            "center_x": 1006,
+            "center_y": 750,
+            "image_radius": 716,
+            "extraction_radius": 79.55555555555556,
+            "total_counts": -49376.0,
+            "mean_counts": -2.483077696756349,
+            "std": 103.43845310556546,
+            "npixels": 19885
+        },
+        "green": {
+            "center_x": 1006,
+            "center_y": 750,
+            "image_radius": 716,
+            "extraction_radius": 79.55555555555556,
+            "total_counts": -3272.0,
+            "mean_counts": -0.1645461403067639,
+            "std": 76.54971764193543,
+            "npixels": 19885
+        },
+        "blue": {
+            "center_x": 1006,
+            "center_y": 750,
+            "image_radius": 716,
+            "extraction_radius": 79.55555555555556,
+            "total_counts": 82264.0,
+            "mean_counts": 4.136987679155142,
+            "std": 103.4834220999325,
+            "npixels": 19885
+        }
+    },
+    {
+        "filename": "214_240511_023050_1715394668.tiff",
+        "night": "240511",
+        "camera": "214",
+        "time": 1715394668,
+        "date": "2024-05-11T02:31:08.000+00:00",
+        "sunaltaz": -15.039946157580298,
+        "moonaltaz": 17.621293636440615,
+        "moon_illumination": 0.11180425787418058,
+        "temperature": 17.4,
+        "dew_point": 8.6,
+        "wind_speed": 13.0,
+        "pressure": 1007.8,
+        "humidity": 56.0,
+        "condition_code": 3.0,
+        "red": {
+            "center_x": 1006,
+            "center_y": 750,
+            "image_radius": 716,
+            "extraction_radius": 79.55555555555556,
+            "total_counts": -21888.0,
+            "mean_counts": -1.1007291928589389,
+            "std": 103.72821570182468,
+            "npixels": 19885
+        },
+        "green": {
+            "center_x": 1006,
+            "center_y": 750,
+            "image_radius": 716,
+            "extraction_radius": 79.55555555555556,
+            "total_counts": -23208.0,
+            "mean_counts": -1.1671108876037215,
+            "std": 74.2383827612598,
+            "npixels": 19885
+        },
+        "blue": {
+            "center_x": 1006,
+            "center_y": 750,
+            "image_radius": 716,
+            "extraction_radius": 79.55555555555556,
+            "total_counts": 66664.0,
+            "mean_counts": 3.352476741262258,
+            "std": 107.94073530400536,
+            "npixels": 19885
+        }
+    },
+    {
+        "filename": "214_240511_023050_1715394687.tiff",
+        "night": "240511",
+        "camera": "214",
+        "time": 1715394687,
+        "date": "2024-05-11T02:31:27.000+00:00",
+        "sunaltaz": -15.083646129429535,
+        "moonaltaz": 17.56857900430775,
+        "moon_illumination": 0.11181931227336261,
+        "temperature": 17.4,
+        "dew_point": 8.6,
+        "wind_speed": 13.0,
+        "pressure": 1007.8,
+        "humidity": 56.0,
+        "condition_code": 3.0,
+        "red": {
+            "center_x": 1006,
+            "center_y": 750,
+            "image_radius": 716,
+            "extraction_radius": 79.55555555555556,
+            "total_counts": -43328.0,
+            "mean_counts": -2.1789288408348,
+            "std": 105.10794704310425,
+            "npixels": 19885
+        },
+        "green": {
+            "center_x": 1006,
+            "center_y": 750,
+            "image_radius": 716,
+            "extraction_radius": 79.55555555555556,
+            "total_counts": -19176.0,
+            "mean_counts": -0.9643449836560222,
+            "std": 74.20937959682394,
+            "npixels": 19885
+        },
+        "blue": {
+            "center_x": 1006,
+            "center_y": 750,
+            "image_radius": 716,
+            "extraction_radius": 79.55555555555556,
+            "total_counts": 68072.0,
+            "mean_counts": 3.4232838823233593,
+            "std": 103.45985197923211,
+            "npixels": 19885
+        }
+    }
+]
