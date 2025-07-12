@@ -52,7 +52,7 @@ def test_load_data_from_json_success():
 
 def test_color_ratios_present():
     data = load_data.load_data_from_json(env)
-    for ratio in ["blue-green", "green-red", "blue-red"]:
+    for ratio in env.CHANNEL_COLORS:
         assert ratio in data
         assert all(isinstance(v, float) for v in data[ratio] if v is not None)
 
