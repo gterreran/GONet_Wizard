@@ -1,0 +1,1123 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GONet_Wizard.GONet_dashboard.src.hood.plot &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../settings.html">settings Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">GONet_Wizard.GONet_dashboard.src.hood.plot</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for GONet_Wizard.GONet_dashboard.src.hood.plot</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Plot utilities for interactive visualization of GONet sky monitoring data.</span>
+
+<span class="sd">This module provides Plotly-compatible wrappers and helper classes for rendering,</span>
+<span class="sd">filtering, and interacting with GONet dashboard plots in a Dash application. It</span>
+<span class="sd">includes specialized data structures that extend standard Python types (e.g., `dict`)</span>
+<span class="sd">to support reactive behavior, styling changes, and integration with user inputs</span>
+<span class="sd">like selections and click events.</span>
+
+<span class="sd">**Classes**</span>
+
+<span class="sd">- :class:`Trace`:</span>
+<span class="sd">    A dictionary-like wrapper for a single Plotly scatter trace with built-in</span>
+<span class="sd">    styling logic tied to filter and visibility states. Automatically updates</span>
+<span class="sd">    marker opacity and hover behavior when `filtered` or `hidden` flags are set.</span>
+
+<span class="sd">- :class:`FigureWrapper`:</span>
+<span class="sd">    A manager class that encapsulates a complete Plotly figure dictionary and</span>
+<span class="sd">    provides high-level methods for trace filtering, channel updates, visibility</span>
+<span class="sd">    toggling, point selection, and summary statistics. Designed to maintain</span>
+<span class="sd">    JSON-serializability for use in Dash callbacks.</span>
+
+<span class="sd">This module is intended to serve as the plotting backend for the GONet dashboard UI.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">GONet_Wizard.GONet_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">GONetFile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">GONet_Wizard.GONet_dashboard.src</span><span class="w"> </span><span class="kn">import</span> <span class="n">env</span>
+
+
+<div class="viewcode-block" id="Trace">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.Trace">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Trace</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A specialized dictionary-like object representing a single Plotly scatter trace</span>
+<span class="sd">    with automatic styling and visibility behavior. This class is intended to be used</span>
+<span class="sd">    in applications like Dash where Plotly figures must remain JSON-serializable, but</span>
+<span class="sd">    where it is useful to treat individual traces as stateful, reactive objects.</span>
+
+<span class="sd">    This wrapper class auto-initializes a full trace structure upon creation, and </span>
+<span class="sd">    includes logic to modify the trace&#39;s appearance when certain semantic fields</span>
+<span class="sd">    (``filtered``, ``hidden``) are updated.</span>
+
+<span class="sd">    Reactive Key Behaviors</span>
+<span class="sd">    -------------------------</span>
+
+<span class="sd">    - Setting `filtered = True`:</span>
+<span class="sd">        - Reduces marker opacity to 0.2.</span>
+<span class="sd">    - Setting `filtered = False`:</span>
+<span class="sd">        - Restores marker opacity to 1.0.</span>
+<span class="sd">    - Setting `hidden = True`:</span>
+<span class="sd">        - Sets marker opacity to 0 (fully transparent),</span>
+<span class="sd">        - Disables hover information,</span>
+<span class="sd">        - Sets marker line width to 0 (if applicable).</span>
+<span class="sd">    - Setting `hidden = False`:</span>
+<span class="sd">        - Sets opacity back to 0.2 (like a filtered trace),</span>
+<span class="sd">        - Restores hover information and hovertemplate,</span>
+<span class="sd">        - Sets marker line width to 2 (if applicable).</span>
+<span class="sd">    - Changing the ``marker`` key will automatically change</span>
+<span class="sd">      the ``unselected`` marker as well.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -------------------------</span>
+
+<span class="sd">    - This class behaves like a dictionary and can be appended directly to a Plotly</span>
+<span class="sd">      figure&#39;s `data` list.</span>
+<span class="sd">    - It is fully JSON-serializable and can be passed to Dash components.</span>
+<span class="sd">    - You must use this class instead of a plain dictionary if you want the special</span>
+<span class="sd">      reactive behavior described above.</span>
+<span class="sd">      </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">y_label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize a new Trace object representing a styled Plotly scatter trace.</span>
+
+<span class="sd">        This constructor populates the trace with default settings and metadata</span>
+<span class="sd">        necessary for integration with the GONet dashboard, including a custom</span>
+<span class="sd">        hovertemplate, marker styling, and semantic keys such as `filtered`, `hidden`,</span>
+<span class="sd">        and `big_point`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x_label : :class:`str`</span>
+<span class="sd">            The label for the x-axis quantity. Used in the hovertemplate.</span>
+<span class="sd">        y_label : :class:`str`</span>
+<span class="sd">            The label for the y-axis quantity. Used in the hovertemplate.</span>
+<span class="sd">        channel : :class:`str`</span>
+<span class="sd">            The name of the channel this trace represents (e.g., &#39;red&#39;, &#39;green&#39;, &#39;blue&#39;).</span>
+<span class="sd">            Used for trace naming, grouping, and color selection.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_label</span> <span class="o">=</span> <span class="n">x_label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_label</span> <span class="o">=</span> <span class="n">y_label</span>
+
+        <span class="n">marker</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;color&#39;</span><span class="p">:</span> <span class="n">env</span><span class="o">.</span><span class="n">rgba</span><span class="p">(</span><span class="n">channel</span><span class="o">=</span><span class="n">channel</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+            <span class="s1">&#39;symbol&#39;</span><span class="p">:</span> <span class="s1">&#39;circle&#39;</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s1">&#39;hovertemplate&#39;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">x_label</span><span class="si">}</span><span class="s2">=%</span><span class="se">{{</span><span class="s2">x</span><span class="se">}}</span><span class="s2">&lt;br&gt;</span><span class="si">{</span><span class="n">y_label</span><span class="si">}</span><span class="s2">=%</span><span class="se">{{</span><span class="s2">y</span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;scatter&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="s1">&#39;markers&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;marker&#39;</span><span class="p">:</span> <span class="n">marker</span><span class="p">,</span>
+            <span class="s1">&#39;unselected&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;marker&#39;</span><span class="p">:</span> <span class="n">marker</span><span class="p">},</span>
+            <span class="s1">&#39;channel&#39;</span><span class="p">:</span> <span class="n">channel</span><span class="p">,</span>
+            <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">channel</span><span class="p">,</span>
+            <span class="s1">&#39;showlegend&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s1">&#39;idx&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;filtered&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s1">&#39;big_point&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s1">&#39;hidden&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="p">})</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Override assignment to specific trace keys to enable reactive styling behavior.</span>
+
+<span class="sd">        This method extends dictionary-style item assignment (`trace[key] = value`)</span>
+<span class="sd">        with special handling for keys such as `filtered`, `hidden`, and `marker`,</span>
+<span class="sd">        allowing the trace to dynamically update its visual properties in response</span>
+<span class="sd">        to filtering and selection logic.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : :class:`str`</span>
+<span class="sd">            The key to assign in the trace dictionary. May be a standard Plotly trace key</span>
+<span class="sd">            or a semantic extension (e.g., &#39;filtered&#39;, &#39;hidden&#39;).</span>
+<span class="sd">        value : any</span>
+<span class="sd">            The value to assign to the key.</span>
+
+<span class="sd">        Special Key Behaviors</span>
+<span class="sd">        ---------------------</span>
+
+<span class="sd">        - `&#39;filtered&#39;`:</span>
+<span class="sd">            Updates marker color opacity to 0.2 (True) or 1.0 (False) using `env.rgba`.</span>
+<span class="sd">        - `&#39;hidden&#39;`:</span>
+<span class="sd">            If True:</span>
+
+<span class="sd">                - Sets marker opacity to 0 (invisible)</span>
+<span class="sd">                - Disables hover behavior</span>
+<span class="sd">                - Hides marker outlines (if present)</span>
+
+<span class="sd">            If False:</span>
+
+<span class="sd">                - Sets marker opacity to 0.2</span>
+<span class="sd">                - Restores hover behavior and marker line width</span>
+<span class="sd">                </span>
+<span class="sd">        - `&#39;marker&#39;`:</span>
+<span class="sd">            Automatically syncs `unselected.marker` with the new marker value.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;filtered&#39;</span><span class="p">:</span>
+            <span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.2</span> <span class="k">if</span> <span class="n">value</span> <span class="k">else</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;marker&#39;</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">rgba</span><span class="p">(</span><span class="n">channel</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">],</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+            <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;unselected&#39;</span><span class="p">][</span><span class="s1">&#39;marker&#39;</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">rgba</span><span class="p">(</span><span class="n">channel</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">],</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;hidden&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
+                <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;marker&#39;</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">rgba</span><span class="p">(</span><span class="n">channel</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">],</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;hoverinfo&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+                <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;hovertemplate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="s1">&#39;line&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;marker&#39;</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;marker&#39;</span><span class="p">][</span><span class="s1">&#39;line&#39;</span><span class="p">][</span><span class="s1">&#39;width&#39;</span><span class="p">]</span><span class="o">=</span><span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;marker&#39;</span><span class="p">][</span><span class="s1">&#39;color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">rgba</span><span class="p">(</span><span class="n">channel</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">],</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+                <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;hoverinfo&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;x+y+text+channel&quot;</span>
+                <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;hovertemplate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_label</span><span class="o">+</span><span class="s1">&#39;=%</span><span class="si">{x}</span><span class="s1">&lt;br&gt;&#39;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">y_label</span><span class="o">+</span><span class="s1">&#39;=%</span><span class="si">{y}</span><span class="s1">&#39;</span>
+                <span class="k">if</span> <span class="s1">&#39;line&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;marker&#39;</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;marker&#39;</span><span class="p">][</span><span class="s1">&#39;line&#39;</span><span class="p">][</span><span class="s1">&#39;width&#39;</span><span class="p">]</span><span class="o">=</span><span class="mi">2</span>
+
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;marker&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;unselected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;marker&#39;</span><span class="p">:</span> <span class="n">value</span><span class="p">}</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+
+
+    
+
+<div class="viewcode-block" id="FigureWrapper">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FigureWrapper</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A stateful wrapper around a Plotly figure dictionary for interactive visualization </span>
+<span class="sd">    in the GONet dashboard.</span>
+
+<span class="sd">    This class manages trace creation, filtering, visibility toggling, and interactivity</span>
+<span class="sd">    for a multi-channel Plotly scatter plot. It provides a high-level API to dynamically</span>
+<span class="sd">    update plots in response to user interactions (e.g., selection filters, click events,</span>
+<span class="sd">    channel switching) while maintaining JSON-compatibility for use in Dash callbacks.</span>
+
+<span class="sd">    Key Features</span>
+<span class="sd">    ------------</span>
+
+<span class="sd">    - Stores a reference to the full data (`all_data`) and x/y labels</span>
+<span class="sd">    - Tracks currently plotted channels and filter state</span>
+<span class="sd">    - Separates traces into normal, filtered, and big-point variants per channel</span>
+<span class="sd">    - Automatically updates trace styling and visibility when filters change</span>
+<span class="sd">    - Supports reconstruction from serialized figures (`from_fig`)</span>
+<span class="sd">    - Integrates with environment configuration (e.g., colors, filter ops)</span>
+
+<span class="sd">    Recommended Entry Point</span>
+<span class="sd">    ------------------------</span>
+<span class="sd">    Use :meth:`FigureWrapper.build` to initialize a fresh figure and add traces</span>
+<span class="sd">    for each channel. Alternatively, use :meth:`from_fig` to restore a figure</span>
+<span class="sd">    after a Dash callback round trip.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fig : :class:`dict`</span>
+<span class="sd">        The full Plotly figure dictionary (layout + traces), modified in-place.</span>
+<span class="sd">    x_label : :class:`str`</span>
+<span class="sd">        Name of the data field plotted on the x-axis.</span>
+<span class="sd">    y_label : :class:`str`</span>
+<span class="sd">        Name of the data field plotted on the y-axis.</span>
+<span class="sd">    all_data : :class:`dict`</span>
+<span class="sd">        Full GONet dataset used for plotting, including x/y values, filters, and channels.</span>
+<span class="sd">    channels : :class:`list` of :class:`str`</span>
+<span class="sd">        Currently visible channels in the figure.</span>
+<span class="sd">    total_filter : np.ndarray</span>
+<span class="sd">        Boolean array (same length as data) representing active filtering state.</span>
+<span class="sd">    show_filtered_points : bool</span>
+<span class="sd">        Whether to display filtered-out points with reduced opacity or hide them entirely.</span>
+<span class="sd">    big_point_idx : int or None</span>
+<span class="sd">        Index of the currently selected “big point” for highlighting and image preview.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - Each channel has three associated traces: visible, filtered, and big-point.</span>
+<span class="sd">    - Traces are dynamically updated using `filter_traces`, `update_filters`, and `apply_visibility`.</span>
+<span class="sd">    - All traces are Plotly- and Dash-compatible (JSON-serializable).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FigureWrapper.__init__">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fig</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">x_label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">y_label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">all_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize a :class:`FigureWrapper` with an existing Plotly figure and data source.</span>
+
+<span class="sd">        This constructor sets up the internal state of the wrapper using an existing</span>
+<span class="sd">        Plotly figure dictionary, axis labels, and the full dataset. It initializes</span>
+<span class="sd">        filters, channel tracking, and big-point selection support.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fig : :class:`dict`</span>
+<span class="sd">            A Plotly-compatible figure dictionary. This should contain a `layout` key with</span>
+<span class="sd">            axis configurations and a `data` list for trace dictionaries or Trace objects.</span>
+<span class="sd">        x_label : :class:`str`</span>
+<span class="sd">            The field name used for the x-axis (must be a key in `all_data`).</span>
+<span class="sd">        y_label : :class:`str`</span>
+<span class="sd">            The field name used for the y-axis (must be a key in `all_data`).</span>
+<span class="sd">        all_data : :class:`dict`</span>
+<span class="sd">            The full data dictionary used by the dashboard. It should contain at minimum:</span>
+
+<span class="sd">            - `&#39;channel&#39;`: array of channel labels</span>
+<span class="sd">            - `&#39;idx&#39;`: array of global image indices</span>
+<span class="sd">            - All fields needed for plotting and filtering</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span> <span class="o">=</span> <span class="n">fig</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_label</span> <span class="o">=</span> <span class="n">x_label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_label</span> <span class="o">=</span> <span class="n">y_label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">all_data</span> <span class="o">=</span> <span class="n">all_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">channels</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_filter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">]),</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">show_filtered_points</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">big_point_idx</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="FigureWrapper.build">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.build">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x_label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">y_label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">channels</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">all_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a new :class:`FigureWrapper` with default layout and one trace per channel.</span>
+
+<span class="sd">        This method initializes a Plotly figure dictionary with a standardized layout and styling</span>
+<span class="sd">        settings based on the GONet dashboard environment. It then creates a new </span>
+<span class="sd">        :class:`FigureWrapper` instance and populates it with traces for each requested channel.</span>
+
+<span class="sd">        If both `x_label` and `y_label` refer to general (non-channel-specific) quantities,</span>
+<span class="sd">        only a single trace is created using channel `&quot;gen&quot;` as a placeholder.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x_label : :class:`str`</span>
+<span class="sd">            The quantity to be used for the x-axis. This must be a key in `all_data`.</span>
+<span class="sd">        y_label : :class:`str`</span>
+<span class="sd">            The quantity to be used for the y-axis. This must be a key in `all_data`.</span>
+<span class="sd">        channels : :class:`list` of :class:`str`</span>
+<span class="sd">            A list of channel names (e.g., `[&#39;red&#39;, &#39;green&#39;, &#39;blue&#39;]`) to generate traces for.</span>
+<span class="sd">        all_data : :class:`dict`</span>
+<span class="sd">            The full dataset dictionary containing:</span>
+
+<span class="sd">            - `&#39;idx&#39;`: global index values</span>
+<span class="sd">            - All fields referenced by `x_label`, `y_label`, and filters</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        FigureWrapper</span>
+<span class="sd">            A new wrapper object containing the initialized figure and all traces.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - Time-based x-labels (starting with `&#39;hours_&#39;`) are formatted as HH:MM.</span>
+<span class="sd">        - The method uses `env.LABELS[&#39;gen&#39;]` to determine if the selected axes are non-channel-specific.</span>
+<span class="sd">        - This is the standard entry point for figure creation at the beginning of a session.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;paper_bgcolor&#39;</span><span class="p">:</span> <span class="n">env</span><span class="o">.</span><span class="n">BG_COLOR</span><span class="p">,</span>
+                <span class="s1">&#39;plot_bgcolor&#39;</span><span class="p">:</span> <span class="n">env</span><span class="o">.</span><span class="n">BG_COLOR</span><span class="p">,</span>
+                <span class="s1">&#39;font&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;color&#39;</span><span class="p">:</span> <span class="n">env</span><span class="o">.</span><span class="n">TEXT_COLOR</span><span class="p">},</span>
+                <span class="s1">&#39;dragmode&#39;</span><span class="p">:</span> <span class="s1">&#39;lasso&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;margin&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;l&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span>
+                <span class="s1">&#39;xaxis&#39;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">x_label</span><span class="p">},</span>
+                    <span class="s1">&#39;automargin&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="s1">&#39;ticks&#39;</span><span class="p">:</span> <span class="s2">&quot;outside&quot;</span><span class="p">,</span>
+                    <span class="s1">&#39;mirror&#39;</span><span class="p">:</span> <span class="kc">True</span>
+                <span class="p">},</span>
+                <span class="s1">&#39;yaxis&#39;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">y_label</span><span class="p">},</span>
+                    <span class="s1">&#39;automargin&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="s1">&#39;ticks&#39;</span><span class="p">:</span> <span class="s2">&quot;outside&quot;</span><span class="p">,</span>
+                    <span class="s1">&#39;mirror&#39;</span><span class="p">:</span> <span class="kc">True</span>
+                <span class="p">},</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">x_label</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;hours&#39;</span><span class="p">:</span>
+            <span class="n">fig</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">][</span><span class="s1">&#39;xaxis&#39;</span><span class="p">][</span><span class="s1">&#39;tickformat&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;%H:%M&quot;</span>
+
+        <span class="n">wrapper</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">fig</span><span class="o">=</span><span class="n">fig</span><span class="p">,</span>
+            <span class="n">x_label</span><span class="o">=</span><span class="n">x_label</span><span class="p">,</span>
+            <span class="n">y_label</span><span class="o">=</span><span class="n">y_label</span><span class="p">,</span>
+            <span class="n">all_data</span><span class="o">=</span><span class="n">all_data</span>
+        <span class="p">)</span>
+
+
+        <span class="k">if</span> <span class="n">x_label</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">y_label</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">]:</span>
+            <span class="c1"># If the labels are not channel-specific, the row of any channel can be used</span>
+            <span class="n">channels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">channels</span><span class="p">:</span>
+            <span class="c1"># Add the initial traces here</span>
+            <span class="n">wrapper</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">wrapper</span></div>
+
+    
+
+<div class="viewcode-block" id="FigureWrapper.from_fig">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.from_fig">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_fig</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">fig</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">all_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reconstruct a :class:`FigureWrapper` from an existing Plotly figure dictionary.</span>
+
+<span class="sd">        This method is used to rehydrate a previously serialized Plotly figure back into</span>
+<span class="sd">        a fully functional :class:`FigureWrapper` instance. It restores internal logic</span>
+<span class="sd">        such as:</span>
+
+<span class="sd">        - Trace interactivity via the :class:`Trace` wrapper</span>
+<span class="sd">        - Active channels</span>
+<span class="sd">        - Selection state (`big_point_idx`)</span>
+<span class="sd">        - Visibility toggle for filtered points</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fig : :class:`dict`</span>
+<span class="sd">            A Plotly-compatible figure dictionary, typically from a callback.</span>
+<span class="sd">            It must include:</span>
+
+<span class="sd">            - &#39;layout&#39;: with axis title strings under `xaxis.title.text` and `yaxis.title.text`</span>
+<span class="sd">            - &#39;data&#39;: a list of trace dictionaries, each with at least a &#39;channel&#39; field</span>
+
+<span class="sd">        all_data : :class:`dict`</span>
+<span class="sd">            The full dataset originally used to construct the figure, including the keys</span>
+<span class="sd">            referenced by each trace&#39;s &#39;x&#39;, &#39;y&#39;, and &#39;idx&#39; attributes. This is needed to</span>
+<span class="sd">            restore filtering, indexing, and interactivity.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        FigureWrapper</span>
+<span class="sd">            A fully reconstructed FigureWrapper with trace semantics, filter states,</span>
+<span class="sd">            and internal configuration restored.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        - Each trace in `fig[&#39;data&#39;]` is converted into a :class:`Trace` object.</span>
+<span class="sd">        - Channels are inferred from the &#39;channel&#39; field in each trace.</span>
+<span class="sd">        - If a trace is marked as `big_point`, its associated `idx[0]` is stored as `big_point_idx`.</span>
+<span class="sd">        - If any trace is marked as `hidden`, `show_filtered_points` is set to False.</span>
+<span class="sd">        - This method assumes that all necessary metadata exists in the figure dictionary</span>
+<span class="sd">          and that `all_data` is consistent with what was used to generate the figure.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_label</span> <span class="o">=</span> <span class="n">fig</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">][</span><span class="s1">&#39;xaxis&#39;</span><span class="p">][</span><span class="s1">&#39;title&#39;</span><span class="p">][</span><span class="s1">&#39;text&#39;</span><span class="p">]</span>
+        <span class="n">y_label</span> <span class="o">=</span> <span class="n">fig</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">][</span><span class="s1">&#39;yaxis&#39;</span><span class="p">][</span><span class="s1">&#39;title&#39;</span><span class="p">][</span><span class="s1">&#39;text&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Convert each trace to a Trace instance for reactive behavior</span>
+        <span class="n">converted_traces</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">trace</span> <span class="ow">in</span> <span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]:</span>
+            <span class="n">trace_obj</span> <span class="o">=</span> <span class="n">Trace</span><span class="p">(</span><span class="n">x_label</span><span class="o">=</span><span class="n">x_label</span><span class="p">,</span> <span class="n">y_label</span><span class="o">=</span><span class="n">y_label</span><span class="p">,</span> <span class="n">channel</span><span class="o">=</span><span class="n">trace</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">])</span>
+            <span class="n">trace_obj</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">trace</span><span class="p">)</span>  <span class="c1"># Apply original trace content</span>
+            <span class="n">converted_traces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trace_obj</span><span class="p">)</span>
+
+        <span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">converted_traces</span>
+
+        <span class="c1"># Instantiate the wrapper with restored state</span>
+        <span class="n">wrapper</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">fig</span><span class="o">=</span><span class="n">fig</span><span class="p">,</span>
+            <span class="n">x_label</span><span class="o">=</span><span class="n">x_label</span><span class="p">,</span>
+            <span class="n">y_label</span><span class="o">=</span><span class="n">y_label</span><span class="p">,</span>
+            <span class="n">all_data</span><span class="o">=</span><span class="n">all_data</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Recover internal state from trace attributes</span>
+        <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">wrapper</span><span class="o">.</span><span class="n">channels</span><span class="p">:</span>
+                <span class="n">wrapper</span><span class="o">.</span><span class="n">channels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">img</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;big_point&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">img</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">wrapper</span><span class="o">.</span><span class="n">big_point_idx</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;hidden&#39;</span><span class="p">]:</span>
+                <span class="n">wrapper</span><span class="o">.</span><span class="n">show_filtered_points</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="n">wrapper</span></div>
+
+
+
+
+<div class="viewcode-block" id="FigureWrapper.to_dict">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the underlying figure dictionary.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`dict`</span>
+<span class="sd">            The Plotly figure dictionary.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig</span></div>
+
+    
+
+<div class="viewcode-block" id="FigureWrapper.add_trace">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.add_trace">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a new set of traces to the figure for a given channel.</span>
+
+<span class="sd">        This method creates three separate traces for the specified channel:</span>
+
+<span class="sd">        - A primary trace for visible (unfiltered) points</span>
+<span class="sd">        - A secondary trace for filtered (low-opacity) points</span>
+<span class="sd">        - A third trace for the currently selected &quot;big point&quot;</span>
+
+<span class="sd">        The traces are appended in order to the Plotly figure&#39;s data list.</span>
+<span class="sd">        Styling and visibility behaviors are configured using the :class:`Trace` class,</span>
+<span class="sd">        which responds to keys like `filtered`, `hidden`, and `big_point`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        channel : :class:`str`</span>
+<span class="sd">            The name of the data channel to visualize (e.g., &#39;red&#39;, &#39;green&#39;, &#39;blue&#39;).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">channels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">channel</span><span class="p">)</span>
+
+        <span class="c1"># Create 3 traces: regular, filtered, and big-point</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Trace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_label</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_label</span><span class="p">,</span> <span class="n">channel</span><span class="p">))</span>
+
+        <span class="c1"># Configure filtered trace</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">2</span><span class="p">][</span><span class="s1">&#39;filtered&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">2</span><span class="p">][</span><span class="s1">&#39;showlegend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># Configure big-point trace</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;big_point&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;showlegend&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;marker&#39;</span><span class="p">][</span><span class="s1">&#39;size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">15</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;marker&#39;</span><span class="p">][</span><span class="s1">&#39;line&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s1">&#39;color&#39;</span><span class="p">:</span> <span class="s1">&#39;DarkSlateGrey&#39;</span>
+        <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="FigureWrapper.filter_traces">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.filter_traces">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">filter_traces</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply the current filter mask to all traces associated with a specific channel.</span>
+
+<span class="sd">        This method updates the `x`, `y`, and `idx` values of traces in the figure</span>
+<span class="sd">        based on whether they should be shown as filtered or not, using the</span>
+<span class="sd">        `self.total_filter` boolean mask and the specified data channel.</span>
+
+<span class="sd">        For &quot;big point&quot; traces, it toggles the `filtered` attribute depending on whether</span>
+<span class="sd">        the corresponding index appears in the active subset. For other traces,</span>
+<span class="sd">        it directly updates their data arrays with filtered or excluded values.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        channel : :class:`str`</span>
+<span class="sd">            The name of the data channel to apply filtering to. If &#39;gen&#39; is passed,</span>
+<span class="sd">            it will default to &#39;red&#39; for trace alignment purposes.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">channel</span> <span class="o">==</span> <span class="s1">&#39;gen&#39;</span><span class="p">:</span>
+            <span class="n">channel</span> <span class="o">=</span> <span class="s1">&#39;red&#39;</span>
+
+        <span class="c1"># Extract data arrays</span>
+        <span class="n">x_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">x_label</span><span class="p">])</span>
+        <span class="n">y_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">y_label</span><span class="p">])</span>
+        <span class="n">idx_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">])</span>
+        <span class="n">channel_filter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="n">channel</span>
+
+        <span class="c1"># Determine which points are included/excluded by the total filter</span>
+        <span class="n">selected_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_filter</span><span class="p">,</span> <span class="n">channel_filter</span><span class="p">)</span>
+        <span class="n">filtered_out_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">total_filter</span><span class="p">,</span> <span class="n">channel_filter</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;gen&#39;</span> <span class="ow">and</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">channel</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;big_point&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">img</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">idx_data</span><span class="p">[</span><span class="n">selected_data</span><span class="p">]:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;filtered&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;filtered&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Update trace coordinates based on filter state</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;filtered&#39;</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_data</span><span class="p">[</span><span class="n">selected_data</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">y_data</span><span class="p">[</span><span class="n">selected_data</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;idx&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx_data</span><span class="p">[</span><span class="n">selected_data</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_data</span><span class="p">[</span><span class="n">filtered_out_data</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">y_data</span><span class="p">[</span><span class="n">filtered_out_data</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;idx&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx_data</span><span class="p">[</span><span class="n">filtered_out_data</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="FigureWrapper.update_visibility">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.update_visibility">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_visibility</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">show_filtered_points</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the visibility flag for filtered points.</span>
+
+<span class="sd">        This method sets the internal flag controlling whether traces marked as</span>
+<span class="sd">        `filtered` should be displayed or hidden in the plot. It does not directly</span>
+<span class="sd">        modify the figure; you must call `apply_visibility()` afterward to apply the change.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        show_filtered_points : bool</span>
+<span class="sd">            If True, filtered points will be shown with reduced opacity.</span>
+<span class="sd">            If False, filtered points will be hidden entirely.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">show_filtered_points</span> <span class="o">=</span> <span class="n">show_filtered_points</span></div>
+
+
+
+<div class="viewcode-block" id="FigureWrapper.apply_visibility">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.apply_visibility">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">apply_visibility</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply the current visibility setting to all filtered traces.</span>
+
+<span class="sd">        This method updates the `&#39;hidden&#39;` property of each trace based on whether</span>
+<span class="sd">        filtered points should be shown or hidden. It uses the internal flag</span>
+<span class="sd">        `self.show_filtered_points`, which can be modified via `update_visibility()`.</span>
+
+<span class="sd">        Traces with `filtered = True` will be:</span>
+
+<span class="sd">        - Shown with reduced opacity if `show_filtered_points` is True</span>
+<span class="sd">        - Fully hidden if `show_filtered_points` is False</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">show_filtered_points</span><span class="p">:</span>
+            <span class="c1"># Show filtered traces by un-hiding them</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]):</span>
+                <span class="k">if</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;filtered&#39;</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;hidden&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Hide filtered traces completely</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]):</span>
+                <span class="k">if</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;filtered&#39;</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;hidden&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+
+<div class="viewcode-block" id="FigureWrapper.update_channels">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.update_channels">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_channels</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add or remove traces to match a new list of active channels.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        new_channels : :class:`list`</span>
+<span class="sd">            The updated list of channels to be shown.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        - Traces with &#39;channel&#39; not in `new_channels` are removed.</span>
+<span class="sd">        - Traces for new channels are added with default settings and shared data.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Convert to sets for comparison</span>
+        <span class="n">old_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channels</span><span class="p">)</span>
+        <span class="n">new_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">new_channels</span><span class="p">)</span>
+
+        <span class="n">to_remove</span> <span class="o">=</span> <span class="n">old_set</span> <span class="o">-</span> <span class="n">new_set</span>
+        <span class="n">to_add</span> <span class="o">=</span> <span class="n">new_set</span> <span class="o">-</span> <span class="n">old_set</span>
+
+        <span class="c1"># Remove traces with now-unwanted channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">trace</span> <span class="k">for</span> <span class="n">trace</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">trace</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">to_remove</span><span class="p">]</span>
+
+        <span class="c1"># Add traces for new channels</span>
+        <span class="k">if</span> <span class="n">to_add</span><span class="p">:</span>
+            <span class="n">channel</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">to_add</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">channel</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filter_traces</span><span class="p">(</span><span class="n">channel</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">plot_big_point</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">apply_visibility</span><span class="p">()</span></div>
+
+
+    
+
+<div class="viewcode-block" id="FigureWrapper.update_filters">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.update_filters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_filters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">active_filters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the global filter mask based on the provided list of active filters.</span>
+
+<span class="sd">        This method processes each filter definition and updates `self.total_filter`,</span>
+<span class="sd">        a boolean mask indicating which data points should be retained. Filters may</span>
+<span class="sd">        be simple threshold-based comparisons or special selection-based filters</span>
+<span class="sd">        using image indices.</span>
+
+<span class="sd">        Each filter is interpreted as either:</span>
+
+<span class="sd">        - A selection filter: matches image indices (`label == &quot;Selection ...&quot;`)</span>
+<span class="sd">        - A numeric filter: compares a field against a value using a specified operator</span>
+<span class="sd">          from `env.OP`, with optional secondary filter logic.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        active_filters : :class:`list` of :class:`dict`</span>
+<span class="sd">            Each filter dict must include:</span>
+
+<span class="sd">            - &#39;label&#39; : :class:`str` — the field name or &quot;Selection ...&quot;.</span>
+<span class="sd">            - &#39;operator&#39; : :class:`str` — key in `env.OP` for the comparison function.</span>
+<span class="sd">            - &#39;value&#39; : comparable — the value to compare against.</span>
+
+<span class="sd">            Optionally:</span>
+
+<span class="sd">            - &#39;secondary&#39; : :class:`dict` — a nested filter with the same keys (&#39;label&#39;, &#39;operator&#39;, &#39;value&#39;).</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        - All filters are combined using logical AND.</span>
+<span class="sd">        - Secondary filters are combined with the primary using logical OR.</span>
+<span class="sd">        - The resulting `self.total_filter` array is used by `filter_traces()` to control visibility.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">filters</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;date_utc&#39;</span><span class="p">,</span> <span class="s1">&#39;date_local&#39;</span><span class="p">,</span> <span class="s1">&#39;hours_utc&#39;</span><span class="p">,</span> <span class="s1">&#39;hours_local&#39;</span><span class="p">]:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="n">l</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">active_filters</span><span class="p">:</span>
+            <span class="c1"># Handle selection-based filters (match by index)</span>
+            <span class="k">if</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Selection&#39;</span><span class="p">:</span>
+                <span class="n">primary_filter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">],</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;operator&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;out&#39;</span><span class="p">:</span>
+                    <span class="n">primary_filter</span> <span class="o">=</span> <span class="o">~</span><span class="n">primary_filter</span>
+                <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">primary_filter</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Handle threshold-style filters</span>
+                <span class="n">label_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]])</span>
+                <span class="n">value_type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]][</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">comparison_value</span> <span class="o">=</span> <span class="n">value_type</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+                <span class="n">primary_filter</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">OP</span><span class="p">[</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;operator&#39;</span><span class="p">]](</span><span class="n">label_data</span><span class="p">,</span> <span class="n">comparison_value</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="s1">&#39;secondary&#39;</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">secondary</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;secondary&#39;</span><span class="p">]</span>
+                    <span class="n">secondary_label_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="n">secondary</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]])</span>
+                    <span class="n">secondary_value_type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="n">secondary</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]][</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="n">secondary_value</span> <span class="o">=</span> <span class="n">secondary_value_type</span><span class="p">(</span><span class="n">secondary</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+                    <span class="n">secondary_filter</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">OP</span><span class="p">[</span><span class="n">secondary</span><span class="p">[</span><span class="s1">&#39;operator&#39;</span><span class="p">]](</span><span class="n">secondary_label_data</span><span class="p">,</span> <span class="n">secondary_value</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Use all-False secondary filter if not provided</span>
+                    <span class="n">secondary_filter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">]),</span> <span class="kc">False</span><span class="p">)</span>
+
+                <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">primary_filter</span><span class="p">,</span> <span class="n">secondary_filter</span><span class="p">))</span>
+
+        <span class="c1"># Combine all filters using logical AND</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">filters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">total_filter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_filter</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
+
+
+
+
+<div class="viewcode-block" id="FigureWrapper.gather_big_point">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.gather_big_point">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gather_big_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clickdata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the index of the selected &quot;big point&quot; based on click interaction data.</span>
+
+<span class="sd">        This method extracts the index of the clicked point from Plotly&#39;s `clickData`</span>
+<span class="sd">        dictionary and stores it in `self.big_point_idx`. This index is later used</span>
+<span class="sd">        for highlighting or retrieving detailed information about the selected point.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        clickdata : :class:`dict`</span>
+<span class="sd">            A dictionary passed from a Dash Plotly `clickData` callback. It must contain</span>
+<span class="sd">            a &#39;points&#39; list with at least one item, each including:</span>
+
+<span class="sd">            - &#39;curveNumber&#39;: int — the index of the clicked trace in `fig[&#39;data&#39;]`</span>
+<span class="sd">            - &#39;pointIndex&#39;: int — the index of the clicked point within that trace</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">plot_index</span> <span class="o">=</span> <span class="n">clickdata</span><span class="p">[</span><span class="s1">&#39;points&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;curveNumber&#39;</span><span class="p">]</span>
+        <span class="n">point_index</span> <span class="o">=</span> <span class="n">clickdata</span><span class="p">[</span><span class="s1">&#39;points&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;pointIndex&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">big_point_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">plot_index</span><span class="p">][</span><span class="s1">&#39;idx&#39;</span><span class="p">][</span><span class="n">point_index</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="FigureWrapper.plot_big_point">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.plot_big_point">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_big_point</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the figure to highlight the currently selected &quot;big point&quot;.</span>
+
+<span class="sd">        This method sets the data for the special &quot;big point&quot; trace associated with</span>
+<span class="sd">        each channel. It updates the trace with the coordinates of the selected point,</span>
+<span class="sd">        based on `self.big_point_idx` and the current x/y axis labels.</span>
+
+<span class="sd">        The point is only plotted if both its index and channel match a known data entry.</span>
+<span class="sd">        Its `filtered` flag is also updated depending on whether the point passes the current filter.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">            This method updates the figure in-place.</span>
+<span class="sd">        </span>
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        - The &quot;gen&quot; channel is treated as &quot;red&quot; for indexing purposes.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_point_idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">big_point_selection</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_point_idx</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;big_point&#39;</span><span class="p">]:</span>
+                <span class="n">channel</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">channel</span> <span class="o">==</span> <span class="s1">&#39;gen&#39;</span><span class="p">:</span>
+                    <span class="n">channel</span> <span class="o">=</span> <span class="s1">&#39;red&#39;</span>
+
+                <span class="n">channel_filter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="n">channel</span>
+                <span class="n">selected_data_filter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">big_point_selection</span><span class="p">,</span> <span class="n">channel_filter</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">x_label</span><span class="p">])[</span><span class="n">selected_data_filter</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">y_label</span><span class="p">])[</span><span class="n">selected_data_filter</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;idx&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">])[</span><span class="n">selected_data_filter</span><span class="p">]</span>
+
+                <span class="c1"># Determine whether the selected point passes the current filters</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">selected_data_filter</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_filter</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;filtered&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;filtered&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+
+
+<div class="viewcode-block" id="FigureWrapper.get_stats">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.get_stats">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute summary statistics (mean and standard deviation) for plotted x and y values.</span>
+
+<span class="sd">        This function extracts unfiltered, non-highlighted data from the figure and calculates</span>
+<span class="sd">        per-axis statistics. It builds an HTML table as a list of `Dash &lt;https://dash.plotly.com/&gt;`_ row components to be</span>
+<span class="sd">        rendered in the dashboard&#39;s stats panel.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`list`</span>
+<span class="sd">            A list of :class:`dash.html.Tr` elements representing the statistics table rows.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">data_figs</span> <span class="o">=</span> <span class="p">{</span><span class="n">img</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">]:</span> <span class="n">img</span> <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;filtered&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;big_point&#39;</span><span class="p">]}</span>
+
+        <span class="n">stats_table</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">axis</span><span class="p">,</span><span class="n">label</span> <span class="ow">in</span> <span class="p">[[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_label</span><span class="p">],[</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_label</span><span class="p">]]:</span>
+            <span class="n">stats_table</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">]:</span>
+                    <span class="n">stats_table</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;label&#39;</span><span class="p">:</span><span class="n">label</span><span class="p">})</span>
+                    <span class="k">if</span> <span class="s1">&#39;gen&#39;</span> <span class="ow">in</span> <span class="n">data_figs</span><span class="p">:</span>
+                        <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data_figs</span><span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">][</span><span class="n">axis</span><span class="p">])</span>
+                        <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">data_figs</span><span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">][</span><span class="n">axis</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data_figs</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">data_figs</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]][</span><span class="n">axis</span><span class="p">])</span>
+                        <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">data_figs</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">data_figs</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]][</span><span class="n">axis</span><span class="p">])</span>
+
+                    <span class="n">stats_table</span><span class="p">[</span><span class="n">axis</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">m</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> ± </span><span class="si">{</span><span class="n">s</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">CHANNELS</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">data_figs</span><span class="p">:</span>
+                            <span class="n">stats_table</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                                <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                                <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data_figs</span><span class="p">[</span><span class="n">c</span><span class="p">][</span><span class="n">axis</span><span class="p">])</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> ± </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">data_figs</span><span class="p">[</span><span class="n">c</span><span class="p">][</span><span class="n">axis</span><span class="p">])</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="p">})</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+                <span class="n">stats_table</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span><span class="o">=</span><span class="p">[]</span>
+
+        <span class="k">return</span> <span class="n">stats_table</span></div>
+
+
+
+<div class="viewcode-block" id="FigureWrapper.get_data_point_info">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.get_data_point_info">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_data_point_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve detailed metadata for the currently selected &quot;big point&quot;.</span>
+
+<span class="sd">        This method gathers all relevant information for the data point indexed by</span>
+<span class="sd">        `self.big_point_idx`, combining general metadata and channel-specific fit values</span>
+<span class="sd">        into a single dictionary.</span>
+
+<span class="sd">        General fields (from `env.LABELS[&#39;gen&#39;]`) are assumed to be identical across channels</span>
+<span class="sd">        and are taken from the first matching index. Channel-specific fields (from `env.LABELS[&#39;fit&#39;]`)</span>
+<span class="sd">        are extracted separately for each matching channel and labeled accordingly.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`dict`</span>
+<span class="sd">            A dictionary containing the values of all general and fit-related fields</span>
+<span class="sd">            for the selected &quot;big point&quot;. Fit values are keyed by `{label}_{channel}`.</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_point_idx</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">out_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># General labels are channel-independent, so we use the first occurrence</span>
+        <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">label</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;date&#39;</span><span class="p">:</span>
+                <span class="n">out_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="n">label</span><span class="p">][</span><span class="n">indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">,</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">label</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;hours&#39;</span><span class="p">:</span>
+                <span class="n">out_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="n">label</span><span class="p">][</span><span class="n">indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">out_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="n">label</span><span class="p">][</span><span class="n">indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+
+        <span class="c1"># Fit labels are channel-specific, so we include one per index</span>
+        <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;fit&#39;</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">:</span>
+                <span class="n">channel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">out_dict</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s1">_</span><span class="si">{</span><span class="n">channel</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="n">label</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">out_dict</span></div>
+
+
+
+
+<div class="viewcode-block" id="FigureWrapper.gonet_image">
+<a class="viewcode-back" href="../../../../../dashboard/hood/plot.html#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.gonet_image">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gonet_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clickdata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve and render a GONet image corresponding to the selected data point.</span>
+
+<span class="sd">        This method locates the raw image file corresponding to the clicked data point</span>
+<span class="sd">        and generates a Plotly-compatible figure dictionary for display in the dashboard.</span>
+<span class="sd">        It overlays the image with a marker at the extraction center and a circular</span>
+<span class="sd">        region representing the extraction aperture.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        clickdata : :class:`dict`</span>
+<span class="sd">            A Plotly click event dictionary from a Dash callback. Must contain:</span>
+
+<span class="sd">            - &#39;points&#39;: list with at least one entry</span>
+<span class="sd">            - &#39;curveNumber&#39;: index of the clicked trace</span>
+<span class="sd">            - &#39;pointIndex&#39;: index of the clicked point within the trace</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`dict` or None</span>
+<span class="sd">            A Plotly figure dictionary containing a heatmap of the selected image</span>
+<span class="sd">            and overlay annotations. Returns None if the image cannot be loaded</span>
+<span class="sd">            due to missing configuration or file.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        - This function uses `env.GONET_IMAGES_PATH` to resolve image file paths.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">env</span><span class="o">.</span><span class="n">GONET_IMAGES_PATH</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;The environment variable for image paths is not set. Cannot display any image.&quot;</span><span class="p">,</span>
+                <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">env</span><span class="o">.</span><span class="n">GONET_IMAGES_PATH</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The folder </span><span class="si">{</span><span class="n">env</span><span class="o">.</span><span class="n">GONET_IMAGES_PATH</span><span class="si">}</span><span class="s2">, defined in the environment, does not exist.&quot;</span><span class="p">,</span>
+                <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plot_index</span> <span class="o">=</span> <span class="n">clickdata</span><span class="p">[</span><span class="s1">&#39;points&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;curveNumber&#39;</span><span class="p">]</span>
+            <span class="n">channel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="n">plot_index</span><span class="p">][</span><span class="s1">&#39;channel&#39;</span><span class="p">]</span>
+
+            <span class="c1"># Identify the real index matching both the big point and the channel</span>
+            <span class="n">real_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">big_point_idx</span><span class="p">,</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="n">channel</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">GONET_IMAGES_PATH</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;night&#39;</span><span class="p">][</span><span class="n">real_idx</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;Horizontal&quot;</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">][</span><span class="n">real_idx</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">filename</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Image not found at resolved path.&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">)</span>
+                <span class="k">return</span>
+
+            <span class="c1"># Load image data</span>
+            <span class="n">go</span> <span class="o">=</span> <span class="n">GONetFile</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+            <span class="n">outfig</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="p">[{</span>
+                    <span class="s1">&#39;z&#39;</span><span class="p">:</span> <span class="n">go</span><span class="o">.</span><span class="n">channel</span><span class="p">(</span><span class="n">channel</span><span class="p">),</span>
+                    <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;heatmap&#39;</span>
+                <span class="p">}],</span>
+                <span class="s1">&#39;layout&#39;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s1">&#39;showlegend&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                    <span class="s1">&#39;paper_bgcolor&#39;</span><span class="p">:</span> <span class="n">env</span><span class="o">.</span><span class="n">BG_COLOR</span><span class="p">,</span>
+                    <span class="s1">&#39;plot_bgcolor&#39;</span><span class="p">:</span> <span class="n">env</span><span class="o">.</span><span class="n">BG_COLOR</span><span class="p">,</span>
+                    <span class="s1">&#39;font&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;color&#39;</span><span class="p">:</span> <span class="n">env</span><span class="o">.</span><span class="n">TEXT_COLOR</span><span class="p">},</span>
+                    <span class="s1">&#39;margin&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;l&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span>
+                    <span class="s1">&#39;xaxis&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;automargin&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;ticks&#39;</span><span class="p">:</span> <span class="s2">&quot;outside&quot;</span><span class="p">,</span> <span class="s1">&#39;mirror&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+                    <span class="s1">&#39;yaxis&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;automargin&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;ticks&#39;</span><span class="p">:</span> <span class="s2">&quot;outside&quot;</span><span class="p">,</span> <span class="s1">&#39;mirror&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+            <span class="k">del</span> <span class="n">go</span>
+
+            <span class="c1"># Center marker</span>
+            <span class="n">outfig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;center_x&#39;</span><span class="p">][</span><span class="n">real_idx</span><span class="p">]],</span>
+                <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;center_y&#39;</span><span class="p">][</span><span class="n">real_idx</span><span class="p">]],</span>
+                <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;scatter&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="s1">&#39;markers&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;marker&#39;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s1">&#39;color&#39;</span><span class="p">:</span> <span class="s1">&#39;rgba(0, 0, 0, 1)&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;symbol&#39;</span><span class="p">:</span> <span class="s1">&#39;circle&#39;</span>
+                <span class="p">}</span>
+            <span class="p">})</span>
+
+            <span class="c1"># Circular aperture overlay</span>
+            <span class="n">c_x</span><span class="p">,</span> <span class="n">c_y</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">ang</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">25</span><span class="p">):</span>
+                <span class="n">c_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;center_x&#39;</span><span class="p">][</span><span class="n">real_idx</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;extraction_radius&#39;</span><span class="p">][</span><span class="n">real_idx</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">ang</span><span class="p">))</span>
+                <span class="n">c_y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;center_y&#39;</span><span class="p">][</span><span class="n">real_idx</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_data</span><span class="p">[</span><span class="s1">&#39;extraction_radius&#39;</span><span class="p">][</span><span class="n">real_idx</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">ang</span><span class="p">))</span>
+
+            <span class="n">outfig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">c_x</span><span class="p">,</span>
+                <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="n">c_y</span><span class="p">,</span>
+                <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;scatter&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="s1">&#39;lines&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;marker&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;color&#39;</span><span class="p">:</span> <span class="s1">&#39;rgba(0, 0, 0, 1)&#39;</span><span class="p">,</span> <span class="s1">&#39;symbol&#39;</span><span class="p">:</span> <span class="s1">&#39;circle&#39;</span><span class="p">}</span>
+            <span class="p">})</span>
+
+            <span class="k">return</span> <span class="n">outfig</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
+</div>
+
+
+
+<span class="c1"># if &#39;range&#39; in fig[&#39;layout&#39;][&#39;xaxis&#39;]:</span>
+<span class="c1">#     xaxis_range = fig[&#39;layout&#39;][&#39;xaxis&#39;][&#39;range&#39;]</span>
+<span class="c1">#     yaxis_range = fig[&#39;layout&#39;][&#39;yaxis&#39;][&#39;range&#39;]</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,321 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>utils &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="hood sub-package" href="hood.html" />
+    <link rel="prev" title="server" href="server.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../settings.html">settings Module</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../GONet_dashboard.html">GONet Dashboard Package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../GONet_dashboard.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="app.html">app</a></li>
+<li class="toctree-l3"><a class="reference internal" href="callbacks.html">callbacks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="env.html">env</a></li>
+<li class="toctree-l3"><a class="reference internal" href="layout.html">layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="server.html">server</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hood.html">hood sub-package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../GONet_dashboard.html">GONet Dashboard Package</a></li>
+      <li class="breadcrumb-item active">utils</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/dashboard/utils.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-GONet_Wizard.GONet_dashboard.src.utils">
+<span id="utils"></span><h1>utils<a class="headerlink" href="#module-GONet_Wizard.GONet_dashboard.src.utils" title="Link to this heading"></a></h1>
+<p>GONet Wizard Utility Functions.</p>
+<p>This module provides reusable functions for plotting, filtering, statistical analysis,
+and layout generation within the GONet Wizard dashboard application. These functions
+support the construction of <a class="reference external" href="https://dash.plotly.com/">Dash</a> figures, dynamic filter UI elements, and filter logic
+used in the callback system.</p>
+<p><a class="reference external" href="https://dash.plotly.com/">Dash</a> components from <cite>dash</cite> and <cite>dash_daq</cite> are used to construct UI elements dynamically.</p>
+<p><strong>Functions</strong></p>
+<ul class="simple">
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">debug()</span></code> : debugging.</p></li>
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">sort_figure()</span></code> : Reorders the traces in a Plotly figure based on filtering and highlight status.</p></li>
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">get_labels()</span></code> : Extracts the axis label text from a Plotly figure layout.</p></li>
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_scatter()</span></code> : Update a Plotly figure by adding scatter traces for selected and filtered data.</p></li>
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_big_points()</span></code> : Highlight a selected point in the scatter plot by adding enlarged “big point” markers.</p></li>
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">get_stats()</span></code> : Compute summary statistics (mean and standard deviation) for plotted x and y values.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.utils.new_empty_filter" title="GONet_Wizard.GONet_dashboard.src.utils.new_empty_filter"><code class="xref py py-func docutils literal notranslate"><span class="pre">new_empty_filter()</span></code></a> : Create a <a class="reference external" href="https://dash.plotly.com/">Dash</a> component representing an empty primary filter block.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.utils.new_empty_second_filter" title="GONet_Wizard.GONet_dashboard.src.utils.new_empty_second_filter"><code class="xref py py-func docutils literal notranslate"><span class="pre">new_empty_second_filter()</span></code></a> : Create a <a class="reference external" href="https://dash.plotly.com/">Dash</a> component block representing a secondary (OR) filter.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.utils.new_selection_filter" title="GONet_Wizard.GONet_dashboard.src.utils.new_selection_filter"><code class="xref py py-func docutils literal notranslate"><span class="pre">new_selection_filter()</span></code></a> : Create a <a class="reference external" href="https://dash.plotly.com/">Dash</a> component for a selection-based filter using manually selected points.</p></li>
+</ul>
+<section id="functions">
+<h2>Functions:<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.utils.debug_print">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.utils.</span></span><span class="sig-name descname"><span class="pre">debug_print</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback_fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/utils.html#debug_print"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.utils.debug_print" title="Link to this definition"></a></dt>
+<dd><p>Decorator that logs when a Dash callback is triggered, including the triggering component ID and source line.</p>
+<p>This decorator is useful for debugging and tracing which callbacks are being executed during development.
+Logging only occurs when the <code class="docutils literal notranslate"><span class="pre">WERKZEUG_RUN_MAIN</span></code> environment variable is set to “true”, which ensures
+the message is printed only by the reloader’s main process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>callback_fn</strong> (<em>callable</em>) – The Dash callback function to wrap.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The wrapped function that logs on invocation and then calls the original function.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>callable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.utils.gonet_callback">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.utils.</span></span><span class="sig-name descname"><span class="pre">gonet_callback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/utils.html#gonet_callback"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.utils.gonet_callback" title="Link to this definition"></a></dt>
+<dd><p>Custom Dash callback decorator that extends the original callback with automatic alert handling,
+debug logging, and error state protection.</p>
+<p>This decorator automatically appends three additional outputs for managing an alert container:</p>
+<ul class="simple">
+<li><p><cite>alert-container.children</cite> (message content)</p></li>
+<li><p><cite>alert-container.className</cite> (CSS class for styling)</p></li>
+<li><p><cite>alert-container.style</cite> (visibility/display logic)</p></li>
+</ul>
+<p>It also adds one hidden State:</p>
+<ul class="simple">
+<li><p><cite>alert-container.className</cite> (used to suppress execution if an error is already active)</p></li>
+</ul>
+<p>The wrapped callback will:
+- Suppress execution if the alert container is currently showing an error (<cite>“alert-box error”</cite>).
+- Capture and display any warnings issued during execution.
+- Catch exceptions and display a red alert box with the error message.
+- Log a message when the callback is triggered, including the triggering component (if <cite>WERKZEUG_RUN_MAIN == “true”</cite>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*args</strong> (<em>dash.Output</em><em>, </em><em>dash.Input</em><em>, </em><em>dash.State</em>) – Positional arguments defining the Dash callback’s outputs, inputs, and states.
+All initial Output(…) arguments are treated as actual user outputs.</p></li>
+<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Additional keyword arguments passed to Dash’s <cite>app.callback</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The decorated function registered as a Dash callback.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>callable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.utils.parse_date_time">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.utils.</span></span><span class="sig-name descname"><span class="pre">parse_date_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/utils.html#parse_date_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.utils.parse_date_time" title="Link to this definition"></a></dt>
+<dd><p>Parses and converts a date/time value based on the provided label.</p>
+<p>This function processes a given date/time value and returns it in a standardized format. Depending on the label, it
+either converts an ISO datetime string to Unix time or a time string (hours:minutes:seconds) to a fraction of the day.
+If the label corresponds to ‘date’, the value is converted to Unix time. If the label corresponds to ‘hours’, the value
+is converted to a fraction of the day, accounting for potential time zone shifts.</p>
+<section id="parameters">
+<h3>Parameters:<a class="headerlink" href="#parameters" title="Link to this heading"></a></h3>
+<dl>
+<dt>label<span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>A string representing the quantity parsed. If not time or date related it will return itself.</p>
+</dd>
+<dt>value<span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Value of the quantity parsed. If <cite>label</cite> is not time or date related it will return itself.</p>
+</dd>
+</dl>
+</section>
+<section id="returns">
+<h3>Returns:<a class="headerlink" href="#returns" title="Link to this heading"></a></h3>
+<p>:
+tuple</p>
+<blockquote>
+<div><p>A tuple containing the processed label and the parsed value:</p>
+<ul class="simple">
+<li><p>If the label starts with ‘date’, the value will be the corresponding Unix time as an integer.</p></li>
+<li><p>If the label starts with ‘hours’, the value will be a float representing the fraction of the day.</p></li>
+<li><p>If the time is earlier than the defined ‘day start’ (UTC or local), the function will adjust the value to the
+following day.</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="raises">
+<h3>Raises:<a class="headerlink" href="#raises" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>ValueError</dt><dd><p>If the ‘value’ cannot be parsed into a valid datetime or time string, the function will print an error message
+and return None.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.utils.new_empty_filter">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.utils.</span></span><span class="sig-name descname"><span class="pre">new_empty_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/utils.html#new_empty_filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.utils.new_empty_filter" title="Link to this definition"></a></dt>
+<dd><p>Create a <a class="reference external" href="https://dash.plotly.com/">Dash</a> component representing an empty primary filter block.</p>
+<p>This function generates a new UI element for a filter container, including:
+- A toggle switch to activate the filter
+- Dropdowns for selecting the data field and comparison operator
+- An input box for entering the comparison value
+- A button to optionally add a secondary (OR) filter</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idx</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>) – The index of the filter, used to uniquely identify its subcomponents.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – A list of dictionaries defining the dropdown options for the filter field selector.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A fully constructed <a class="extlink-dashdoc reference external" href="https://dash.plotly.com/dash-html-components/div">Dash Div</a> component containing the filter UI.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">dash.html.Div</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.utils.new_empty_second_filter">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.utils.</span></span><span class="sig-name descname"><span class="pre">new_empty_second_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/utils.html#new_empty_second_filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.utils.new_empty_second_filter" title="Link to this definition"></a></dt>
+<dd><p>Create a <a class="reference external" href="https://dash.plotly.com/">Dash</a> component block representing a secondary (OR) filter.</p>
+<p>This function returns a list of <a class="reference external" href="https://dash.plotly.com/">Dash</a> components corresponding to a secondary filter UI.
+It includes a label (“OR”), a dropdown for field selection, a dropdown for the operator,
+and an input field for the value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idx</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>) – The index of the parent filter, used to uniquely identify the subcomponents.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – A list of dictionaries representing dropdown options for field selection.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>A list of <a class="reference external" href="https://dash.plotly.com/">Dash</a> components to be inserted into a secondary filter container.</p>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.utils.new_selection_filter">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.utils.</span></span><span class="sig-name descname"><span class="pre">new_selection_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_indexes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/utils.html#new_selection_filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.utils.new_selection_filter" title="Link to this definition"></a></dt>
+<dd><p>Create a <a class="reference external" href="https://dash.plotly.com/">Dash</a> component for a selection-based filter using manually selected points.</p>
+<p>This function generates a filter UI tied to a lasso or box selection on the plot.
+It includes a toggle switch, a dropdown preset to the selection label, a hidden
+data store with the selected indices, and a dropdown to choose inclusion or exclusion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idx</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>) – The index of the filter, used to generate unique component IDs.</p></li>
+<li><p><strong>selected_indexes</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – A list of data indices representing the points included in the selection.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <a class="extlink-dashdoc reference external" href="https://dash.plotly.com/dash-html-components/div">Dash Div</a> component containing the selection-based filter UI.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">dash.html.Div</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="server.html" class="btn btn-neutral float-left" title="server" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hood.html" class="btn btn-neutral float-right" title="hood sub-package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,184 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>connect &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="snap" href="snap.html" />
+    <link rel="prev" title="show_meta" href="show_meta.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../settings.html">settings Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../commands.html">commands Package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../commands.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="run_dashboard.html">run_dashboard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="show.html">show</a></li>
+<li class="toctree-l3"><a class="reference internal" href="show_meta.html">show_meta</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">connect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="snap.html">snap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="terminate.html">terminate_imaging</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../commands.html">commands Package</a></li>
+      <li class="breadcrumb-item active">connect</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/commands/connect.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-GONet_Wizard.commands.connect">
+<span id="connect"></span><h1>connect<a class="headerlink" href="#module-GONet_Wizard.commands.connect" title="Link to this heading"></a></h1>
+<p>SSH Connection Utilities for GONet Remote Access.</p>
+<p>This module defines a decorator for safely managing SSH connections to a remote GONet device.
+It abstracts away the connection lifecycle, allowing decorated functions to focus solely on
+their task with an active <a class="reference external" href="https://docs.paramiko.org/en/stable/api/client.html#paramiko.client.SSHClient" title="(in Paramiko)"><code class="xref py py-class docutils literal notranslate"><span class="pre">paramiko.client.SSHClient</span></code></a> instance.</p>
+<section id="environment">
+<h2>Environment<a class="headerlink" href="#environment" title="Link to this heading"></a></h2>
+<p>Uses credentials from <code class="xref py py-class docutils literal notranslate"><span class="pre">GONet_Wizard.commands.settings.GONetConfig</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">GONET_USER</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GONET_PASSWORD</span></code></p></li>
+</ul>
+<p><strong>Functions</strong></p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#GONet_Wizard.commands.connect.ssh_connect" title="GONet_Wizard.commands.connect.ssh_connect"><code class="xref py py-func docutils literal notranslate"><span class="pre">ssh_connect()</span></code></a> : Decorator for establishing an SSH connection before calling a remote operation.</p></li>
+</ul>
+</section>
+<section id="functions">
+<h2>Functions:<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.commands.connect.ssh_connect">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.commands.connect.</span></span><span class="sig-name descname"><span class="pre">ssh_connect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/commands/connect.html#ssh_connect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.commands.connect.ssh_connect" title="Link to this definition"></a></dt>
+<dd><p>Decorator for establishing an SSH connection before calling a remote operation.</p>
+<p>This decorator wraps a function that requires a live SSH connection. It manages:
+- Setting up the SSH client
+- Connecting to the given GONet device IP
+- Passing the connected SSH client to the decorated function
+- Automatically closing the connection afterward</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>func</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference external" href="https://docs.paramiko.org/en/stable/api/client.html#paramiko.client.SSHClient" title="(in Paramiko)"><em>paramiko.client.SSHClient</em></a><em>, </em><em>Any</em><em>]</em><em>, </em><em>Any</em><em>]</em>) – A function that expects a connected SSH client as its first argument.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new function that takes the GONet device IP address and any additional arguments.
+The SSH connection is established using the environment-configured credentials.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Callable[[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, Any], Any]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.13)"><strong>Exception</strong></a> – If the SSH connection fails for any reason (auth, network, etc.), the exception is propagated.</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@ssh_connect</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">list_home</span><span class="p">(</span><span class="n">ssh</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">_</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ssh</span><span class="o">.</span><span class="n">exec_command</span><span class="p">(</span><span class="s2">&quot;ls ~&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">stdout</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">list_home</span><span class="p">(</span><span class="s2">&quot;192.168.1.101&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="show_meta.html" class="btn btn-neutral float-left" title="show_meta" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="snap.html" class="btn btn-neutral float-right" title="snap" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

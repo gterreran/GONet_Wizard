@@ -1,0 +1,1300 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GONet_Wizard.GONet_utils.src.gonetfile &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../settings.html">settings Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">GONet_Wizard.GONet_utils.src.gonetfile</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for GONet_Wizard.GONet_utils.src.gonetfile</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module defines the :class:`GONetFile` class, which provides functionality for </span>
+<span class="sd">handling and processing GONet files. The class encapsulates the properties </span>
+<span class="sd">and methods required for manipulating the image data (including red, green, </span>
+<span class="sd">and blue channels) and metadata associated with GONet files.</span>
+
+<span class="sd">The module supports various operations on GONet files, including:</span>
+
+<span class="sd">- Loading image data from original raw (`.jpg`) or TIFF formats.</span>
+<span class="sd">- Performing arithmetic operations between GONet files and scalar values.</span>
+<span class="sd">- Writing image data to common formats like JPEG, TIFF, and FITS.</span>
+<span class="sd">- Parsing and handling metadata for different file types.</span>
+
+<span class="sd">For more info regarding how the raw data is parsed, see :doc:`raw_data`.</span>
+
+<span class="sd">The :class:`GONetFile` class also includes support for operator overloading, allowing </span>
+<span class="sd">users to easily perform element-wise operations between GONet files or between </span>
+<span class="sd">a GONet file and scalar values.</span>
+
+<span class="sd">In order to ensure that all arithmetic operations on the image channels are safe and</span>
+<span class="sd">reliable, we cast the red, green, and blue channel arrays to float64 upon initialization.</span>
+<span class="sd">The original pixel data is typically stored as uint12 or uint16, which are prone to</span>
+<span class="sd">overflow or precision loss during common operations like addition, subtraction, or</span>
+<span class="sd">division. By promoting the arrays to float64, we avoid these issues and enable robust</span>
+<span class="sd">numerical processing — particularly important for calibration, normalization, or stacked</span>
+<span class="sd">image analysis. This casting ensures consistency and protects users from subtle bugs that</span>
+<span class="sd">can arise from working with fixed-width integer types.</span>
+
+<span class="sd">**Functions**</span>
+
+<span class="sd">- :func:`cast`: Convert a value to a JSON-serializable type if necessary.</span>
+
+<span class="sd">**Classes**</span>
+
+<span class="sd">- :class:`FileType`: Enumeration of file types used in GONet observations.</span>
+<span class="sd">- :class:`GONetFile`: A class representing a GONet file.</span>
+
+
+<span class="sd">Example usage</span>
+<span class="sd">--------------</span>
+<span class="sd">.. code-block:: python</span>
+
+<span class="sd">   gonet_file = GONetFile.from_file(&#39;example_image.tiff&#39;)</span>
+<span class="sd">   plt.imshow(gonet_file.green)</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tifffile</span><span class="w"> </span><span class="kn">import</span> <span class="n">tifffile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">PIL</span><span class="o">,</span><span class="w"> </span><span class="nn">operator</span><span class="o">,</span><span class="w"> </span><span class="nn">re</span><span class="o">,</span><span class="w"> </span><span class="nn">ast</span><span class="o">,</span><span class="w"> </span><span class="nn">pprint</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">PIL.ExifTags</span><span class="w"> </span><span class="kn">import</span> <span class="n">TAGS</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">auto</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astropy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">fits</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+
+<div class="viewcode-block" id="scale_uint12_to_16bit_range">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.scale_uint12_to_16bit_range">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">scale_uint12_to_16bit_range</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Linearly scales unsigned 12-bit integer values to the full 16-bit range [0, 65535].</span>
+
+<span class="sd">    This function maps values from the uint12 range [0, 4095] to the float range [0, 65535],</span>
+<span class="sd">    preserving relative magnitudes without rounding or type conversion to integer.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : array-like or int</span>
+<span class="sd">        Input value(s) in the uint12 range [0, 4095]. Can be a scalar or NumPy array.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.ndarray or float</span>
+<span class="sd">        Scaled value(s) in the float range [0.0, 65535.0]. Output dtype is float64.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If any input values are outside the valid uint12 range.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="n">max_uint12</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="mi">12</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># 4095</span>
+    <span class="n">max_uint16</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="mi">16</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># 65535</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">((</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="n">max_uint12</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input values must be in the range [0, </span><span class="si">{</span><span class="n">max_uint12</span><span class="si">}</span><span class="s2">] for uint12.&quot;</span><span class="p">)</span>
+
+    <span class="n">scaled</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="n">max_uint12</span><span class="p">)</span> <span class="o">*</span> <span class="n">max_uint16</span>
+    <span class="k">return</span> <span class="n">scaled</span></div>
+
+
+<div class="viewcode-block" id="FileType">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.FileType">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FileType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Enumeration of file types used in GONet observations.</span>
+
+<span class="sd">    This enum defines the standard types of data that a GONet file may represent,</span>
+<span class="sd">    used for categorizing the file during processing or analysis.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    SCIENCE : :class:`FileType`</span>
+<span class="sd">        Represents a science frame (standard observational data).</span>
+<span class="sd">    FLAT : :class:`FileType`</span>
+<span class="sd">        Represents a flat field frame (used for pixel response correction).</span>
+<span class="sd">    BIAS : :class:`FileType`</span>
+<span class="sd">        Represents a bias frame (used for sensor readout offset correction).</span>
+<span class="sd">    DARK : :class:`FileType`</span>
+<span class="sd">        Represents a dark frame (used to correct for dark current noise).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">SCIENCE</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>  <span class="c1"># Represents science data</span>
+    <span class="n">FLAT</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>     <span class="c1"># Represents flat field data</span>
+    <span class="n">BIAS</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>     <span class="c1"># Represents bias data</span>
+    <span class="n">DARK</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>     <span class="c1"># Represents dark frame data</span></div>
+
+
+<div class="viewcode-block" id="GONetFile">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GONetFile</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class representing a GONet file.</span>
+
+<span class="sd">    This class provides methods for loading, interpreting, and processing GONet image data </span>
+<span class="sd">    along with its associated metadata. It supports operations such as reading binary formats, </span>
+<span class="sd">    extracting image channels, and converting pixel data into structured arrays.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    RAW_FILE_OFFSET : :class:`int`</span>
+<span class="sd">        Offset in bytes to the beginning of the raw data in the file (default: 18711040).</span>
+<span class="sd">    RAW_HEADER_SIZE : :class:`int`</span>
+<span class="sd">        Size in bytes of the file header preceding the image data (default: 32768).</span>
+<span class="sd">    RAW_DATA_OFFSET : :class:`int`</span>
+<span class="sd">        Offset in bytes to the raw image data, computed as ``RAW_FILE_OFFSET`` - ``RAW_HEADER_SIZE``.</span>
+<span class="sd">    RELATIVETOEND : :class:`int`</span>
+<span class="sd">        Flag used to indicate seeking relative to the end of the file (default: 2).</span>
+<span class="sd">    PIXEL_PER_LINE : :class:`int`</span>
+<span class="sd">        Number of pixels per image row (default: 4056).</span>
+<span class="sd">    PIXEL_PER_COLUMN : :class:`int`</span>
+<span class="sd">        Number of pixels per image column (default: 3040).</span>
+<span class="sd">    PADDED_LINE_BYTES : :class:`int`</span>
+<span class="sd">        Number of bytes used to store a single image row, including padding (default: 6112).</span>
+<span class="sd">    USED_LINE_BYTES : :class:`int`</span>
+<span class="sd">        Number of bytes used to store a single image row, based on 12-bit pixel encoding </span>
+<span class="sd">        (default: int(``PIXEL_PER_LINE`` * 12 / 8)).</span>
+<span class="sd">    CHANNELS : :class:`list` of :class:`str`</span>
+<span class="sd">        Names of the RGB channels available in the GONet image (default: [&#39;red&#39;, &#39;green&#39;, &#39;blue&#39;]).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">RAW_FILE_OFFSET</span> <span class="o">=</span> <span class="mi">18711040</span>
+    <span class="n">RAW_HEADER_SIZE</span> <span class="o">=</span> <span class="mi">32768</span>
+    <span class="n">RAW_DATA_OFFSET</span> <span class="o">=</span> <span class="n">RAW_FILE_OFFSET</span> <span class="o">-</span> <span class="n">RAW_HEADER_SIZE</span>
+    <span class="n">RELATIVETOEND</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="n">PIXEL_PER_LINE</span> <span class="o">=</span> <span class="mi">4056</span>
+    <span class="n">PIXEL_PER_COLUMN</span> <span class="o">=</span> <span class="mi">3040</span>
+    <span class="n">PADDED_LINE_BYTES</span> <span class="o">=</span> <span class="mi">6112</span>  <span class="c1"># Including padding</span>
+    <span class="n">USED_LINE_BYTES</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">PIXEL_PER_LINE</span> <span class="o">*</span> <span class="mi">12</span> <span class="o">/</span> <span class="mi">8</span><span class="p">)</span>
+
+    <span class="n">CHANNELS</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="s1">&#39;blue&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="GONetFile.__init__">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">red</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">green</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">blue</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">meta</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
+        <span class="n">filetype</span><span class="p">:</span> <span class="n">FileType</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize a :class:`GONetFile` instance with image data and metadata.</span>
+
+<span class="sd">        This constructor sets up the internal state of a GONet file, including its </span>
+<span class="sd">        RGB channel data, metadata, and file type classification.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : :class:`str`</span>
+<span class="sd">            Path or name of the GONet file.</span>
+<span class="sd">        red : :class:`numpy.ndarray`</span>
+<span class="sd">            Pixel data for the red channel. Will be cast to float64.</span>
+<span class="sd">        green : :class:`numpy.ndarray`</span>
+<span class="sd">            Pixel data for the green channel. Will be cast to float64.</span>
+<span class="sd">        blue : :class:`numpy.ndarray`</span>
+<span class="sd">            Pixel data for the blue channel. Will be cast to float64.</span>
+<span class="sd">        meta : :class:`dict` or :data:`None`</span>
+<span class="sd">            Dictionary of extracted metadata, or None if no metadata is available.</span>
+<span class="sd">        filetype : :class:`FileType`</span>
+<span class="sd">            Type of GONet file (e.g., :attr:`FileType.SCIENCE`).</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If input types are incorrect.</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If image arrays are not 2D.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># --- Runtime type checking ---</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;filename must be a string or None&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">arr</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">,</span> <span class="s1">&#39;blue&#39;</span><span class="p">],</span> <span class="p">[</span><span class="n">red</span><span class="p">,</span> <span class="n">green</span><span class="p">,</span> <span class="n">blue</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be a numpy.ndarray&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be a 2D array&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">meta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;meta must be a dict or None&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">filetype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filetype</span><span class="p">,</span> <span class="n">FileType</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;filetype must be an instance of FileType or None&quot;</span><span class="p">)</span>
+
+        <span class="c1"># --- Safe assignment ---</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_red</span> <span class="o">=</span> <span class="n">red</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_green</span> <span class="o">=</span> <span class="n">green</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_blue</span> <span class="o">=</span> <span class="n">blue</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span> <span class="o">=</span> <span class="n">meta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filetype</span> <span class="o">=</span> <span class="n">filetype</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">filename</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the filename of the GONet file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`str`</span>
+<span class="sd">            The name or path of the file associated with this :class:`GONetFile` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">red</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the red channel data from the GONet file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`numpy.ndarray`</span>
+<span class="sd">            A 2D array of pixel values corresponding to the red channel.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_red</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">green</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the green channel data from the GONet file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`numpy.ndarray`</span>
+<span class="sd">            A 2D array of pixel values corresponding to the green channel.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_green</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">blue</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the blue channel data from the GONet file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`numpy.ndarray`</span>
+<span class="sd">            A 2D array of pixel values corresponding to the blue channel.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blue</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">meta</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the metadata associated with the GONet file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`dict`</span>
+<span class="sd">            Dictionary containing metadata fields extracted from the file header or sidecar.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">filetype</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileType</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the file type of the GONet file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`FileType`</span>
+<span class="sd">            The type of the file, such as :attr:`~FileType.SCIENCE`, :attr:`~FileType.FLAT`, etc.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filetype</span>
+
+<div class="viewcode-block" id="GONetFile.channel">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.channel">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">channel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve the pixel data for a specified color channel.</span>
+
+<span class="sd">        This method returns the image data associated with the specified</span>
+<span class="sd">        color channel as a :class:`numpy.ndarray`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        channel_name : :class:`str`</span>
+<span class="sd">            The name of the channel to retrieve. Must be one of</span>
+<span class="sd">            ``&#39;red&#39;``, ``&#39;green&#39;``, or ``&#39;blue&#39;``.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`numpy.ndarray`</span>
+<span class="sd">            The pixel data corresponding to the requested color channel.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :class:`ValueError`</span>
+<span class="sd">            If an invalid channel name is provided.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">channel_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">CHANNELS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid channel name: </span><span class="si">{</span><span class="n">channel_name</span><span class="si">}</span><span class="s2">. Allowed channels: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">CHANNELS</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel_name</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="GONetFile.write_to_jpeg">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.write_to_jpeg">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_to_jpeg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">white_balance</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the RGB image data to a JPEG file.</span>
+
+<span class="sd">        This method assumes that the red, green, and blue channels are in the</span>
+<span class="sd">        uint16 range [0, 65535], and rescales them to the standard 8-bit range</span>
+<span class="sd">        [0, 255] required for JPEG output. Values outside this range are clipped,</span>
+<span class="sd">        and the data is converted to 8-bit for JPEG compatibility.</span>
+
+<span class="sd">        If ``white_balance`` is True, the method applies red and blue channel gains</span>
+<span class="sd">        from ``self.meta[&#39;WB&#39;]`` prior to conversion, in order to produce a </span>
+<span class="sd">        more natural-looking image. The white balance is expected to be a list </span>
+<span class="sd">        or tuple of two floats: [R_gain, B_gain].</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output_filename : :class:`str`</span>
+<span class="sd">            Path where the resulting JPEG file will be saved.</span>
+
+<span class="sd">        white_balance : :class:`bool`, optional</span>
+<span class="sd">            Whether to apply white balance using gains from metadata (default is False).</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``white_balance`` is True but the WB metadata is missing or invalid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">convert_to_uint8</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">16</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">arr</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">16</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">255</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+
+        <span class="n">red</span>   <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">red</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">green</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">green</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">blue</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blue</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="c1"># Apply white balance if requested</span>
+        <span class="k">if</span> <span class="n">white_balance</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">r_gain</span><span class="p">,</span> <span class="n">b_gain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;JPEG&quot;</span><span class="p">][</span><span class="s2">&quot;WB&quot;</span><span class="p">]</span>
+                <span class="n">red</span>   <span class="o">*=</span> <span class="n">r_gain</span>
+                <span class="n">blue</span>  <span class="o">*=</span> <span class="n">b_gain</span>
+                <span class="c1"># green *= 1.0 (implicitly)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;White balance metadata &#39;WB&#39; is missing or invalid.&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+        <span class="c1"># Convert to uint8 and stack</span>
+        <span class="n">rgb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+            <span class="n">convert_to_uint8</span><span class="p">(</span><span class="n">red</span><span class="p">),</span>
+            <span class="n">convert_to_uint8</span><span class="p">(</span><span class="n">green</span><span class="p">),</span>
+            <span class="n">convert_to_uint8</span><span class="p">(</span><span class="n">blue</span><span class="p">)</span>
+        <span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">rgb</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;RGB&quot;</span><span class="p">)</span>
+        <span class="n">image</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">output_filename</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;JPEG&quot;</span><span class="p">,</span> <span class="n">quality</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="GONetFile.write_to_tiff">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.write_to_tiff">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_to_tiff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">white_balance</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the RGB image data to a TIFF file.</span>
+
+<span class="sd">        This method assumes that the red, green, and blue channels are in the</span>
+<span class="sd">        uint16 range [0, 65535]. Values outside this range are clipped, and</span>
+<span class="sd">        the data is cast to uint16 for TIFF compatibility.</span>
+
+<span class="sd">        If ``white_balance`` is True, the method applies red and blue channel gains</span>
+<span class="sd">        from ``self.meta[&#39;JPEG&#39;][&#39;WB&#39;]`` prior to writing, in order to produce a </span>
+<span class="sd">        more natural-looking image. The white balance is expected to be a list </span>
+<span class="sd">        or tuple of two floats: [R_gain, B_gain].</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output_filename : :class:`str`</span>
+<span class="sd">            Path where the resulting TIFF file will be saved.</span>
+
+<span class="sd">        white_balance : :class:`bool`, optional</span>
+<span class="sd">            Whether to apply white balance using gains from metadata (default is True).</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If ``white_balance`` is True but the WB metadata is missing or invalid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">red</span>   <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">red</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">green</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">green</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">blue</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blue</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">white_balance</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">r_gain</span><span class="p">,</span> <span class="n">b_gain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s2">&quot;JPEG&quot;</span><span class="p">][</span><span class="s2">&quot;WB&quot;</span><span class="p">]</span>
+                <span class="n">red</span> <span class="o">*=</span> <span class="n">r_gain</span>
+                <span class="n">blue</span> <span class="o">*=</span> <span class="n">b_gain</span>
+                <span class="c1"># green remains unchanged</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;White balance metadata &#39;WB&#39; is missing or invalid.&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+        <span class="n">rgb_stack</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">red</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">16</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">green</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">16</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">blue</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">16</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span>
+        <span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">tifffile</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">output_filename</span><span class="p">,</span> <span class="n">rgb_stack</span><span class="p">,</span> <span class="n">photometric</span><span class="o">=</span><span class="s1">&#39;rgb&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GONetFile.write_to_fits">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.write_to_fits">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_to_fits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write the image data to a multi-extension FITS file.</span>
+
+<span class="sd">        This method saves the red, green, and blue channel data into separate</span>
+<span class="sd">        HDUs (Header/Data Units) within a single FITS file. The metadata stored</span>
+<span class="sd">        in the ``meta`` attribute is propagated into the FITS headers, adhering</span>
+<span class="sd">        to the standard FITS format.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output_filename : :class:`str`</span>
+<span class="sd">            The full path and filename where the FITS file will be written.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`None`</span>
+<span class="sd">            This method does not return a value.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - The FITS file is created using the :mod:`astropy.io.fits` library.</span>
+<span class="sd">        - Each color channel (red, green, blue) is stored in a separate image extension.</span>
+<span class="sd">        - Metadata keys longer than 8 characters or containing lowercase letters or symbols</span>
+<span class="sd">        will be truncated or sanitized to conform to FITS header requirements.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">build_base_header</span><span class="p">():</span>
+            <span class="n">header</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Header</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">header</span>  <span class="c1"># Return empty header if no metadata</span>
+
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;GONETCAM&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hostname&#39;</span><span class="p">,</span> <span class="s1">&#39;Unknown&#39;</span><span class="p">),</span> <span class="s1">&#39;GONet camera identifier&#39;</span><span class="p">)</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;GONETVER&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;version&#39;</span><span class="p">,</span> <span class="s1">&#39;Unknown&#39;</span><span class="p">),</span> <span class="s1">&#39;GONet software version&#39;</span><span class="p">)</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;MAKE&#39;</span><span class="p">]</span>     <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Make&#39;</span><span class="p">,</span> <span class="s1">&#39;Unknown&#39;</span><span class="p">),</span> <span class="s1">&#39;Camera manufacturer&#39;</span><span class="p">)</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;MODEL&#39;</span><span class="p">]</span>    <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Model&#39;</span><span class="p">,</span> <span class="s1">&#39;Unknown&#39;</span><span class="p">),</span> <span class="s1">&#39;Camera model&#39;</span><span class="p">)</span>
+
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;BAYWIDTH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;bayer_width&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;Raw Bayer array width&#39;</span><span class="p">)</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;BAYHEIGH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;bayer_height&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;Raw Bayer array height&#39;</span><span class="p">)</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;IMGWIDTH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;image_width&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;Demosaiced image width&#39;</span><span class="p">)</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;IMGHEIGH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;image_height&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;Demosaiced image height&#39;</span><span class="p">)</span>
+
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;ISOSET&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ISOSpeedRatings&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;ISO sensitivity rating (log2-scaled index)&#39;</span><span class="p">)</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;WBAUTO&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;WhiteBalance&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;White balance mode (0=Auto)&#39;</span><span class="p">)</span>
+
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;DATE-OBS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;DateTime&#39;</span><span class="p">,</span> <span class="s1">&#39;Unknown&#39;</span><span class="p">),</span> <span class="s1">&#39;File creation date/time&#39;</span><span class="p">)</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;EXPTIME&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;exposure_time&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="s1">&#39;Exposure time in seconds&#39;</span><span class="p">)</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;SHUTSPD&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;shutter_speed&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="s1">&#39;Shutter speed value (log2 scale)&#39;</span><span class="p">)</span>
+
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;RESUNIT&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ResolutionUnit&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;Resolution unit&#39;</span><span class="p">)</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;LAT&#39;</span><span class="p">]</span>      <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;latitude&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="s1">&#39;Latitude in decimal degrees&#39;</span><span class="p">)</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;LON&#39;</span><span class="p">]</span>      <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;longitude&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="s1">&#39;Longitude in decimal degrees&#39;</span><span class="p">)</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;ALT&#39;</span><span class="p">]</span>      <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;altitude&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="s1">&#39;Altitude in meters&#39;</span><span class="p">)</span>
+
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;LENSCAP&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;lenscap&#39;</span><span class="p">,</span> <span class="s1">&#39;Unknown&#39;</span><span class="p">),</span> <span class="s1">&#39;Lenscap status&#39;</span><span class="p">)</span>
+            <span class="n">header</span><span class="p">[</span><span class="s1">&#39;ANAGAIN&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;analog_gain&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">),</span> <span class="s1">&#39;Analog gain used during capture&#39;</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">header</span>
+
+        <span class="c1"># Base metadata header</span>
+        <span class="n">base_header</span> <span class="o">=</span> <span class="n">build_base_header</span><span class="p">()</span>
+
+        <span class="c1"># Create each image HDU with proper extensions</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">make_channel_hdu</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">fits</span><span class="o">.</span><span class="n">ImageHDU</span><span class="p">:</span>
+            <span class="n">hdr</span> <span class="o">=</span> <span class="n">base_header</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">hdr</span><span class="p">[</span><span class="s1">&#39;CHANNEL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">channel</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="s1">&#39;Image channel&#39;</span><span class="p">)</span>
+            <span class="n">hdr</span><span class="p">[</span><span class="s1">&#39;EXTNAME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">channel</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="s1">&#39;Extension name&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">fits</span><span class="o">.</span><span class="n">ImageHDU</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="n">hdr</span><span class="p">)</span>
+
+        <span class="n">red_hdu</span> <span class="o">=</span> <span class="n">make_channel_hdu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">red</span><span class="p">,</span> <span class="s1">&#39;red&#39;</span><span class="p">)</span>
+        <span class="n">green_hdu</span> <span class="o">=</span> <span class="n">make_channel_hdu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">green</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">)</span>
+        <span class="n">blue_hdu</span> <span class="o">=</span> <span class="n">make_channel_hdu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blue</span><span class="p">,</span> <span class="s1">&#39;blue&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Create primary HDU (no data)</span>
+        <span class="n">primary_hdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">PrimaryHDU</span><span class="p">()</span>
+
+        <span class="c1"># Assemble HDUList</span>
+        <span class="n">hdul</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">HDUList</span><span class="p">([</span><span class="n">primary_hdu</span><span class="p">,</span> <span class="n">red_hdu</span><span class="p">,</span> <span class="n">green_hdu</span><span class="p">,</span> <span class="n">blue_hdu</span><span class="p">])</span>
+        <span class="n">hdul</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="n">output_filename</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="GONetFile.from_file">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.from_file">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filepath</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">filetype</span><span class="p">:</span> <span class="n">FileType</span> <span class="o">=</span> <span class="n">FileType</span><span class="o">.</span><span class="n">SCIENCE</span><span class="p">,</span> <span class="n">meta</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;GONetFile&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a :class:`GONetFile` instance from a TIFF or JPEG file.</span>
+
+<span class="sd">        This class method reads a GONet image file, extracts the red, green, and blue</span>
+<span class="sd">        channel data, and optionally parses the associated metadata. It returns a fully</span>
+<span class="sd">        initialized :class:`GONetFile` object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filepath : :class:`str` or :class:`pathlib.Path`</span>
+<span class="sd">            Full path to the image file. The file must be in `.tif`, `.tiff`, or `.jpg` format.</span>
+<span class="sd">        </span>
+<span class="sd">        filetype : :class:`FileType`, optional</span>
+<span class="sd">            Type of the file, chosen from the :class:`FileType` enumeration.</span>
+<span class="sd">            Defaults to ``FileType.SCIENCE``.</span>
+<span class="sd">        </span>
+<span class="sd">        meta : :class:`bool`, optional</span>
+<span class="sd">            If True (default), metadata will be extracted and included. If False, metadata will be skipped.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`GONetFile`</span>
+<span class="sd">            A new instance initialized with the file&#39;s pixel data and metadata.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        FileNotFoundError</span>
+<span class="sd">            If the specified file does not exist.</span>
+<span class="sd">        </span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the file extension is unsupported (must be `.tif`, `.tiff`, `.jpg`).</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Metadata extraction is supported only for `.jpg` files. TIFF files are read for image data only.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Normalize filepath</span>
+        <span class="n">filepath</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">filepath</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Could not find file </span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+
+        <span class="n">suffix</span> <span class="o">=</span> <span class="n">filepath</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;.tif&#39;</span><span class="p">,</span> <span class="s1">&#39;.tiff&#39;</span><span class="p">]:</span>
+            <span class="n">parsed_data</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_parse_tiff_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">filepath</span><span class="p">))</span>
+            <span class="n">parsed_meta</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># No metadata for TIFFs</span>
+        <span class="k">elif</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;.jpg&#39;</span><span class="p">:</span>
+            <span class="n">parsed_data</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_parse_raw_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">filepath</span><span class="p">))</span>
+            <span class="n">parsed_meta</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">meta</span><span class="p">:</span>
+                <span class="n">jpeg</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+                <span class="n">raw_exif</span> <span class="o">=</span> <span class="n">jpeg</span><span class="o">.</span><span class="n">_getexif</span><span class="p">()</span>
+                <span class="n">parsed_meta</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_parse_exif_metadata</span><span class="p">(</span><span class="n">raw_exif</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Extension must be &#39;.tiff&#39;, &#39;.tif&#39;, or original &#39;.jpg&#39; from a GONet camera.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">filename</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">filepath</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>  <span class="c1"># Only the filename part, no directory</span>
+            <span class="n">red</span><span class="o">=</span><span class="n">parsed_data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">green</span><span class="o">=</span><span class="n">parsed_data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">blue</span><span class="o">=</span><span class="n">parsed_data</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+            <span class="n">meta</span><span class="o">=</span><span class="n">parsed_meta</span><span class="p">,</span>
+            <span class="n">filetype</span><span class="o">=</span><span class="n">filetype</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GONetFile._parse_tiff_file">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile._parse_tiff_file">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_tiff_file</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parse a TIFF file and extract RGB channel data and optional metadata.</span>
+
+<span class="sd">        This static method reads a TIFF file and separates the image into red, green, </span>
+<span class="sd">        and blue channels.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filepath : :class:`str`</span>
+<span class="sd">            Path to the TIFF file to be parsed.</span>
+<span class="sd"> </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:``numpy.ndarray``</span>
+<span class="sd">            A NumPy array of shape ``(3, H, W)`` representing the red, green, and blue channels.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        FileNotFoundError</span>
+<span class="sd">            If the file does not exist or is not accessible.</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the TIFF file does not contain 3 channels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">with</span> <span class="n">tifffile</span><span class="o">.</span><span class="n">TiffFile</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span> <span class="k">as</span> <span class="n">tif</span><span class="p">:</span>
+            <span class="n">tiff_data</span> <span class="o">=</span> <span class="n">tif</span><span class="o">.</span><span class="n">asarray</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">tiff_data</span></div>
+
+
+<div class="viewcode-block" id="GONetFile._parse_raw_file">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile._parse_raw_file">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_raw_file</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parse a raw GONet file and extract RGB channel data and optional metadata.</span>
+
+<span class="sd">        This static method reads a GONet raw file—typically with a `.jpg` extension </span>
+<span class="sd">        but not in standard JPEG format—and extracts the red, green, and blue image </span>
+<span class="sd">        channels.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filepath : :class:`str`</span>
+<span class="sd">            Path to the raw file to be parsed.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:``numpy.ndarray``</span>
+<span class="sd">            A NumPy array of shape ``(3, H, W)`` representing the red, green, and blue channels.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        FileNotFoundError</span>
+<span class="sd">            If the file does not exist or is not accessible.</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the file format is incompatible or corrupted.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="o">-</span><span class="n">GONetFile</span><span class="o">.</span><span class="n">RAW_DATA_OFFSET</span><span class="p">,</span><span class="n">GONetFile</span><span class="o">.</span><span class="n">RELATIVETOEND</span><span class="p">)</span>
+            <span class="n">s</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">GONetFile</span><span class="o">.</span><span class="n">PIXEL_PER_LINE</span><span class="p">,</span><span class="n">GONetFile</span><span class="o">.</span><span class="n">PIXEL_PER_COLUMN</span><span class="p">),</span><span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;uint16&#39;</span><span class="p">)</span>   
+            <span class="c1"># do this at least 3040 times though the precise number of lines is a bit unclear</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">GONetFile</span><span class="o">.</span><span class="n">PIXEL_PER_COLUMN</span><span class="p">):</span>
+
+                <span class="c1"># read in 6112 bytes, but only 6084 will be used</span>
+                <span class="n">bdLine</span> <span class="o">=</span> <span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">GONetFile</span><span class="o">.</span><span class="n">PADDED_LINE_BYTES</span><span class="p">)</span>
+                <span class="n">gg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">bdLine</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">GONetFile</span><span class="o">.</span><span class="n">USED_LINE_BYTES</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+                <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">gg</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">gg</span><span class="p">[</span><span class="mi">2</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mi">15</span><span class="p">)</span>
+                <span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">gg</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">gg</span><span class="p">[</span><span class="mi">2</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span><span class="p">)</span>
+
+        <span class="c1"># form superpixel array</span>
+        <span class="n">sp</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">int</span><span class="p">(</span><span class="n">GONetFile</span><span class="o">.</span><span class="n">PIXEL_PER_LINE</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span><span class="nb">int</span><span class="p">(</span><span class="n">GONetFile</span><span class="o">.</span><span class="n">PIXEL_PER_COLUMN</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span><span class="mi">3</span><span class="p">))</span>
+        <span class="n">sp</span><span class="p">[:,:,</span><span class="mi">0</span><span class="p">]</span><span class="o">=</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span>                      <span class="c1"># red</span>
+        <span class="n">sp</span><span class="p">[:,:,</span><span class="mi">1</span><span class="p">]</span><span class="o">=</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span><span class="o">+</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">])</span><span class="o">/</span><span class="mi">2</span>     <span class="c1"># green</span>
+        <span class="n">sp</span><span class="p">[:,:,</span><span class="mi">2</span><span class="p">]</span><span class="o">=</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span>                      <span class="c1"># blue</span>
+
+        <span class="n">array</span><span class="o">=</span><span class="n">scale_uint12_to_16bit_range</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="n">array</span></div>
+
+    
+<div class="viewcode-block" id="GONetFile._parse_exif_metadata">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile._parse_exif_metadata">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_exif_metadata</span><span class="p">(</span><span class="n">exif</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract and restructure EXIF metadata from a JPEG file into a structured dictionary.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        exif : dict</span>
+<span class="sd">            A dictionary containing raw EXIF metadata extracted from the JPEG file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            A structured metadata dictionary, with JPEG-related keys under &#39;JPEG&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    
+        <span class="n">structured</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">jpeg_meta</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">gps_meta</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">tag_id</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">exif</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">tag</span> <span class="o">=</span> <span class="n">TAGS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">tag_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">tag_id</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;Artist&quot;</span><span class="p">:</span>
+                <span class="c1"># Use a regex to match key-value pairs, including tuples inside parentheses</span>
+                <span class="c1"># This avoids splitting on commas inside values</span>
+                <span class="n">matches</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\w+):\s*(\([^)]+\)|[^,]+)&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">:</span>
+                    <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+                    <span class="n">k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                    <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+                    <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s2">&quot;wb&quot;</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">jpeg_meta</span><span class="p">[</span><span class="s2">&quot;WB&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;()&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+                        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                            <span class="k">continue</span>  <span class="c1"># skip malformed white balance</span>
+                    <span class="c1"># We get the latitude, longitude and altitude from the GPS field so we skip them here</span>
+                    <span class="k">elif</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;lat&quot;</span><span class="p">,</span> <span class="s2">&quot;long&quot;</span><span class="p">,</span> <span class="s2">&quot;alt&quot;</span><span class="p">}:</span>
+                        <span class="k">continue</span>
+                        <span class="c1"># try:</span>
+                        <span class="c1">#     structured[&quot;latitude&quot; if k == &quot;lat&quot; else &quot;longitude&quot; if k == &quot;long&quot; else &quot;altitude&quot;] = float(v)</span>
+                        <span class="c1"># except ValueError:</span>
+                        <span class="c1">#     continue</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">structured</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># It looks like Software repeats stuff in the artist fiels, so I&#39;ll ignore it</span>
+            <span class="c1"># I will leave the logic in here in case it is useful</span>
+            <span class="k">elif</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;Software&quot;</span><span class="p">:</span>
+                <span class="k">continue</span>
+                <span class="c1"># Parse: &#39;GONetDolus X.X WB: (3.35, 1.59)&#39;</span>
+                <span class="c1"># wb_match = re.search(r&#39;WB:\s*\(([^)]+)\)&#39;, value)</span>
+                <span class="c1"># if wb_match:</span>
+                <span class="c1">#     structured[&quot;WB&quot;] = [float(x) for x in wb_match.group(1).split(&#39;,&#39;)]</span>
+
+                <span class="c1"># # Also extract software version if useful</span>
+                <span class="c1"># parts = value.split()</span>
+                <span class="c1"># if parts:</span>
+                <span class="c1">#     structured[&quot;software&quot;] = parts[0]</span>
+                <span class="c1">#     if len(parts) &gt; 1 and parts[1] != &quot;WB:&quot;:</span>
+                <span class="c1">#         structured[&quot;version&quot;] = parts[1]</span>
+                <span class="c1"># continue</span>
+
+            <span class="k">elif</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;GPSInfo&quot;</span><span class="p">:</span>
+                <span class="n">gps</span> <span class="o">=</span> <span class="n">value</span>
+
+                <span class="c1"># Normalize keys to integers (if they&#39;re strings)</span>
+                <span class="n">gps_normalized</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">gps</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">gps_normalized</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v</span>
+                    <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+                        <span class="n">gps_normalized</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>  <span class="c1"># fallback for non-integer keys</span>
+
+                <span class="k">def</span><span class="w"> </span><span class="nf">dms_to_deg</span><span class="p">(</span><span class="n">dms</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">dms</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">dms</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mf">60.0</span> <span class="o">+</span> <span class="n">dms</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">/</span> <span class="mf">3600.0</span>
+
+                <span class="k">if</span> <span class="mi">1</span> <span class="ow">in</span> <span class="n">gps_normalized</span> <span class="ow">and</span> <span class="mi">2</span> <span class="ow">in</span> <span class="n">gps_normalized</span><span class="p">:</span>
+                    <span class="n">lat</span> <span class="o">=</span> <span class="n">dms_to_deg</span><span class="p">(</span><span class="n">gps_normalized</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">gps_normalized</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;S&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;S&quot;</span><span class="p">):</span>
+                        <span class="n">lat</span> <span class="o">=</span> <span class="o">-</span><span class="n">lat</span>
+                    <span class="n">gps_meta</span><span class="p">[</span><span class="s2">&quot;latitude&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">lat</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="mi">3</span> <span class="ow">in</span> <span class="n">gps_normalized</span> <span class="ow">and</span> <span class="mi">4</span> <span class="ow">in</span> <span class="n">gps_normalized</span><span class="p">:</span>
+                    <span class="n">lon</span> <span class="o">=</span> <span class="n">dms_to_deg</span><span class="p">(</span><span class="n">gps_normalized</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">gps_normalized</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;W&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;W&quot;</span><span class="p">):</span>
+                        <span class="n">lon</span> <span class="o">=</span> <span class="o">-</span><span class="n">lon</span>
+                    <span class="n">gps_meta</span><span class="p">[</span><span class="s2">&quot;longitude&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">lon</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="mi">6</span> <span class="ow">in</span> <span class="n">gps_normalized</span><span class="p">:</span>
+                    <span class="n">gps_meta</span><span class="p">[</span><span class="s2">&quot;altitude&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">gps_normalized</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+                <span class="k">continue</span>
+
+            <span class="k">elif</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;MakerNote&quot;</span><span class="p">:</span>
+                <span class="c1"># Parse values like &#39;gain_r=1.000 gain_b=1.000&#39;</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;latin1&quot;</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\w+)=([-\d.]+)&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+                    <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;ag&#39;</span><span class="p">:</span>
+                        <span class="n">structured</span><span class="p">[</span><span class="s1">&#39;analog_gain&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="c1">#structured[k.lower()] = float(v)</span>
+                <span class="k">continue</span>
+
+            <span class="k">elif</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;ComponentsConfiguration&quot;</span><span class="p">:</span>
+                <span class="n">decoded</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Y&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Cb&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Cr&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;R&quot;</span><span class="p">,</span> <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;G&quot;</span><span class="p">,</span> <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;&quot;</span>
+                <span class="p">}</span>
+                <span class="n">component_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">decoded</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="s2">&quot;?&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">value</span><span class="p">)</span>
+                <span class="n">jpeg_meta</span><span class="p">[</span><span class="s2">&quot;ComponentsConfiguration&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">component_str</span>
+                <span class="k">continue</span>
+
+            <span class="k">elif</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;YCbCrPositioning&quot;</span><span class="p">:</span>
+                <span class="n">YCBCR_POSITIONING_MAP</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Centered&quot;</span><span class="p">,</span>
+                    <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Co-sited&quot;</span>
+                <span class="p">}</span>
+                <span class="n">jpeg_meta</span><span class="p">[</span><span class="s2">&quot;YCbCrPositioning&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">YCBCR_POSITIONING_MAP</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Unknown (</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+
+            <span class="k">elif</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;ColorSpace&quot;</span><span class="p">:</span>
+                <span class="n">COLORSPACE_MAP</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;sRGB&quot;</span><span class="p">,</span>
+                    <span class="mi">65535</span><span class="p">:</span> <span class="s2">&quot;Uncalibrated&quot;</span>
+                <span class="p">}</span>
+                <span class="n">jpeg_meta</span><span class="p">[</span><span class="s2">&quot;ColorSpace&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">COLORSPACE_MAP</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Reserved (</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">elif</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;ExifImageWidth&quot;</span><span class="p">:</span>
+                <span class="n">structured</span><span class="p">[</span><span class="s2">&quot;bayer_width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">elif</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;ExifImageHeight&quot;</span><span class="p">:</span>
+                <span class="n">structured</span><span class="p">[</span><span class="s2">&quot;bayer_height&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">elif</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;ExposureTime&quot;</span><span class="p">:</span>
+                <span class="n">structured</span><span class="p">[</span><span class="s2">&quot;exposure_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="k">elif</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;ShutterSpeedValue&quot;</span><span class="p">:</span>
+                <span class="n">structured</span><span class="p">[</span><span class="s2">&quot;shutter_speed&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">elif</span> <span class="n">tag</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;ImageLength&quot;</span><span class="p">,</span> <span class="s2">&quot;ImageWidth&quot;</span><span class="p">,</span> <span class="s2">&quot;MeteringMode&quot;</span><span class="p">,</span> <span class="s2">&quot;ExposureMode&quot;</span><span class="p">,</span> <span class="s2">&quot;ExposureProgram&quot;</span><span class="p">,</span> <span class="s2">&quot;Flash&quot;</span><span class="p">]:</span>
+                <span class="k">continue</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">:</span>
+                    <span class="n">structured</span><span class="p">[</span><span class="n">tag</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="c1"># Derive real image dimensions from Bayer size</span>
+        <span class="k">if</span> <span class="s2">&quot;bayer_width&quot;</span> <span class="ow">in</span> <span class="n">structured</span> <span class="ow">and</span> <span class="s2">&quot;bayer_height&quot;</span> <span class="ow">in</span> <span class="n">structured</span><span class="p">:</span>
+            <span class="n">structured</span><span class="p">[</span><span class="s2">&quot;image_width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">structured</span><span class="p">[</span><span class="s2">&quot;bayer_width&quot;</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span>
+            <span class="n">structured</span><span class="p">[</span><span class="s2">&quot;image_height&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">structured</span><span class="p">[</span><span class="s2">&quot;bayer_height&quot;</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span>
+
+        <span class="n">structured</span><span class="p">[</span><span class="s2">&quot;GPS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gps_meta</span>
+        <span class="n">structured</span><span class="p">[</span><span class="s2">&quot;JPEG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">jpeg_meta</span>
+        <span class="k">return</span> <span class="n">structured</span></div>
+
+
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    ---------------------</span>
+<span class="sd">    Operators overloading.</span>
+<span class="sd">    ---------------------</span>
+<span class="sd">    </span>
+<span class="sd">    The GONetFile class has attributes that are numpy arrays.</span>
+<span class="sd">    Therefore it could be useful to allow operations applied to</span>
+<span class="sd">    the red, green and blue channels all at the same time,</span>
+<span class="sd">    instead of executing the operation 3 times in the code.</span>
+<span class="sd">    For instance, summing 2 GONetFile instances (go1, go2) as</span>
+
+<span class="sd">    go1 + go2</span>
+
+<span class="sd">    instead of having to do</span>
+
+<span class="sd">    go1.red + go2.red</span>
+<span class="sd">    go1.green + go2.green</span>
+<span class="sd">    go1.blue + go2.blue</span>
+
+<span class="sd">    So operators are overloaded to allow this.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+<div class="viewcode-block" id="GONetFile._operate">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile._operate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_operate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">op</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;GONetFile&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform an element-wise operation on the current :class:`GONetFile` instance.</span>
+
+<span class="sd">        This internal method supports element-wise operations between the current </span>
+<span class="sd">        GONetFile instance and either another GONetFile instance or a scalar value.</span>
+<span class="sd">        The operation is applied independently to each color channel </span>
+<span class="sd">        (red, green, and blue) using the provided binary operator.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : :class:`GONetFile` or scalar</span>
+<span class="sd">            The operand for the operation. This can be another :class:`GONetFile` </span>
+<span class="sd">            instance or a scalar (e.g., :class:`int` or :class:`float`).</span>
+
+<span class="sd">        op : :class:`function`</span>
+<span class="sd">            A binary operator function (e.g., :func:`numpy.add`, :func:`numpy.multiply`)</span>
+<span class="sd">            that performs the desired operation between corresponding pixel arrays.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`GONetFile`</span>
+<span class="sd">            A new :class:`GONetFile` instance with the operation applied to each channel.</span>
+<span class="sd">            If ``other`` is a GONetFile, the result has no metadata or file type.</span>
+<span class="sd">            If ``other`` is a scalar, metadata and file type are preserved.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If ``other`` is neither a GONetFile nor a scalar.</span>
+<span class="sd">        </span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the operation cannot be broadcast between the channels and ``other``.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+
+<span class="sd">        - This method is primarily used internally to implement operators like </span>
+<span class="sd">          `__add__`, `__sub__`, etc.</span>
+<span class="sd">        - Metadata is only retained when operating with scalars.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GONetFile</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">GONetFile</span><span class="p">(</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+                <span class="n">red</span> <span class="o">=</span> <span class="n">op</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">red</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">red</span><span class="p">),</span>
+                <span class="n">green</span> <span class="o">=</span> <span class="n">op</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">green</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">green</span><span class="p">),</span>
+                <span class="n">blue</span> <span class="o">=</span> <span class="n">op</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blue</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">blue</span><span class="p">),</span>
+                <span class="n">meta</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">filetype</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">GONetFile</span><span class="p">(</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> 
+                <span class="n">red</span> <span class="o">=</span> <span class="n">op</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">red</span><span class="p">,</span> <span class="n">other</span><span class="p">),</span>
+                <span class="n">green</span> <span class="o">=</span> <span class="n">op</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">green</span><span class="p">,</span> <span class="n">other</span><span class="p">),</span>
+                <span class="n">blue</span> <span class="o">=</span> <span class="n">op</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blue</span><span class="p">,</span> <span class="n">other</span><span class="p">),</span>
+                <span class="n">meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">meta</span><span class="p">,</span>
+                <span class="n">filetype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filetype</span>
+            <span class="p">)</span></div>
+
+
+    <span class="c1"># Addition</span>
+<div class="viewcode-block" id="GONetFile.__add__">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__add__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;GONetFile&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add another object to this :class:`GONetFile` instance.</span>
+
+<span class="sd">        This method overloads the ``+`` operator to support element-wise addition </span>
+<span class="sd">        between the current :class:`GONetFile` and either another :class:`GONetFile` </span>
+<span class="sd">        or a scalar value (e.g., :class:`int`, :class:`float`). Addition is performed </span>
+<span class="sd">        independently on the red, green, and blue channels using :func:`numpy.add`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : :class:`GONetFile` or scalar</span>
+<span class="sd">            The operand to add. Can be another :class:`GONetFile` or a scalar value.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`GONetFile`</span>
+<span class="sd">            A new instance resulting from the addition. If `other` is a </span>
+<span class="sd">            :class:`GONetFile`, the returned object has no metadata or file type.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If the operation is not supported between the operands.</span>
+<span class="sd">        </span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the image shapes are incompatible.</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_operate</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">operator</span><span class="o">.</span><span class="n">add</span><span class="p">)</span></div>
+
+
+    <span class="fm">__radd__</span> <span class="o">=</span> <span class="fm">__add__</span>
+
+    <span class="c1"># In-place addition (+=)</span>
+<div class="viewcode-block" id="GONetFile.__iadd__">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__iadd__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iadd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;GONetFile&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform in-place addition on this :class:`GONetFile` instance.</span>
+
+<span class="sd">        This method overloads the ``+=`` operator to support in-place element-wise </span>
+<span class="sd">        addition of another :class:`GONetFile` or a scalar value (e.g., :class:`int`, </span>
+<span class="sd">        :class:`float`). Addition is performed independently on the red, green, and </span>
+<span class="sd">        blue channels using :func:`numpy.add`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : :class:`GONetFile` or scalar</span>
+<span class="sd">            The value to add in-place. Can be another :class:`GONetFile` or a scalar.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`GONetFile`</span>
+<span class="sd">            The modified instance after in-place addition.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If the operation is not supported between the operands.</span>
+
+<span class="sd">        ValueError</span>
+<span class="sd">            If the channel dimensions are incompatible for element-wise addition.</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_operate</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">operator</span><span class="o">.</span><span class="n">iadd</span><span class="p">)</span></div>
+
+
+    <span class="c1"># Multiplication</span>
+<div class="viewcode-block" id="GONetFile.__mul__">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__mul__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;GONetFile&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform element-wise multiplication using the ``*`` operator.</span>
+
+<span class="sd">        This method multiplies the red, green, and blue channels of the current </span>
+<span class="sd">        :class:`GONetFile` instance with either another :class:`GONetFile` instance </span>
+<span class="sd">        or a scalar (e.g., :class:`int`, :class:`float`). The multiplication is </span>
+<span class="sd">        performed element-wise using :func:`numpy.multiply`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : :class:`GONetFile` or scalar</span>
+<span class="sd">            The object to multiply with. Can be another :class:`GONetFile` instance </span>
+<span class="sd">            or a scalar value.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`GONetFile`</span>
+<span class="sd">            A new :class:`GONetFile` instance containing the result of the multiplication.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If the operation is not supported between the operands.</span>
+
+<span class="sd">        ValueError</span>
+<span class="sd">            If the channel dimensions are incompatible for element-wise multiplication.</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_operate</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">operator</span><span class="o">.</span><span class="n">mul</span><span class="p">)</span></div>
+
+
+    <span class="fm">__rmul__</span> <span class="o">=</span> <span class="fm">__mul__</span>
+
+    <span class="c1"># Subtraction</span>
+<div class="viewcode-block" id="GONetFile.__sub__">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__sub__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;GONetFile&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform element-wise subtraction using the ``-`` operator.</span>
+
+<span class="sd">        This method subtracts either another :class:`GONetFile` instance or a scalar </span>
+<span class="sd">        (e.g., :class:`int`, :class:`float`) from the current :class:`GONetFile` </span>
+<span class="sd">        instance. The operation is applied independently to the red, green, and blue </span>
+<span class="sd">        channels using :func:`numpy.subtract`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : :class:`GONetFile` or scalar</span>
+<span class="sd">            The object to subtract. Can be another :class:`GONetFile` instance or a scalar value.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`GONetFile`</span>
+<span class="sd">            A new :class:`GONetFile` instance containing the result of the subtraction.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If the operation is not supported between the operands.</span>
+
+<span class="sd">        ValueError</span>
+<span class="sd">            If the channel dimensions are incompatible for element-wise subtraction.</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_operate</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">operator</span><span class="o">.</span><span class="n">sub</span><span class="p">)</span></div>
+
+
+    <span class="c1"># Division</span>
+<div class="viewcode-block" id="GONetFile.__truediv__">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__truediv__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__truediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;GONetFile&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform element-wise division using the ``/`` operator.</span>
+
+<span class="sd">        This method divides the red, green, and blue channels of the current </span>
+<span class="sd">        :class:`GONetFile` instance by either another :class:`GONetFile` instance </span>
+<span class="sd">        or a scalar (e.g., :class:`int`, :class:`float`). The division is </span>
+<span class="sd">        applied using :func:`numpy.true_divide`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : :class:`GONetFile` or scalar</span>
+<span class="sd">            The object to divide by. Can be another :class:`GONetFile` instance </span>
+<span class="sd">            or a scalar value.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`GONetFile`</span>
+<span class="sd">            A new :class:`GONetFile` instance containing the result of the division.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ZeroDivisionError</span>
+<span class="sd">            If division by zero occurs (e.g., scalar is zero or zero elements in another GONetFile).</span>
+<span class="sd">        </span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If the operation is not supported between the operands.</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_operate</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">operator</span><span class="o">.</span><span class="n">truediv</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="GONetFile.__getitem__">
+<a class="viewcode-back" href="../../../../utils/gonetfile.html#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__getitem__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;GONetFile&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Slice the GONetFile spatially.</span>
+
+<span class="sd">        This allows spatial slicing of the pixel data (red, green, blue channels) using</span>
+<span class="sd">        standard NumPy-style indexing. The result is a new :class:`GONetFile` instance.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : slice, int, or tuple</span>
+<span class="sd">            Slice or index to apply, e.g., [:, 10:20].</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`GONetFile`</span>
+<span class="sd">            A new instance with sliced red, green, and blue arrays.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If the key is invalid or cannot be applied.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_operate</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">arr</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">key</span><span class="p">:</span> <span class="n">arr</span><span class="p">[</span><span class="n">k</span><span class="p">])</span></div>
+</div>
+
+    <span class="c1"># I&#39;d like to start writing some tests. But first I need to understand why in line 144 we add 0.5 (to avoid zeros?) and wether we can use uint32 </span>
+
+    
+
+    <span class="c1"># # Comparison functions</span>
+    <span class="c1"># def __lt__(self, other):</span>
+    <span class="c1">#     if isinstance(other, GONetFile):</span>
+    <span class="c1">#         return GONetFile(None, self.red &lt; other.red, self.green &lt; other.green, self.blue &lt; other.blue, None)</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         return GONetFile(self.filename, self.red &lt; other, self.green &lt; other, self.blue &lt; other, self.meta)</span>
+        
+    <span class="c1"># def __le__(self, other):</span>
+    <span class="c1">#     if isinstance(other, GONetFile):</span>
+    <span class="c1">#         return GONetFile(None, self.red &lt;= other.red, self.green &lt;= other.green, self.blue &lt;= other.blue, None)</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         return GONetFile(self.filename, self.red &lt;= other, self.green &lt;= other, self.blue &lt;= other, self.meta)</span>
+        
+    <span class="c1"># def __eq__(self, other):</span>
+    <span class="c1">#     if isinstance(other, GONetFile):</span>
+    <span class="c1">#         return GONetFile(None, self.red == other.red, self.green == other.green, self.blue == other.blue, None)</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         return GONetFile(self.filename, self.red == other, self.green == other, self.blue == other, self.meta)</span>
+        
+    <span class="c1"># def __ne__(self, other):</span>
+    <span class="c1">#     if isinstance(other, GONetFile):</span>
+    <span class="c1">#         return GONetFile(None, self.red != other.red, self.green != other.green, self.blue != other.blue, None)</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         return GONetFile(self.filename, self.red != other, self.green != other, self.blue != other, self.meta)</span>
+        
+    <span class="c1"># def __ge__(self, other):</span>
+    <span class="c1">#     if isinstance(other, GONetFile):</span>
+    <span class="c1">#         return GONetFile(None, self.red &gt; other.red, self.green &gt; other.green, self.blue &gt; other.blue, None)</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         return GONetFile(self.filename, self.red &gt; other, self.green &gt; other, self.blue &gt; other, self.meta)</span>
+        
+    <span class="c1"># def __gt__(self, other):</span>
+    <span class="c1">#     if isinstance(other, GONetFile):</span>
+    <span class="c1">#         return GONetFile(None, self.red &gt;= other.red, self.green &gt;= other.green, self.blue &gt;= other.blue, None)</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         return GONetFile(self.filename, self.red &gt;= other, self.green &gt;= other, self.blue &gt;= other, self.meta)</span>
+        
+    <span class="c1"># # Making sure we are using numpy mean and median</span>
+    <span class="c1"># def mean(self, *args, **kwargs):</span>
+    <span class="c1">#     return np.array([np.mean(self.red, *args, **kwargs), np.mean(self.green, *args, **kwargs), np.mean(self.blue, *args, **kwargs)])</span>
+    
+    <span class="c1"># def median(self, *args, **kwargs):</span>
+    <span class="c1">#     return np.array([np.median(self.red, *args, **kwargs), np.median(self.green, *args, **kwargs), np.median(self.blue, *args, **kwargs)])</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

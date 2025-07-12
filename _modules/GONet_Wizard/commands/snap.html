@@ -1,0 +1,341 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GONet_Wizard.commands.snap &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../settings.html">settings Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">GONet_Wizard.commands.snap</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for GONet_Wizard.commands.snap</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Remote Snapshot Execution for GONet Devices.</span>
+
+<span class="sd">This script provides functionality to remotely run the `gonet4.py` imaging script on a GONet device,</span>
+<span class="sd">optionally upload a local configuration file, and download newly created image files. It handles SSH</span>
+<span class="sd">and SCP connections securely and efficiently, including file hashing to avoid redundant uploads.</span>
+
+<span class="sd">**Functions**</span>
+
+<span class="sd">- :func:`list_remote_files` : Lists files in a remote directory.</span>
+<span class="sd">- :func:`get_local_file_hash` : Computes a hash of a local file.</span>
+<span class="sd">- :func:`get_remote_file_hash` : Retrieves the hash of a remote file.</span>
+<span class="sd">- :func:`upload_if_different` : Uploads a file only if it differs from the remote version.</span>
+<span class="sd">- :func:`run_remote_script_with_live_output` : Executes a command remotely with live output streaming.</span>
+<span class="sd">- :func:`snap` : Main entry point to execute a snapshot and transfer resulting images.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">paramiko</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scp</span><span class="w"> </span><span class="kn">import</span> <span class="n">SCPClient</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">GONet_Wizard.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">GONetConfig</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">GONet_Wizard.commands.connect</span><span class="w"> </span><span class="kn">import</span> <span class="n">ssh_connect</span>
+
+
+<div class="viewcode-block" id="list_remote_files">
+<a class="viewcode-back" href="../../../commands/snap.html#GONet_Wizard.commands.snap.list_remote_files">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_remote_files</span><span class="p">(</span><span class="n">ssh</span><span class="p">:</span> <span class="n">paramiko</span><span class="o">.</span><span class="n">SSHClient</span><span class="p">,</span> <span class="n">folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    List files in a remote folder using SSH.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ssh : :class:`paramiko.client.SSHClient`</span>
+<span class="sd">        An active SSH client connection to the remote GONet device.</span>
+<span class="sd">    folder : :class:`str`</span>
+<span class="sd">        Path to the remote folder to list.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`set`</span>
+<span class="sd">        A set of filenames found in the remote folder.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stdin</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">ssh</span><span class="o">.</span><span class="n">exec_command</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ls -1 </span><span class="si">{</span><span class="n">folder</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="n">stdout</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">())</span></div>
+
+
+
+<div class="viewcode-block" id="get_local_file_hash">
+<a class="viewcode-back" href="../../../commands/snap.html#GONet_Wizard.commands.snap.get_local_file_hash">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_local_file_hash</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">algo</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;sha256&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the hash of a local file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filepath : :class:`str`</span>
+<span class="sd">        Path to the local file.</span>
+<span class="sd">    algo : :class:`str`, optional</span>
+<span class="sd">        Hashing algorithm to use (default is &#39;sha256&#39;).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`str`</span>
+<span class="sd">        The computed hash as a hexadecimal string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">hasher</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">algo</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">while</span> <span class="n">chunk</span> <span class="o">:=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">8192</span><span class="p">):</span>
+            <span class="n">hasher</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">hasher</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="get_remote_file_hash">
+<a class="viewcode-back" href="../../../commands/snap.html#GONet_Wizard.commands.snap.get_remote_file_hash">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_remote_file_hash</span><span class="p">(</span><span class="n">ssh</span><span class="p">:</span> <span class="n">paramiko</span><span class="o">.</span><span class="n">SSHClient</span><span class="p">,</span> <span class="n">remote_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">algo</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;sha256&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the hash of a remote file using SSH.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ssh : :class:`paramiko.client.SSHClient`</span>
+<span class="sd">        An active SSH client connection.</span>
+<span class="sd">    remote_path : :class:`str`</span>
+<span class="sd">        Path to the remote file.</span>
+<span class="sd">    algo : :class:`str`, optional</span>
+<span class="sd">        Hashing algorithm (default is &#39;sha256&#39;).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`str` or :class:`None`</span>
+<span class="sd">        The remote file&#39;s hash, or None if the file does not exist or cannot be read.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">command</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">algo</span><span class="si">}</span><span class="s2">sum </span><span class="si">{</span><span class="n">remote_path</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">stdin</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">ssh</span><span class="o">.</span><span class="n">exec_command</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">stdout</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">stderr</span><span class="o">.</span><span class="n">read</span><span class="p">():</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="upload_if_different">
+<a class="viewcode-back" href="../../../commands/snap.html#GONet_Wizard.commands.snap.upload_if_different">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">upload_if_different</span><span class="p">(</span><span class="n">ssh</span><span class="p">:</span> <span class="n">paramiko</span><span class="o">.</span><span class="n">SSHClient</span><span class="p">,</span> <span class="n">local_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">remote_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Upload a file only if it differs from the remote version.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ssh : :class:`paramiko.client.SSHClient`</span>
+<span class="sd">        SSH connection to the GONet device.</span>
+<span class="sd">    local_path : :class:`str`</span>
+<span class="sd">        Path to the local file.</span>
+<span class="sd">    remote_path : :class:`str`</span>
+<span class="sd">        Destination path on the remote device.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">local_hash</span> <span class="o">=</span> <span class="n">get_local_file_hash</span><span class="p">(</span><span class="n">local_path</span><span class="p">)</span>
+    <span class="n">remote_hash</span> <span class="o">=</span> <span class="n">get_remote_file_hash</span><span class="p">(</span><span class="n">ssh</span><span class="p">,</span> <span class="n">remote_path</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">remote_hash</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">remote_hash</span> <span class="o">==</span> <span class="n">local_hash</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Remote file is identical. Skipping upload.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;🆚 Remote file differs from local.&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;📤 Uploading config file: </span><span class="si">{</span><span class="n">local_path</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="n">remote_path</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">SCPClient</span><span class="p">(</span><span class="n">ssh</span><span class="o">.</span><span class="n">get_transport</span><span class="p">())</span> <span class="k">as</span> <span class="n">scp</span><span class="p">:</span>
+        <span class="n">scp</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">local_path</span><span class="p">,</span> <span class="n">remote_path</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;📤 File uploaded.&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="run_remote_script_with_live_output">
+<a class="viewcode-back" href="../../../commands/snap.html#GONet_Wizard.commands.snap.run_remote_script_with_live_output">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_remote_script_with_live_output</span><span class="p">(</span><span class="n">ssh</span><span class="p">:</span> <span class="n">paramiko</span><span class="o">.</span><span class="n">SSHClient</span><span class="p">,</span> <span class="n">command</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run a remote command and stream stdout in real time.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ssh : :class:`paramiko.client.SSHClient`</span>
+<span class="sd">        SSH connection to the GONet device.</span>
+<span class="sd">    command : :class:`str`</span>
+<span class="sd">        The command to run remotely.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stdin</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">ssh</span><span class="o">.</span><span class="n">exec_command</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">get_pty</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">stdout</span><span class="o">.</span><span class="n">channel</span><span class="o">.</span><span class="n">exit_status_ready</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">stdout</span><span class="o">.</span><span class="n">channel</span><span class="o">.</span><span class="n">recv_ready</span><span class="p">():</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">stdout</span><span class="o">.</span><span class="n">channel</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="take_snapshot">
+<a class="viewcode-back" href="../../../commands/snap.html#GONet_Wizard.commands.snap.take_snapshot">[docs]</a>
+<span class="nd">@ssh_connect</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">take_snapshot</span><span class="p">(</span><span class="n">ssh</span><span class="p">:</span> <span class="n">paramiko</span><span class="o">.</span><span class="n">SSHClient</span><span class="p">,</span> <span class="n">config_file_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run the GONet imaging script remotely and download new files.</span>
+
+<span class="sd">    This function:</span>
+<span class="sd">    - Checks current files in the image folder</span>
+<span class="sd">    - Optionally uploads a config file if provided</span>
+<span class="sd">    - Executes `gonet4.py` on the remote device</span>
+<span class="sd">    - Downloads any newly created image files to the local machine</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ssh : :class:`paramiko.client.SSHClient`</span>
+<span class="sd">        SSH connection (automatically provided by the decorator).</span>
+<span class="sd">    config_file_path : :class:`str`, optional</span>
+<span class="sd">        Local path to a configuration file to be used with `gonet4.py`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - Files are downloaded to the folder defined by ``LOCAL_OUTPUT_FOLDER``.</span>
+<span class="sd">    - Requires appropriate environment variables as defined in :class:`GONet_Wizard.commands.settings.GONetConfig`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">GONetConfig</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;📂 Checking images folder before script runs...&quot;</span><span class="p">)</span>
+    <span class="n">initial_files</span> <span class="o">=</span> <span class="n">list_remote_files</span><span class="p">(</span><span class="n">ssh</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">gonet_images_folder</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;📄 Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">initial_files</span><span class="p">)</span><span class="si">}</span><span class="s2"> files before execution.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">config_file_path</span><span class="p">:</span>
+        <span class="n">config_remote_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">gonet_config_folder</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">config_file_path</span><span class="p">))</span>
+        <span class="n">upload_if_different</span><span class="p">(</span><span class="n">ssh</span><span class="p">,</span> <span class="n">config_file_path</span><span class="p">,</span> <span class="n">config_remote_file_path</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">config_remote_file_path</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">🚀 Running remote script with live logs...&quot;</span><span class="p">)</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;python3 </span><span class="si">{</span><span class="n">config</span><span class="o">.</span><span class="n">gonet4_path</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">config_remote_file_path</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="n">run_remote_script_with_live_output</span><span class="p">(</span><span class="n">ssh</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">✅ Script execution finished.&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;📂 Checking images folder after script runs...&quot;</span><span class="p">)</span>
+    <span class="n">final_files</span> <span class="o">=</span> <span class="n">list_remote_files</span><span class="p">(</span><span class="n">ssh</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">gonet_images_folder</span><span class="p">)</span>
+    <span class="n">new_files</span> <span class="o">=</span> <span class="n">final_files</span> <span class="o">-</span> <span class="n">initial_files</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;🆕 New images created: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">new_files</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">new_files</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   • </span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">new_files</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">⬇️  Downloading new images to: </span><span class="si">{</span><span class="n">config</span><span class="o">.</span><span class="n">local_output_folder</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">local_output_folder</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">SCPClient</span><span class="p">(</span><span class="n">ssh</span><span class="o">.</span><span class="n">get_transport</span><span class="p">())</span> <span class="k">as</span> <span class="n">scp</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">new_files</span><span class="p">:</span>
+                <span class="n">remote_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">gonet_images_folder</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+                <span class="n">local_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">local_output_folder</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   ↳ </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">scp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">remote_path</span><span class="p">,</span> <span class="n">local_path</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;✅ All new images downloaded.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ℹ️ No new images to download.&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

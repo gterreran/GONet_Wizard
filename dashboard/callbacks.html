@@ -1,0 +1,556 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>callbacks &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="env" href="env.html" />
+    <link rel="prev" title="app" href="app.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../settings.html">settings Module</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../GONet_dashboard.html">GONet Dashboard Package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../GONet_dashboard.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="app.html">app</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">callbacks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="env.html">env</a></li>
+<li class="toctree-l3"><a class="reference internal" href="layout.html">layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="server.html">server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="utils.html">utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hood.html">hood sub-package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../GONet_dashboard.html">GONet Dashboard Package</a></li>
+      <li class="breadcrumb-item active">callbacks</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/dashboard/callbacks.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-GONet_Wizard.GONet_dashboard.src.callbacks">
+<span id="callbacks"></span><h1>callbacks<a class="headerlink" href="#module-GONet_Wizard.GONet_dashboard.src.callbacks" title="Link to this heading"></a></h1>
+<p>Callbacks for the GONet Dashboard.</p>
+<p>This module defines all <a class="reference external" href="https://dash.plotly.com/">Dash</a> callback functions that power the interactivity
+of the GONet Wizard dashboard. The callbacks handle core responsibilities such as:</p>
+<ul class="simple">
+<li><p>Loading and parsing the GONet data archive</p></li>
+<li><p>Applying and managing user-defined filters</p></li>
+<li><p>Generating interactive plots and statistics</p></li>
+<li><p>Managing UI state, selections, and saved configurations</p></li>
+<li><p>Exporting data and application state to JSON</p></li>
+</ul>
+<p><strong>Callback Registration Decorators</strong></p>
+<p>Most callbacks in this module use the custom <code class="xref py py-func docutils literal notranslate"><span class="pre">utils.gonet_callback()</span></code> decorator, which extends
+Dash’s default callback mechanism to include:</p>
+<ul class="simple">
+<li><p>Automatic alert handling (via the <cite>alert-container</cite>)</p></li>
+<li><p>Inline warning and exception capture</p></li>
+<li><p>Debug logging (including the triggering input and source line)</p></li>
+</ul>
+<p>This greatly simplifies development and debugging, especially for callbacks that modify user-facing
+components like figures and tables.</p>
+<p><strong>⚠️ Important Exception: MATCH/ALL Pattern-Matching Callbacks</strong></p>
+<p>Dash requires all Outputs in a callback to use the same wildcard keys when using pattern-matching IDs
+(<cite>MATCH</cite>, <cite>ALL</cite>, etc.). Since <code class="xref py py-func docutils literal notranslate"><span class="pre">utils.gonet_callback()</span></code> automatically adds static alert outputs,
+it <strong>cannot</strong> be used with callbacks that include pattern-matching outputs.</p>
+<p>For these cases, such as:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Output</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-value&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">MATCH</span><span class="p">},</span> <span class="s2">&quot;value&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>we used instead:</p>
+<ul class="simple">
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">app.callback()</span></code> directly</p></li>
+<li><p>Decorate the callback with <code class="xref py py-func docutils literal notranslate"><span class="pre">utils.debug_print()</span></code> for logging</p></li>
+</ul>
+<p>This ensures compatibility with Dash’s output constraints and avoids runtime errors.</p>
+<p><strong>Functions</strong></p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.callbacks.load" title="GONet_Wizard.GONet_dashboard.src.callbacks.load"><code class="xref py py-func docutils literal notranslate"><span class="pre">load()</span></code></a> : Load available data from the configured ROOT directory and prepare dropdown options.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.callbacks.update_main_plot" title="GONet_Wizard.GONet_dashboard.src.callbacks.update_main_plot"><code class="xref py py-func docutils literal notranslate"><span class="pre">update_main_plot()</span></code></a> : Update the main plot based on the selected axes, filters, and other plot parameters.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.callbacks.add_filter" title="GONet_Wizard.GONet_dashboard.src.callbacks.add_filter"><code class="xref py py-func docutils literal notranslate"><span class="pre">add_filter()</span></code></a> : Add a new empty filter block to the filter container in the UI.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.callbacks.add_or_filter" title="GONet_Wizard.GONet_dashboard.src.callbacks.add_or_filter"><code class="xref py py-func docutils literal notranslate"><span class="pre">add_or_filter()</span></code></a> : Add an additional (OR-based) condition to an existing filter block.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.callbacks.update_main_filters_value" title="GONet_Wizard.GONet_dashboard.src.callbacks.update_main_filters_value"><code class="xref py py-func docutils literal notranslate"><span class="pre">update_main_filters_value()</span></code></a> : Automatically update the value of the main filter when a filter label is selected.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.callbacks.update_secondary_filters_value" title="GONet_Wizard.GONet_dashboard.src.callbacks.update_secondary_filters_value"><code class="xref py py-func docutils literal notranslate"><span class="pre">update_secondary_filters_value()</span></code></a> : Automatically update the value of the secondary (OR) filter when a label is selected.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.callbacks.update_filters" title="GONet_Wizard.GONet_dashboard.src.callbacks.update_filters"><code class="xref py py-func docutils literal notranslate"><span class="pre">update_filters()</span></code></a> : Assemble and update the active filters list based on user-defined filter inputs.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.callbacks.export_data" title="GONet_Wizard.GONet_dashboard.src.callbacks.export_data"><code class="xref py py-func docutils literal notranslate"><span class="pre">export_data()</span></code></a> : Export filtered data from the plot to a downloadable JSON file.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.callbacks.save_status" title="GONet_Wizard.GONet_dashboard.src.callbacks.save_status"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_status()</span></code></a> : Save the current dashboard state, including axis selections and filter configurations.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.callbacks.load_status" title="GONet_Wizard.GONet_dashboard.src.callbacks.load_status"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_status()</span></code></a> : Load a previously saved dashboard state from a base64-encoded JSON file.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.callbacks.update_filter_selection_state" title="GONet_Wizard.GONet_dashboard.src.callbacks.update_filter_selection_state"><code class="xref py py-func docutils literal notranslate"><span class="pre">update_filter_selection_state()</span></code></a> : Enable or disable the “Add Selection Filter” button based on current selection in the plot.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.callbacks.add_selection_filter" title="GONet_Wizard.GONet_dashboard.src.callbacks.add_selection_filter"><code class="xref py py-func docutils literal notranslate"><span class="pre">add_selection_filter()</span></code></a> : Create and add a new filter based on the current selection region in the plot.</p></li>
+</ul>
+<section id="dash-callbacks">
+<h2>Dash callbacks:<a class="headerlink" href="#dash-callbacks" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.callbacks.load">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.callbacks.</span></span><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/callbacks.html#load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.callbacks.load" title="Link to this definition"></a></dt>
+<dd><p>Dash callback to initialize the dashboard data store and dropdown options.</p>
+<p>This function is triggered once when the layout is rendered. It delegates the
+actual data-loading logic to <code class="xref py py-func docutils literal notranslate"><span class="pre">load_data.load_data_from_json()</span></code>, which scans the directory
+specified by the <code class="docutils literal notranslate"><span class="pre">GONET_ROOT</span></code> environment variable, loads GONet JSON files,
+and returns a flat dictionary of observations along with axis selection options.</p>
+<p>The callback is wrapped in <code class="xref py py-func docutils literal notranslate"><span class="pre">handle_errors()</span></code> to display any exceptions in the
+alert container and halt further callback execution if a failure occurs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>_</strong> (<em>Any</em>) – Dummy input triggered by layout initialization; unused.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>data</strong> (<em>dict</em>) – Flattened dictionary of GONet metadata and per-channel measurements,
+to be stored in a hidden dcc.Store component.</p></li>
+<li><p><strong>options_x</strong> (<em>list of dict</em>) – Dropdown options for selecting the x-axis quantity.</p></li>
+<li><p><strong>options_y</strong> (<em>list of dict</em>) – Dropdown options for selecting the y-axis quantity.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.callbacks.update_main_plot">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.callbacks.</span></span><span class="sig-name descname"><span class="pre">update_main_plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">active_filters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_filtered_points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clickdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gonet_fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">info_table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/callbacks.html#update_main_plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.callbacks.update_main_plot" title="Link to this definition"></a></dt>
+<dd><p>Update the main plot, statistics table, image preview, and info panel in response to user interaction.</p>
+<p>This is the central callback for GONet dashboard interactivity. It responds to any change
+that affects how data should be visualized or interpreted, and coordinates all downstream
+updates accordingly. It ensures that the displayed figure remains synchronized with the
+current filter set, axis choices, selected channels, and clicked data point.</p>
+<p>Triggers that activate this callback include:</p>
+<ul class="simple">
+<li><p>Changing the selected x- or y-axis quantity</p></li>
+<li><p>Adding, removing, or modifying any active filters</p></li>
+<li><p>Toggling the visibility of filtered-out points</p></li>
+<li><p>Enabling or disabling channels in the channel selector</p></li>
+<li><p>Clicking a data point on the plot</p></li>
+</ul>
+<p>This function manages the following visual components:</p>
+<ul class="simple">
+<li><p>The main scatter plot (created or updated using <code class="xref py py-class docutils literal notranslate"><span class="pre">FigureWrapper</span></code>)</p></li>
+<li><p>The statistics summary table (mean ± std for x and y values)</p></li>
+<li><p>The GONet image heatmap of the selected “big point” (if applicable)</p></li>
+<li><p>The information table containing metadata for the selected data point</p></li>
+</ul>
+<p>Depending on the triggering input, the function will:</p>
+<ul class="simple">
+<li><p>Rebuild the entire figure from scratch (on axis change)</p></li>
+<li><p>Reapply filters and update trace visibility (on filter change)</p></li>
+<li><p>Show or hide filtered-out points (on toggle)</p></li>
+<li><p>Add or remove traces corresponding to visible channels (on channel change)</p></li>
+<li><p>Highlight and load image + metadata for the selected point (on click)</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Selected label for the x-axis (e.g., ‘sky_brightness’).</p></li>
+<li><p><strong>y_label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Selected label for the y-axis (e.g., ‘temperature’).</p></li>
+<li><p><strong>active_filters</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – User-defined filters to apply to the dataset. Each filter includes a label, operator, and value.</p></li>
+<li><p><strong>channels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – List of active channels to display (e.g., [‘red’, ‘green’, ‘blue’]).</p></li>
+<li><p><strong>show_filtered_points</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>) – Whether to display data points that fail the filter criteria with reduced opacity.</p></li>
+<li><p><strong>clickdata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> or <code class="xref py py-class docutils literal notranslate"><span class="pre">None</span></code>) – Plotly clickData object containing information about the clicked point (if any).</p></li>
+<li><p><strong>fig</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – Current Plotly figure, passed in from the Dash state.</p></li>
+<li><p><strong>gonet_fig</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – Current heatmap image figure, passed in from the Dash state.</p></li>
+<li><p><strong>info_table</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – Current info table rows, passed in from the Dash state.</p></li>
+<li><p><strong>all_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – Complete flattened dataset returned by <code class="xref py py-func docutils literal notranslate"><span class="pre">load_data_from_json()</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> – Updated Plotly figure reflecting current filters, axes, and channels.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> – Updated statistics table rows with mean and standard deviation summaries.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> or <code class="xref py py-data docutils literal notranslate"><span class="pre">dash.no_update</span></code> – Updated heatmap figure or <code class="xref py py-data docutils literal notranslate"><span class="pre">dash.no_update</span></code> if no change is needed.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> – Updated rows of the data point information table.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.callbacks.add_filter">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.callbacks.</span></span><span class="sig-name descname"><span class="pre">add_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_div</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/callbacks.html#add_filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.callbacks.add_filter" title="Link to this definition"></a></dt>
+<dd><p>Add a new empty filter block to the filter container in the UI.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>_</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Any</span></code>) – Dummy input from the button click (not used).</p></li>
+<li><p><strong>filter_div</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – Current list of filter components in the container.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – List of label options for dropdowns.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>filter_div</strong> – Updated list of filter components with one new filter added.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.callbacks.add_or_filter">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.callbacks.</span></span><span class="sig-name descname"><span class="pre">add_or_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/callbacks.html#add_or_filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.callbacks.add_or_filter" title="Link to this definition"></a></dt>
+<dd><p>Add an additional (OR-based) condition to an existing filter block.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>_</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Any</span></code>) – Dummy input from the OR-button click (not used).</p></li>
+<li><p><strong>id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – Dictionary containing the index of the filter block to update.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – List of label options for the dropdowns.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>new_filter</strong> – A new filter component to be added to the filter block.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dash component</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.callbacks.update_main_filters_value">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.callbacks.</span></span><span class="sig-name descname"><span class="pre">update_main_filters_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/callbacks.html#update_main_filters_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.callbacks.update_main_filters_value" title="Link to this definition"></a></dt>
+<dd><p>Automatically update the value of the main filter when a filter label is selected.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – The selected label from the main filter dropdown.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>value</strong> – Default value corresponding to the label, or None if not found.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Any</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.callbacks.update_secondary_filters_value">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.callbacks.</span></span><span class="sig-name descname"><span class="pre">update_secondary_filters_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/callbacks.html#update_secondary_filters_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.callbacks.update_secondary_filters_value" title="Link to this definition"></a></dt>
+<dd><p>Automatically update the value of the secondary (OR) filter when a label is selected.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – The selected label from the secondary filter dropdown.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>value</strong> – Default value corresponding to the label, or None if not found.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Any</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.callbacks.update_filters">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.callbacks.</span></span><span class="sig-name descname"><span class="pre">update_filters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">switches</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ops</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">second_ops</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">second_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">second_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">second_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selections_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filters_before</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/callbacks.html#update_filters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.callbacks.update_filters" title="Link to this definition"></a></dt>
+<dd><p>Assemble and update the active filters list based on user-defined filter inputs.</p>
+<p>This function collects the current state of all active filters, including their
+labels, operators, and values, and constructs a list of active filters. If a
+secondary (OR) filter is present, it is added as a nested dictionary.</p>
+<p>This function is also triggered at load up. Since initially <code class="docutils literal notranslate"><span class="pre">active_filters</span></code>
+is <code class="docutils literal notranslate"><span class="pre">None</span></code>, when triggered the <cite>show-filtered-data-switch</cite> is reset to default
+status.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>switches</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>) – States of the main filter switches indicating whether each filter is active.</p></li>
+<li><p><strong>ops</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Comparison operators for each main filter (e.g., ‘&gt;’, ‘&lt;=’, ‘==’).</p></li>
+<li><p><strong>values</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – Values selected or entered for each main filter.</p></li>
+<li><p><strong>selections</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – Lasso or box selection data used to override value-based filters.</p></li>
+<li><p><strong>second_ops</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Comparison operators for each secondary filter.</p></li>
+<li><p><strong>second_values</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – Values selected or entered for each secondary filter.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Labels (field names) selected for each main filter.</p></li>
+<li><p><strong>second_labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Labels selected for each secondary filter.</p></li>
+<li><p><strong>second_ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – IDs of the secondary filter value fields, containing the filter index.</p></li>
+<li><p><strong>selections_ids</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – IDs of the selection-based filters, containing the filter index.</p></li>
+<li><p><strong>filters_before</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – Previously active filters, used to check whether an update is necessary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated list of active filters, or <cite>no_update</cite> if unchanged.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> or <code class="xref py py-class docutils literal notranslate"><span class="pre">dash.no_update</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.callbacks.export_data">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.callbacks.</span></span><span class="sig-name descname"><span class="pre">export_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/callbacks.html#export_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.callbacks.export_data" title="Link to this definition"></a></dt>
+<dd><p>Export filtered data from the plot to a downloadable JSON file.</p>
+<p>This function retrieves all points currently visible in the main plot that are not
+filtered or marked as big points. It extracts relevant metadata and fit parameters
+for each unique index across all channels, organizing the data into a structured JSON
+format for export.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>_</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Any</span></code>) – Unused placeholder for the n_clicks input from the export button.</p></li>
+<li><p><strong>fig</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – The Plotly figure dictionary containing plotted data and metadata.</p></li>
+<li><p><strong>data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – The full dataset loaded into the application, including all measurements
+and metadata for each point.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>A dictionary containing:</p>
+<ul class="simple">
+<li><p>’content’: JSON string representing the filtered and formatted dataset.</p></li>
+<li><p>’filename’: Suggested filename for the download (“filtered_data.json”).</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.callbacks.save_status">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.callbacks.</span></span><span class="sig-name descname"><span class="pre">save_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/callbacks.html#save_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.callbacks.save_status" title="Link to this definition"></a></dt>
+<dd><p>Save the current dashboard state, including axis selections and filter configurations.</p>
+<p>This function collects the current state of all dashboard controls—such as axis dropdowns,
+filters, channel selections, and switches—and assembles them into a dictionary suitable
+for export or persistent storage. It supports both primary and secondary filters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>_</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Any</span></code>) – Unused placeholder for the <cite>n_clicks</cite> input from the “save status” button.</p></li>
+<li><p><strong>*args</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – Interleaved list of (id, value) pairs for all input states. Each id can either be a string
+(for global components like axis dropdowns and switches) or a dictionary (for indexed filters).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>A dictionary representing the current state of the dashboard, including:</p>
+<ul class="simple">
+<li><p>Axis selection values.</p></li>
+<li><p>All filters and their properties.</p></li>
+<li><p>Active channels and switch states.</p></li>
+</ul>
+<p>The structure is compatible with later reloading via the <a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.callbacks.load_status" title="GONet_Wizard.GONet_dashboard.src.callbacks.load_status"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_status()</span></code></a> function.</p>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.callbacks.load_status">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.callbacks.</span></span><span class="sig-name descname"><span class="pre">load_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contents</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_div</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/callbacks.html#load_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.callbacks.load_status" title="Link to this definition"></a></dt>
+<dd><p>Load a previously saved dashboard state from a base64-encoded JSON file.</p>
+<p>This function decodes and parses the uploaded status file and restores the application state,
+including axis selections, active channels, switches, and filters. It dynamically reconstructs
+each filter (both primary and secondary) and injects them into the dashboard.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>contents</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – <p>Base64-encoded string representing the uploaded file contents from the <a class="reference external" href="https://dash.plotly.com/">Dash</a> upload component.</p>
+</p></li>
+<li><p><strong>filter_div</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – List of existing filter components already present in the dashboard.</p></li>
+<li><p><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – List of available labels used to populate new filters.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>x_axis_value</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Restored value for the x-axis dropdown.</p></li>
+<li><p><strong>y_axis_value</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Restored value for the y-axis dropdown.</p></li>
+<li><p><strong>channels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – Restored list of selected channels.</p></li>
+<li><p><strong>show_filtered</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>) – Whether to show filtered points, as restored from the saved state.</p></li>
+<li><p><strong>filter_div</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – Updated list of filter UI components reflecting the saved configuration.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.callbacks.update_filter_selection_state">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.callbacks.</span></span><span class="sig-name descname"><span class="pre">update_filter_selection_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relayout_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/callbacks.html#update_filter_selection_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.callbacks.update_filter_selection_state" title="Link to this definition"></a></dt>
+<dd><p>Enable or disable the “Add Selection Filter” button based on current selection in the plot.</p>
+<p>This function checks whether a valid lasso or box selection exists in the main plot.
+If such a selection is detected (i.e., a non-empty path is present), the filter button
+becomes enabled; otherwise, it remains disabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>relayout_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – The relayout metadata from the Plotly plot, which may include a ‘selections’ field.</p></li>
+<li><p><strong>fig</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – The current figure displayed in the main plot (unused, but passed for context).</p></li>
+<li><p><strong>all_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – The full dataset shown in the dashboard (unused, but passed for context).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><cite>False</cite> if a valid selection exists (enabling the button), <cite>True</cite> otherwise (disabling it).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.callbacks.add_selection_filter">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.callbacks.</span></span><span class="sig-name descname"><span class="pre">add_selection_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_div</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relayout_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figure</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_dashboard/src/callbacks.html#add_selection_filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.callbacks.add_selection_filter" title="Link to this definition"></a></dt>
+<dd><p>Create and add a new filter based on the current selection region in the plot.</p>
+<p>This function checks if a valid lasso or box selection exists in the plot’s <code class="docutils literal notranslate"><span class="pre">relayoutData</span></code>.
+If so, it generates a new filter corresponding to the selected data points and appends it
+to the list of existing filters. The selection is then removed from the plot layout to avoid
+reprocessing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>_</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Any</span></code>) – Placeholder for the button click triggering the addition of a selection-based filter.</p></li>
+<li><p><strong>filter_div</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – <p>Existing list of <a class="reference external" href="https://dash.plotly.com/">Dash</a> filter components displayed in the UI.</p>
+</p></li>
+<li><p><strong>relayout_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – Plotly relayout data containing information about lasso/box selections.</p></li>
+<li><p><strong>figure</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – The current figure dictionary shown in the main plot.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>filter_div</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – Updated list of filter components, now including the new selection-based filter.</p></li>
+<li><p><strong>relayoutData</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – An empty dictionary to reset plot selection state.</p></li>
+<li><p><strong>figure</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – The updated figure with the selection metadata removed.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="clientside-callback-export-dashboard-status">
+<h2>Clientside Callback: Export Dashboard Status<a class="headerlink" href="#clientside-callback-export-dashboard-status" title="Link to this heading"></a></h2>
+<p>This clientside callback enables users to export the current dashboard state
+as a JSON file. The data is serialized in the browser and downloaded via a
+temporary Blob URL.</p>
+<dl class="simple">
+<dt><strong>Inputs</strong>:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">status-data.data</span></code>: A dictionary containing the current UI state, including axis selections, filters, and switches.</p></li>
+</ul>
+</dd>
+<dt><strong>Outputs</strong>:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">dummy-div.children</span></code>: Used solely to trigger the callback.</p></li>
+</ul>
+</dd>
+<dt><strong>Behavior</strong>:</dt><dd><ul class="simple">
+<li><p>Prompts the user to enter a filename (default: <code class="docutils literal notranslate"><span class="pre">status.json</span></code>).</p></li>
+<li><p>Converts the status dictionary into a formatted JSON string.</p></li>
+<li><p>Creates a Blob and object URL.</p></li>
+<li><p>Initiates the download using a temporary anchor tag.</p></li>
+<li><p>Cleans up all temporary DOM elements and object URLs afterward.</p></li>
+</ul>
+</dd>
+<dt><strong>Usage Notes</strong>:</dt><dd><ul class="simple">
+<li><p>This approach is quick and convenient for small data payloads.</p></li>
+<li><p>It uses browser-native functionality and does not require server interaction.</p></li>
+<li><p>The callback is designed to be self-contained and avoids the need for backend downloads.</p></li>
+<li><p>A more robust alternative using the File System Access API is commented in the code, but is currently disabled due to limited UI polish and cross-browser compatibility.</p></li>
+</ul>
+</dd>
+<dt><strong>Future Improvements</strong>:</dt><dd><ul class="simple">
+<li><p>For larger payloads or enhanced control, this behavior may eventually be migrated to the Django backend.</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="app.html" class="btn btn-neutral float-left" title="app" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="env.html" class="btn btn-neutral float-right" title="env" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

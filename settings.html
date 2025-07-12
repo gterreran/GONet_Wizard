@@ -1,0 +1,460 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>settings Module &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="GONet Dashboard Package" href="GONet_dashboard.html" />
+    <link rel="prev" title="Command-Line Interface" href="cli.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">settings Module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#constants">Constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#functions">Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#GONet_Wizard.settings.require_env_var"><code class="docutils literal notranslate"><span class="pre">require_env_var()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#GONet_Wizard.settings.warn_env_var_missing"><code class="docutils literal notranslate"><span class="pre">warn_env_var_missing()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#classes">Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#GONet_Wizard.settings.EnvVar"><code class="docutils literal notranslate"><span class="pre">EnvVar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#GONet_Wizard.settings.GONetConfig"><code class="docutils literal notranslate"><span class="pre">GONetConfig</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#GONet_Wizard.settings.DashboardConfig"><code class="docutils literal notranslate"><span class="pre">DashboardConfig</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">settings Module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/settings.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-GONet_Wizard.settings">
+<span id="settings-module"></span><h1>settings Module<a class="headerlink" href="#module-GONet_Wizard.settings" title="Link to this heading"></a></h1>
+<p>Environment Configuration and Variable Management.</p>
+<p>This module provides utility functions and configuration classes for handling
+environment variables used by the GONet Wizard system, in particular for its
+entry points and various command-line tools. It includes validation
+tools that either require or gently warn about missing variables, as well as
+data classes that organize related environment values for dashboard and
+camera-side operations.</p>
+<p><strong>Functions</strong></p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#GONet_Wizard.settings.require_env_var" title="GONet_Wizard.settings.require_env_var"><code class="xref py py-func docutils literal notranslate"><span class="pre">require_env_var()</span></code></a> : Prompt for required environment variables if missing.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.settings.warn_env_var_missing" title="GONet_Wizard.settings.warn_env_var_missing"><code class="xref py py-func docutils literal notranslate"><span class="pre">warn_env_var_missing()</span></code></a> : Prompt optionally for missing environment variables.</p></li>
+</ul>
+<p><strong>Classes</strong></p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#GONet_Wizard.settings.EnvVar" title="GONet_Wizard.settings.EnvVar"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnvVar</span></code></a> : Represents an environment variable with an optional default value.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.settings.GONetConfig" title="GONet_Wizard.settings.GONetConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetConfig</span></code></a> : Environment settings for interacting with a remote GONet device.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.settings.DashboardConfig" title="GONet_Wizard.settings.DashboardConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">DashboardConfig</span></code></a> : Environment settings for dashboard data and image access.</p></li>
+</ul>
+<section id="constants">
+<h2>Constants<a class="headerlink" href="#constants" title="Link to this heading"></a></h2>
+<p><strong>GONet variables</strong></p>
+<dl>
+<dt>GONET_USER<span class="classifier"><a class="reference internal" href="#GONet_Wizard.settings.EnvVar" title="GONet_Wizard.settings.EnvVar"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnvVar</span></code></a></span></dt><dd><p>Environment variable for the GONet user (default name: <code class="docutils literal notranslate"><span class="pre">GONET_USER</span></code>; default value: <code class="docutils literal notranslate"><span class="pre">&quot;pi&quot;</span></code>).</p>
+</dd>
+<dt>GONET_PASSWORD<span class="classifier"><a class="reference internal" href="#GONet_Wizard.settings.EnvVar" title="GONet_Wizard.settings.EnvVar"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnvVar</span></code></a></span></dt><dd><p>Environment variable for the GONet password (default name: <code class="docutils literal notranslate"><span class="pre">GONET_PASSWORD</span></code>).</p>
+</dd>
+<dt>GONET4_PATH<span class="classifier"><a class="reference internal" href="#GONet_Wizard.settings.EnvVar" title="GONet_Wizard.settings.EnvVar"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnvVar</span></code></a></span></dt><dd><p>Environment variable for the path of the <code class="docutils literal notranslate"><span class="pre">gonet4.py</span></code> script in a GONet camera (default name: <code class="docutils literal notranslate"><span class="pre">GONET4_PATH</span></code>; default value: <code class="docutils literal notranslate"><span class="pre">&quot;/home/pi/Tools/Camera/gonet4.py&quot;</span></code>).</p>
+</dd>
+<dt>GONET_CONFIG_FOLDER<span class="classifier"><a class="reference internal" href="#GONet_Wizard.settings.EnvVar" title="GONet_Wizard.settings.EnvVar"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnvVar</span></code></a></span></dt><dd><p>Environment variable for the path of the folder containing ‘.config’ files in a GONet camera (default name: <code class="docutils literal notranslate"><span class="pre">GONET_CONFIG_FOLDER</span></code>; default value: <code class="docutils literal notranslate"><span class="pre">&quot;/home/pi/Tools/Camera/&quot;</span></code>).</p>
+</dd>
+<dt>GONET_IMAGES_FOLDER<span class="classifier"><a class="reference internal" href="#GONet_Wizard.settings.EnvVar" title="GONet_Wizard.settings.EnvVar"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnvVar</span></code></a></span></dt><dd><p>Environment variable for the path of the folder containing the images acquired in a GONet camera (default name: <code class="docutils literal notranslate"><span class="pre">GONET_IMAGES_FOLDER</span></code>; default value: <code class="docutils literal notranslate"><span class="pre">&quot;/home/pi/images/&quot;</span></code>).</p>
+</dd>
+<dt>LOCAL_OUTPUT_FOLDER<span class="classifier"><a class="reference internal" href="#GONet_Wizard.settings.EnvVar" title="GONet_Wizard.settings.EnvVar"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnvVar</span></code></a></span></dt><dd><p>Environment variable for the local path of where to download new GONet images (default name: <code class="docutils literal notranslate"><span class="pre">LOCAL_OUTPUT_FOLDER</span></code>; default value: <code class="docutils literal notranslate"><span class="pre">&quot;./downloaded_files/&quot;</span></code>).</p>
+</dd>
+</dl>
+<p><strong>Dashboard variables</strong></p>
+<dl>
+<dt>GONET_ROOT<span class="classifier"><a class="reference internal" href="#GONet_Wizard.settings.EnvVar" title="GONet_Wizard.settings.EnvVar"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnvVar</span></code></a></span></dt><dd><p>Environment variable for the folder containing the json data of extracted GONet data.</p>
+</dd>
+<dt>GONET_ROOT_IMG<span class="classifier"><a class="reference internal" href="#GONet_Wizard.settings.EnvVar" title="GONet_Wizard.settings.EnvVar"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnvVar</span></code></a></span></dt><dd><p>Environment variable for the folder containing the GONet images to visualize.</p>
+</dd>
+</dl>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.require_env_var">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.settings.</span></span><span class="sig-name descname"><span class="pre">require_env_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">envvar</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prompt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/GONet_Wizard/settings.html#require_env_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.settings.require_env_var" title="Link to this definition"></a></dt>
+<dd><p>Retrieve a required environment variable, or prompt the user to input it.</p>
+<p>This function ensures that a required environment variable is defined.
+If not found, the user is prompted to provide a value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<a class="reference internal" href="#GONet_Wizard.settings.EnvVar" title="GONet_Wizard.settings.EnvVar"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnvVar</span></code></a>) – The name of the required environment variable.</p></li>
+<li><p><strong>prompt</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – A custom prompt message shown to the user if the variable is not set.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The retrieved or user-provided value for the environment variable.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.warn_env_var_missing">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.settings.</span></span><span class="sig-name descname"><span class="pre">warn_env_var_missing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">envvar</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prompt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/GONet_Wizard/settings.html#warn_env_var_missing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.settings.warn_env_var_missing" title="Link to this definition"></a></dt>
+<dd><p>Warn the user if an optional environment variable is not set.</p>
+<p>This function checks whether a given environment variable is defined.
+If it’s missing, the user is prompted to define it interactively.</p>
+<p>To avoid duplicate prompts when running a Dash app in debug mode,
+the function only executes its logic in the reloader child process
+(i.e., when the environment variable <code class="docutils literal notranslate"><span class="pre">WERKZEUG_RUN_MAIN</span></code> is set to ‘true’).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<a class="reference internal" href="#GONet_Wizard.settings.EnvVar" title="GONet_Wizard.settings.EnvVar"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnvVar</span></code></a>) – The name of the environment variable to check.</p></li>
+<li><p><strong>prompt</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – A custom input prompt if the user agrees to define the variable.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The value of the environment variable if already set or newly defined,
+or None if the user chooses not to define it.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> or <code class="xref py py-class docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>When <cite>app.run_server(debug=True)</cite> is used in Dash, the server restarts
+itself in a child process for hot reloading. To avoid running this prompt
+logic multiple times, we check for the environment variable
+‘WERKZEUG_RUN_MAIN’ which is only ‘true’ in the child process.</p>
+</dd></dl>
+
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.EnvVar">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">GONet_Wizard.settings.</span></span><span class="sig-name descname"><span class="pre">EnvVar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/GONet_Wizard/settings.html#EnvVar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.settings.EnvVar" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Represents an environment variable with an optional default value.</p>
+<p>This class provides a structured way to define environment variable names
+and their default values, and offers methods to retrieve them from the
+environment safely. Useful for centralizing and managing environment configuration
+in a DRY and maintainable way.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.EnvVar.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#GONet_Wizard.settings.EnvVar.name" title="Link to this definition"></a></dt>
+<dd><p>The name of the environment variable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.EnvVar.default">
+<span class="sig-name descname"><span class="pre">default</span></span><a class="headerlink" href="#GONet_Wizard.settings.EnvVar.default" title="Link to this definition"></a></dt>
+<dd><p>The default value to use if the environment variable is not set. Defaults to None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>], optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.EnvVar.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/GONet_Wizard/settings.html#EnvVar.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.settings.EnvVar.get" title="Link to this definition"></a></dt>
+<dd><p>Returns the environment variable’s value or its default.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.GONetConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">GONet_Wizard.settings.</span></span><span class="sig-name descname"><span class="pre">GONetConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gonet_user</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gonet4_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gonet_config_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gonet_images_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_output_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/GONet_Wizard/settings.html#GONetConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.settings.GONetConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Environment-based configuration for interacting with a remote GONet device.</p>
+<p>This class retrieves configuration settings from environment variables,
+including SSH credentials, paths to scripts and image directories, and
+local output locations. Environment variables are loaded dynamically at
+runtime to ensure flexibility and testability.</p>
+<section id="implementation-note">
+<h3>⚠️ Implementation Note:<a class="headerlink" href="#implementation-note" title="Link to this heading"></a></h3>
+<p>Environment variables are not read as default values at class definition time.
+Instead, they are loaded dynamically in the <cite>__post_init__</cite> method.</p>
+<dl class="simple">
+<dt>Why?</dt><dd><p>If fields were defined like: gonet_user: str = GONET_USER.get()
+the environment lookup would occur at <strong>parse time</strong>, not instantiation time.
+This means:</p>
+<ul class="simple">
+<li><p>Tests using tools like <cite>monkeypatch.setenv()</cite> would not affect behavior.</p></li>
+<li><p>It becomes difficult to override variables dynamically.</p></li>
+<li><p>Test isolation and runtime flexibility are compromised.</p></li>
+</ul>
+</dd>
+<dt>Solution:</dt><dd><p>All environment lookups are deferred to <cite>__post_init__()</cite> to ensure they
+reflect the current state of <cite>os.environ</cite> when the object is created.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.GONetConfig.gonet_user">
+<span class="sig-name descname"><span class="pre">gonet_user</span></span><a class="headerlink" href="#GONet_Wizard.settings.GONetConfig.gonet_user" title="Link to this definition"></a></dt>
+<dd><p>Username for SSH connection to the GONet device, from <cite>GONET_USER</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.GONetConfig.gonet4_path">
+<span class="sig-name descname"><span class="pre">gonet4_path</span></span><a class="headerlink" href="#GONet_Wizard.settings.GONetConfig.gonet4_path" title="Link to this definition"></a></dt>
+<dd><p>Remote path to <cite>gonet4.py</cite>, from <cite>GONET4_PATH</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.GONetConfig.gonet_config_folder">
+<span class="sig-name descname"><span class="pre">gonet_config_folder</span></span><a class="headerlink" href="#GONet_Wizard.settings.GONetConfig.gonet_config_folder" title="Link to this definition"></a></dt>
+<dd><p>Remote folder containing camera config files, from <cite>GONET_CONFIG_FOLDER</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.GONetConfig.gonet_images_folder">
+<span class="sig-name descname"><span class="pre">gonet_images_folder</span></span><a class="headerlink" href="#GONet_Wizard.settings.GONetConfig.gonet_images_folder" title="Link to this definition"></a></dt>
+<dd><p>Remote folder where images are stored, from <cite>GONET_IMAGES_FOLDER</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.GONetConfig.local_output_folder">
+<span class="sig-name descname"><span class="pre">local_output_folder</span></span><a class="headerlink" href="#GONet_Wizard.settings.GONetConfig.local_output_folder" title="Link to this definition"></a></dt>
+<dd><p>Local folder where downloaded files should be saved, from <cite>LOCAL_OUTPUT_FOLDER</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.GONetConfig.gonet_password">
+<span class="sig-name descname"><span class="pre">gonet_password</span></span><a class="headerlink" href="#GONet_Wizard.settings.GONetConfig.gonet_password" title="Link to this definition"></a></dt>
+<dd><p>SSH password for the GONet device, from <cite>GONET_PASSWORD</cite>, or prompted interactively.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.GONetConfig.get_gonet_password">
+<span class="sig-name descname"><span class="pre">get_gonet_password</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/GONet_Wizard/settings.html#GONetConfig.get_gonet_password"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.settings.GONetConfig.get_gonet_password" title="Link to this definition"></a></dt>
+<dd><p>SSH password for the GONet device.</p>
+<p>Retrieved from the <cite>GONET_PASSWORD</cite> environment variable,
+or entered interactively if not set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The SSH password.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.DashboardConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">GONet_Wizard.settings.</span></span><span class="sig-name descname"><span class="pre">DashboardConfig</span></span><a class="reference internal" href="_modules/GONet_Wizard/settings.html#DashboardConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.settings.DashboardConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Environment-based configuration for the GONet dashboard.</p>
+<p>This class centralizes the retrieval of environment-based paths required
+for the GONet dashboard to function properly. It ensures that environment
+variables are not read until runtime, allowing for dynamic configuration
+and interactive prompting or fallback handling if variables are missing.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.DashboardConfig.dashboard_data_path">
+<span class="sig-name descname"><span class="pre">dashboard_data_path</span></span><a class="headerlink" href="#GONet_Wizard.settings.DashboardConfig.dashboard_data_path" title="Link to this definition"></a></dt>
+<dd><p>Absolute path to the root directory where dashboard data is stored.
+Retrieved from the environment variable <cite>GONET_ROOT</cite>. Set during object initialization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.DashboardConfig.gonet_images_path">
+<span class="sig-name descname"><span class="pre">gonet_images_path</span></span><a class="headerlink" href="#GONet_Wizard.settings.DashboardConfig.gonet_images_path" title="Link to this definition"></a></dt>
+<dd><p>Optional absolute path to the directory containing image files for the dashboard.
+Retrieved from the environment variable <cite>GONET_ROOT_IMG</cite>, or set to None if the
+variable is not defined or skipped by the user.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a> or <code class="xref py py-class docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.DashboardConfig.get_dashboard_data_path">
+<span class="sig-name descname"><span class="pre">get_dashboard_data_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/GONet_Wizard/settings.html#DashboardConfig.get_dashboard_data_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.settings.DashboardConfig.get_dashboard_data_path" title="Link to this definition"></a></dt>
+<dd><p>Path to the dashboard data directory.</p>
+<p>Retrieves the value of the <cite>GONET_ROOT</cite> environment variable and
+converts it to a <cite>Path</cite> object. If the variable is not set, the user
+is prompted to enter a path interactively.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The absolute path defined by the <cite>GONET_ROOT</cite> environment variable.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.settings.DashboardConfig.get_gonet_images_path">
+<span class="sig-name descname"><span class="pre">get_gonet_images_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/GONet_Wizard/settings.html#DashboardConfig.get_gonet_images_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.settings.DashboardConfig.get_gonet_images_path" title="Link to this definition"></a></dt>
+<dd><p>Optional path to the image directory for the dashboard.</p>
+<p>Retrieves the value of the <cite>GONET_ROOT_IMG</cite> environment variable and
+converts it to a <cite>Path</cite> object. If the variable is not set or skipped,
+returns None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The path defined by the <cite>GONET_ROOT_IMG</cite> environment variable,
+or None if the variable is missing.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a> or <code class="xref py py-class docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="cli.html" class="btn btn-neutral float-left" title="Command-Line Interface" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="GONet_dashboard.html" class="btn btn-neutral float-right" title="GONet Dashboard Package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

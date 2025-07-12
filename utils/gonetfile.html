@@ -1,0 +1,929 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GONetFile Module &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="GONet Raw Data Format" href="raw_data.html" />
+    <link rel="prev" title="GONet Utils Package" href="../GONet_utils.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../settings.html">settings Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../GONet_utils.html">GONet Utils Package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../GONet_utils.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">GONetFile Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="raw_data.html">GONet Raw Data Format</a></li>
+<li class="toctree-l3"><a class="reference internal" href="extract.html">extract</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../GONet_utils.html">GONet Utils Package</a></li>
+      <li class="breadcrumb-item active">GONetFile Module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/utils/gonetfile.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-GONet_Wizard.GONet_utils.src.gonetfile">
+<span id="gonetfile-module"></span><h1>GONetFile Module<a class="headerlink" href="#module-GONet_Wizard.GONet_utils.src.gonetfile" title="Link to this heading"></a></h1>
+<p>This module defines the <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> class, which provides functionality for
+handling and processing GONet files. The class encapsulates the properties
+and methods required for manipulating the image data (including red, green,
+and blue channels) and metadata associated with GONet files.</p>
+<p>The module supports various operations on GONet files, including:</p>
+<ul class="simple">
+<li><p>Loading image data from original raw (<cite>.jpg</cite>) or TIFF formats.</p></li>
+<li><p>Performing arithmetic operations between GONet files and scalar values.</p></li>
+<li><p>Writing image data to common formats like JPEG, TIFF, and FITS.</p></li>
+<li><p>Parsing and handling metadata for different file types.</p></li>
+</ul>
+<p>For more info regarding how the raw data is parsed, see <a class="reference internal" href="raw_data.html"><span class="doc">GONet Raw Data Format</span></a>.</p>
+<p>The <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> class also includes support for operator overloading, allowing
+users to easily perform element-wise operations between GONet files or between
+a GONet file and scalar values.</p>
+<p>In order to ensure that all arithmetic operations on the image channels are safe and
+reliable, we cast the red, green, and blue channel arrays to float64 upon initialization.
+The original pixel data is typically stored as uint12 or uint16, which are prone to
+overflow or precision loss during common operations like addition, subtraction, or
+division. By promoting the arrays to float64, we avoid these issues and enable robust
+numerical processing — particularly important for calibration, normalization, or stacked
+image analysis. This casting ensures consistency and protects users from subtle bugs that
+can arise from working with fixed-width integer types.</p>
+<p><strong>Functions</strong></p>
+<ul class="simple">
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">cast()</span></code>: Convert a value to a JSON-serializable type if necessary.</p></li>
+</ul>
+<p><strong>Classes</strong></p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType" title="GONet_Wizard.GONet_utils.src.gonetfile.FileType"><code class="xref py py-class docutils literal notranslate"><span class="pre">FileType</span></code></a>: Enumeration of file types used in GONet observations.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a>: A class representing a GONet file.</p></li>
+</ul>
+<section id="example-usage">
+<h2>Example usage<a class="headerlink" href="#example-usage" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">gonet_file</span> <span class="o">=</span> <span class="n">GONetFile</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s1">&#39;example_image.tiff&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">gonet_file</span><span class="o">.</span><span class="n">green</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="functions">
+<h2>Functions:<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.scale_uint12_to_16bit_range">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_utils.src.gonetfile.</span></span><span class="sig-name descname"><span class="pre">scale_uint12_to_16bit_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#scale_uint12_to_16bit_range"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.scale_uint12_to_16bit_range" title="Link to this definition"></a></dt>
+<dd><p>Linearly scales unsigned 12-bit integer values to the full 16-bit range [0, 65535].</p>
+<p>This function maps values from the uint12 range [0, 4095] to the float range [0, 65535],
+preserving relative magnitudes without rounding or type conversion to integer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>array-like</em><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Input value(s) in the uint12 range [0, 4095]. Can be a scalar or NumPy array.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Scaled value(s) in the float range [0.0, 65535.0]. Output dtype is float64.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If any input values are outside the valid uint12 range.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="classes">
+<h2>Classes:<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.FileType">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_utils.src.gonetfile.</span></span><span class="sig-name descname"><span class="pre">FileType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#FileType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Enumeration of file types used in GONet observations.</p>
+<p>This enum defines the standard types of data that a GONet file may represent,
+used for categorizing the file during processing or analysis.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.FileType.SCIENCE">
+<span class="sig-name descname"><span class="pre">SCIENCE</span></span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType.SCIENCE" title="Link to this definition"></a></dt>
+<dd><p>Represents a science frame (standard observational data).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType" title="GONet_Wizard.GONet_utils.src.gonetfile.FileType"><code class="xref py py-class docutils literal notranslate"><span class="pre">FileType</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.FileType.FLAT">
+<span class="sig-name descname"><span class="pre">FLAT</span></span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType.FLAT" title="Link to this definition"></a></dt>
+<dd><p>Represents a flat field frame (used for pixel response correction).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType" title="GONet_Wizard.GONet_utils.src.gonetfile.FileType"><code class="xref py py-class docutils literal notranslate"><span class="pre">FileType</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.FileType.BIAS">
+<span class="sig-name descname"><span class="pre">BIAS</span></span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType.BIAS" title="Link to this definition"></a></dt>
+<dd><p>Represents a bias frame (used for sensor readout offset correction).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType" title="GONet_Wizard.GONet_utils.src.gonetfile.FileType"><code class="xref py py-class docutils literal notranslate"><span class="pre">FileType</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.FileType.DARK">
+<span class="sig-name descname"><span class="pre">DARK</span></span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType.DARK" title="Link to this definition"></a></dt>
+<dd><p>Represents a dark frame (used to correct for dark current noise).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType" title="GONet_Wizard.GONet_utils.src.gonetfile.FileType"><code class="xref py py-class docutils literal notranslate"><span class="pre">FileType</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_utils.src.gonetfile.</span></span><span class="sig-name descname"><span class="pre">GONetFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">red</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">green</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filetype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A class representing a GONet file.</p>
+<p>This class provides methods for loading, interpreting, and processing GONet image data
+along with its associated metadata. It supports operations such as reading binary formats,
+extracting image channels, and converting pixel data into structured arrays.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.RAW_FILE_OFFSET">
+<span class="sig-name descname"><span class="pre">RAW_FILE_OFFSET</span></span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.RAW_FILE_OFFSET" title="Link to this definition"></a></dt>
+<dd><p>Offset in bytes to the beginning of the raw data in the file (default: 18711040).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.RAW_HEADER_SIZE">
+<span class="sig-name descname"><span class="pre">RAW_HEADER_SIZE</span></span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.RAW_HEADER_SIZE" title="Link to this definition"></a></dt>
+<dd><p>Size in bytes of the file header preceding the image data (default: 32768).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.RAW_DATA_OFFSET">
+<span class="sig-name descname"><span class="pre">RAW_DATA_OFFSET</span></span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.RAW_DATA_OFFSET" title="Link to this definition"></a></dt>
+<dd><p>Offset in bytes to the raw image data, computed as <code class="docutils literal notranslate"><span class="pre">RAW_FILE_OFFSET</span></code> - <code class="docutils literal notranslate"><span class="pre">RAW_HEADER_SIZE</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.RELATIVETOEND">
+<span class="sig-name descname"><span class="pre">RELATIVETOEND</span></span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.RELATIVETOEND" title="Link to this definition"></a></dt>
+<dd><p>Flag used to indicate seeking relative to the end of the file (default: 2).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.PIXEL_PER_LINE">
+<span class="sig-name descname"><span class="pre">PIXEL_PER_LINE</span></span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.PIXEL_PER_LINE" title="Link to this definition"></a></dt>
+<dd><p>Number of pixels per image row (default: 4056).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.PIXEL_PER_COLUMN">
+<span class="sig-name descname"><span class="pre">PIXEL_PER_COLUMN</span></span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.PIXEL_PER_COLUMN" title="Link to this definition"></a></dt>
+<dd><p>Number of pixels per image column (default: 3040).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.PADDED_LINE_BYTES">
+<span class="sig-name descname"><span class="pre">PADDED_LINE_BYTES</span></span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.PADDED_LINE_BYTES" title="Link to this definition"></a></dt>
+<dd><p>Number of bytes used to store a single image row, including padding (default: 6112).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.USED_LINE_BYTES">
+<span class="sig-name descname"><span class="pre">USED_LINE_BYTES</span></span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.USED_LINE_BYTES" title="Link to this definition"></a></dt>
+<dd><p>Number of bytes used to store a single image row, based on 12-bit pixel encoding
+(default: int(<code class="docutils literal notranslate"><span class="pre">PIXEL_PER_LINE</span></code> * 12 / 8)).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.CHANNELS">
+<span class="sig-name descname"><span class="pre">CHANNELS</span></span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.CHANNELS" title="Link to this definition"></a></dt>
+<dd><p>Names of the RGB channels available in the GONet image (default: [‘red’, ‘green’, ‘blue’]).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">red</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">green</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filetype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize a <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance with image data and metadata.</p>
+<p>This constructor sets up the internal state of a GONet file, including its
+RGB channel data, metadata, and file type classification.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Path or name of the GONet file.</p></li>
+<li><p><strong>red</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a>) – Pixel data for the red channel. Will be cast to float64.</p></li>
+<li><p><strong>green</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a>) – Pixel data for the green channel. Will be cast to float64.</p></li>
+<li><p><strong>blue</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a>) – Pixel data for the blue channel. Will be cast to float64.</p></li>
+<li><p><strong>meta</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">None</span></code></a>) – Dictionary of extracted metadata, or None if no metadata is available.</p></li>
+<li><p><strong>filetype</strong> (<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType" title="GONet_Wizard.GONet_utils.src.gonetfile.FileType"><code class="xref py py-class docutils literal notranslate"><span class="pre">FileType</span></code></a>) – Type of GONet file (e.g., <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType.SCIENCE" title="GONet_Wizard.GONet_utils.src.gonetfile.FileType.SCIENCE"><code class="xref py py-attr docutils literal notranslate"><span class="pre">FileType.SCIENCE</span></code></a>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.13)"><strong>TypeError</strong></a> – If input types are incorrect.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If image arrays are not 2D.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.filename">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">filename</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.filename" title="Link to this definition"></a></dt>
+<dd><p>Get the filename of the GONet file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The name or path of the file associated with this <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.red">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">red</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><span class="pre">ndarray</span></a></em><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.red" title="Link to this definition"></a></dt>
+<dd><p>Get the red channel data from the GONet file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A 2D array of pixel values corresponding to the red channel.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.green">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">green</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><span class="pre">ndarray</span></a></em><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.green" title="Link to this definition"></a></dt>
+<dd><p>Get the green channel data from the GONet file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A 2D array of pixel values corresponding to the green channel.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.blue">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">blue</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><span class="pre">ndarray</span></a></em><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.blue" title="Link to this definition"></a></dt>
+<dd><p>Get the blue channel data from the GONet file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A 2D array of pixel values corresponding to the blue channel.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.meta">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">meta</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><span class="pre">dict</span></a></em><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.meta" title="Link to this definition"></a></dt>
+<dd><p>Get the metadata associated with the GONet file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary containing metadata fields extracted from the file header or sidecar.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.filetype">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">filetype</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType" title="GONet_Wizard.GONet_utils.src.gonetfile.FileType"><span class="pre">FileType</span></a></em><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.filetype" title="Link to this definition"></a></dt>
+<dd><p>Get the file type of the GONet file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The type of the file, such as <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType.SCIENCE" title="GONet_Wizard.GONet_utils.src.gonetfile.FileType.SCIENCE"><code class="xref py py-attr docutils literal notranslate"><span class="pre">SCIENCE</span></code></a>, <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType.FLAT" title="GONet_Wizard.GONet_utils.src.gonetfile.FileType.FLAT"><code class="xref py py-attr docutils literal notranslate"><span class="pre">FLAT</span></code></a>, etc.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType" title="GONet_Wizard.GONet_utils.src.gonetfile.FileType"><code class="xref py py-class docutils literal notranslate"><span class="pre">FileType</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.channel">
+<span class="sig-name descname"><span class="pre">channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channel_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile.channel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.channel" title="Link to this definition"></a></dt>
+<dd><p>Retrieve the pixel data for a specified color channel.</p>
+<p>This method returns the image data associated with the specified
+color channel as a <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>channel_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – The name of the channel to retrieve. Must be one of
+<code class="docutils literal notranslate"><span class="pre">'red'</span></code>, <code class="docutils literal notranslate"><span class="pre">'green'</span></code>, or <code class="docutils literal notranslate"><span class="pre">'blue'</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The pixel data corresponding to the requested color channel.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If an invalid channel name is provided.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.write_to_jpeg">
+<span class="sig-name descname"><span class="pre">write_to_jpeg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">white_balance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile.write_to_jpeg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.write_to_jpeg" title="Link to this definition"></a></dt>
+<dd><p>Write the RGB image data to a JPEG file.</p>
+<p>This method assumes that the red, green, and blue channels are in the
+uint16 range [0, 65535], and rescales them to the standard 8-bit range
+[0, 255] required for JPEG output. Values outside this range are clipped,
+and the data is converted to 8-bit for JPEG compatibility.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">white_balance</span></code> is True, the method applies red and blue channel gains
+from <code class="docutils literal notranslate"><span class="pre">self.meta['WB']</span></code> prior to conversion, in order to produce a
+more natural-looking image. The white balance is expected to be a list
+or tuple of two floats: [R_gain, B_gain].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Path where the resulting JPEG file will be saved.</p></li>
+<li><p><strong>white_balance</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Whether to apply white balance using gains from metadata (default is False).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">white_balance</span></code> is True but the WB metadata is missing or invalid.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.write_to_tiff">
+<span class="sig-name descname"><span class="pre">write_to_tiff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">white_balance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile.write_to_tiff"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.write_to_tiff" title="Link to this definition"></a></dt>
+<dd><p>Write the RGB image data to a TIFF file.</p>
+<p>This method assumes that the red, green, and blue channels are in the
+uint16 range [0, 65535]. Values outside this range are clipped, and
+the data is cast to uint16 for TIFF compatibility.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">white_balance</span></code> is True, the method applies red and blue channel gains
+from <code class="docutils literal notranslate"><span class="pre">self.meta['JPEG']['WB']</span></code> prior to writing, in order to produce a
+more natural-looking image. The white balance is expected to be a list
+or tuple of two floats: [R_gain, B_gain].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Path where the resulting TIFF file will be saved.</p></li>
+<li><p><strong>white_balance</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Whether to apply white balance using gains from metadata (default is True).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">white_balance</span></code> is True but the WB metadata is missing or invalid.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.write_to_fits">
+<span class="sig-name descname"><span class="pre">write_to_fits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile.write_to_fits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.write_to_fits" title="Link to this definition"></a></dt>
+<dd><p>Write the image data to a multi-extension FITS file.</p>
+<p>This method saves the red, green, and blue channel data into separate
+HDUs (Header/Data Units) within a single FITS file. The metadata stored
+in the <code class="docutils literal notranslate"><span class="pre">meta</span></code> attribute is propagated into the FITS headers, adhering
+to the standard FITS format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>output_filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – The full path and filename where the FITS file will be written.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>This method does not return a value.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The FITS file is created using the <a class="reference external" href="https://docs.astropy.org/en/stable/io/fits/index.html#module-astropy.io.fits" title="(in Astropy v7.1)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">astropy.io.fits</span></code></a> library.</p></li>
+<li><p>Each color channel (red, green, blue) is stored in a separate image extension.</p></li>
+<li><p>Metadata keys longer than 8 characters or containing lowercase letters or symbols</p></li>
+</ul>
+<p>will be truncated or sanitized to conform to FITS header requirements.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.from_file">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filetype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">FileType.SCIENCE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile.from_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.from_file" title="Link to this definition"></a></dt>
+<dd><p>Create a <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance from a TIFF or JPEG file.</p>
+<p>This class method reads a GONet image file, extracts the red, green, and blue
+channel data, and optionally parses the associated metadata. It returns a fully
+initialized <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pathlib.Path</span></code></a>) – Full path to the image file. The file must be in <cite>.tif</cite>, <cite>.tiff</cite>, or <cite>.jpg</cite> format.</p></li>
+<li><p><strong>filetype</strong> (<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType" title="GONet_Wizard.GONet_utils.src.gonetfile.FileType"><code class="xref py py-class docutils literal notranslate"><span class="pre">FileType</span></code></a>, optional) – Type of the file, chosen from the <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.FileType" title="GONet_Wizard.GONet_utils.src.gonetfile.FileType"><code class="xref py py-class docutils literal notranslate"><span class="pre">FileType</span></code></a> enumeration.
+Defaults to <code class="docutils literal notranslate"><span class="pre">FileType.SCIENCE</span></code>.</p></li>
+<li><p><strong>meta</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – If True (default), metadata will be extracted and included. If False, metadata will be skipped.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new instance initialized with the file’s pixel data and metadata.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#FileNotFoundError" title="(in Python v3.13)"><strong>FileNotFoundError</strong></a> – If the specified file does not exist.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the file extension is unsupported (must be <cite>.tif</cite>, <cite>.tiff</cite>, <cite>.jpg</cite>).</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Metadata extraction is supported only for <cite>.jpg</cite> files. TIFF files are read for image data only.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile._parse_tiff_file">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_parse_tiff_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile._parse_tiff_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile._parse_tiff_file" title="Link to this definition"></a></dt>
+<dd><p>Parse a TIFF file and extract RGB channel data and optional metadata.</p>
+<p>This static method reads a TIFF file and separates the image into red, green,
+and blue channels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Path to the TIFF file to be parsed.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A NumPy array of shape <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">H,</span> <span class="pre">W)</span></code> representing the red, green, and blue channels.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>:class:<code class="docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#FileNotFoundError" title="(in Python v3.13)"><strong>FileNotFoundError</strong></a> – If the file does not exist or is not accessible.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the TIFF file does not contain 3 channels.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile._parse_raw_file">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_parse_raw_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile._parse_raw_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile._parse_raw_file" title="Link to this definition"></a></dt>
+<dd><p>Parse a raw GONet file and extract RGB channel data and optional metadata.</p>
+<p>This static method reads a GONet raw file—typically with a <cite>.jpg</cite> extension
+but not in standard JPEG format—and extracts the red, green, and blue image
+channels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Path to the raw file to be parsed.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A NumPy array of shape <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">H,</span> <span class="pre">W)</span></code> representing the red, green, and blue channels.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>:class:<code class="docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#FileNotFoundError" title="(in Python v3.13)"><strong>FileNotFoundError</strong></a> – If the file does not exist or is not accessible.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the file format is incompatible or corrupted.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile._parse_exif_metadata">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_parse_exif_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exif</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile._parse_exif_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile._parse_exif_metadata" title="Link to this definition"></a></dt>
+<dd><p>Extract and restructure EXIF metadata from a JPEG file into a structured dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>exif</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – A dictionary containing raw EXIF metadata extracted from the JPEG file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A structured metadata dictionary, with JPEG-related keys under ‘JPEG’.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile._operate">
+<span class="sig-name descname"><span class="pre">_operate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile._operate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile._operate" title="Link to this definition"></a></dt>
+<dd><p>Perform an element-wise operation on the current <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance.</p>
+<p>This internal method supports element-wise operations between the current
+GONetFile instance and either another GONetFile instance or a scalar value.
+The operation is applied independently to each color channel
+(red, green, and blue) using the provided binary operator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>other</strong> (<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> or scalar) – The operand for the operation. This can be another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a>
+instance or a scalar (e.g., <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>).</p></li>
+<li><p><strong>op</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">function</span></code>) – A binary operator function (e.g., <code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.add()</span></code>, <code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.multiply()</span></code>)
+that performs the desired operation between corresponding pixel arrays.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance with the operation applied to each channel.
+If <code class="docutils literal notranslate"><span class="pre">other</span></code> is a GONetFile, the result has no metadata or file type.
+If <code class="docutils literal notranslate"><span class="pre">other</span></code> is a scalar, metadata and file type are preserved.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.13)"><strong>TypeError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">other</span></code> is neither a GONetFile nor a scalar.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the operation cannot be broadcast between the channels and <code class="docutils literal notranslate"><span class="pre">other</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>This method is primarily used internally to implement operators like
+<cite>__add__</cite>, <cite>__sub__</cite>, etc.</p></li>
+<li><p>Metadata is only retained when operating with scalars.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__add__">
+<span class="sig-name descname"><span class="pre">__add__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile.__add__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__add__" title="Link to this definition"></a></dt>
+<dd><p>Add another object to this <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance.</p>
+<p>This method overloads the <code class="docutils literal notranslate"><span class="pre">+</span></code> operator to support element-wise addition
+between the current <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> and either another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a>
+or a scalar value (e.g., <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>). Addition is performed
+independently on the red, green, and blue channels using <code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.add()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> or scalar) – The operand to add. Can be another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> or a scalar value.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new instance resulting from the addition. If <cite>other</cite> is a
+<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a>, the returned object has no metadata or file type.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.13)"><strong>TypeError</strong></a> – If the operation is not supported between the operands.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the image shapes are incompatible.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__radd__">
+<span class="sig-name descname"><span class="pre">__radd__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__radd__" title="Link to this definition"></a></dt>
+<dd><p>Add another object to this <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance.</p>
+<p>This method overloads the <code class="docutils literal notranslate"><span class="pre">+</span></code> operator to support element-wise addition
+between the current <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> and either another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a>
+or a scalar value (e.g., <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>). Addition is performed
+independently on the red, green, and blue channels using <code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.add()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> or scalar) – The operand to add. Can be another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> or a scalar value.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new instance resulting from the addition. If <cite>other</cite> is a
+<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a>, the returned object has no metadata or file type.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.13)"><strong>TypeError</strong></a> – If the operation is not supported between the operands.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the image shapes are incompatible.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__iadd__">
+<span class="sig-name descname"><span class="pre">__iadd__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile.__iadd__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__iadd__" title="Link to this definition"></a></dt>
+<dd><p>Perform in-place addition on this <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance.</p>
+<p>This method overloads the <code class="docutils literal notranslate"><span class="pre">+=</span></code> operator to support in-place element-wise
+addition of another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> or a scalar value (e.g., <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>,
+<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>). Addition is performed independently on the red, green, and
+blue channels using <code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.add()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> or scalar) – The value to add in-place. Can be another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> or a scalar.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The modified instance after in-place addition.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.13)"><strong>TypeError</strong></a> – If the operation is not supported between the operands.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the channel dimensions are incompatible for element-wise addition.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__mul__">
+<span class="sig-name descname"><span class="pre">__mul__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile.__mul__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__mul__" title="Link to this definition"></a></dt>
+<dd><p>Perform element-wise multiplication using the <code class="docutils literal notranslate"><span class="pre">*</span></code> operator.</p>
+<p>This method multiplies the red, green, and blue channels of the current
+<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance with either another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance
+or a scalar (e.g., <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>). The multiplication is
+performed element-wise using <code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.multiply()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> or scalar) – The object to multiply with. Can be another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance
+or a scalar value.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance containing the result of the multiplication.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.13)"><strong>TypeError</strong></a> – If the operation is not supported between the operands.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the channel dimensions are incompatible for element-wise multiplication.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__rmul__">
+<span class="sig-name descname"><span class="pre">__rmul__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__rmul__" title="Link to this definition"></a></dt>
+<dd><p>Perform element-wise multiplication using the <code class="docutils literal notranslate"><span class="pre">*</span></code> operator.</p>
+<p>This method multiplies the red, green, and blue channels of the current
+<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance with either another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance
+or a scalar (e.g., <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>). The multiplication is
+performed element-wise using <code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.multiply()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> or scalar) – The object to multiply with. Can be another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance
+or a scalar value.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance containing the result of the multiplication.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.13)"><strong>TypeError</strong></a> – If the operation is not supported between the operands.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the channel dimensions are incompatible for element-wise multiplication.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__sub__">
+<span class="sig-name descname"><span class="pre">__sub__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile.__sub__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__sub__" title="Link to this definition"></a></dt>
+<dd><p>Perform element-wise subtraction using the <code class="docutils literal notranslate"><span class="pre">-</span></code> operator.</p>
+<p>This method subtracts either another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance or a scalar
+(e.g., <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>) from the current <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a>
+instance. The operation is applied independently to the red, green, and blue
+channels using <code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.subtract()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> or scalar) – The object to subtract. Can be another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance or a scalar value.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance containing the result of the subtraction.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.13)"><strong>TypeError</strong></a> – If the operation is not supported between the operands.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the channel dimensions are incompatible for element-wise subtraction.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__truediv__">
+<span class="sig-name descname"><span class="pre">__truediv__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile.__truediv__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__truediv__" title="Link to this definition"></a></dt>
+<dd><p>Perform element-wise division using the <code class="docutils literal notranslate"><span class="pre">/</span></code> operator.</p>
+<p>This method divides the red, green, and blue channels of the current
+<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance by either another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance
+or a scalar (e.g., <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>). The division is
+applied using <code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.true_divide()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> or scalar) – The object to divide by. Can be another <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance
+or a scalar value.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance containing the result of the division.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ZeroDivisionError" title="(in Python v3.13)"><strong>ZeroDivisionError</strong></a> – If division by zero occurs (e.g., scalar is zero or zero elements in another GONetFile).</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.13)"><strong>TypeError</strong></a> – If the operation is not supported between the operands.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__getitem__">
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/GONet_utils/src/gonetfile.html#GONetFile.__getitem__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile.__getitem__" title="Link to this definition"></a></dt>
+<dd><p>Slice the GONetFile spatially.</p>
+<p>This allows spatial slicing of the pixel data (red, green, blue channels) using
+standard NumPy-style indexing. The result is a new <a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a> instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#slice" title="(in Python v3.13)"><em>slice</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Slice or index to apply, e.g., [:, 10:20].</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new instance with sliced red, green, and blue arrays.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_utils.src.gonetfile.GONetFile" title="GONet_Wizard.GONet_utils.src.gonetfile.GONetFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">GONetFile</span></code></a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.13)"><strong>TypeError</strong></a> – If the key is invalid or cannot be applied.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../GONet_utils.html" class="btn btn-neutral float-left" title="GONet Utils Package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="raw_data.html" class="btn btn-neutral float-right" title="GONet Raw Data Format" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

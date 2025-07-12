@@ -1,0 +1,286 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GONet_Wizard.GONet_dashboard.src.hood.load_data &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../settings.html">settings Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">GONet_Wizard.GONet_dashboard.src.hood.load_data</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for GONet_Wizard.GONet_dashboard.src.hood.load_data</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Load and preprocess multi-epoch GONet observation data from JSON files.</span>
+
+<span class="sd">This module provides functionality for aggregating and flattening GONet</span>
+<span class="sd">nightly observation data into a single dictionary suitable for dashboard</span>
+<span class="sd">visualization and analysis. Each JSON file in the folder specified by</span>
+<span class="sd">`env.DASHBOARD_DATA_PATH` is expected to contain structured nightly data</span>
+<span class="sd">in the GONet format.</span>
+
+<span class="sd">**Key features**</span>
+
+<span class="sd">- Parses and validates nightly GONet JSON files</span>
+<span class="sd">- Flattens metadata and multi-channel metrics into a unified structure</span>
+<span class="sd">- Dynamically generates feature labels for dashboard dropdowns</span>
+<span class="sd">- Computes channel ratios and localized time features</span>
+<span class="sd">- Handles data format mismatches and missing fields gracefully</span>
+
+<span class="sd">Notes</span>
+<span class="sd">-----</span>
+
+<span class="sd">- Time features are computed in UTC and localized form.</span>
+<span class="sd">- Derived channel ratios (e.g., &#39;blue-green&#39;) are included in the output.</span>
+<span class="sd">- Labels for dashboard dropdowns are dynamically assigned in `env.LABELS`.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">datetime</span>
+
+<div class="viewcode-block" id="load_data_from_json">
+<a class="viewcode-back" href="../../../../../dashboard/hood/load_data.html#GONet_Wizard.GONet_dashboard.src.hood.load_data.load_data_from_json">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_data_from_json</span><span class="p">(</span><span class="n">env</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load and prepare all available GONet data from JSON files in the `env.DASHBOARD_DATA_PATH` folder.</span>
+
+<span class="sd">    This simplified version assumes that every valid `.json` file in `env.DASHBOARD_DATA_PATH`</span>
+<span class="sd">    contains nightly observation data in the expected GONet format.</span>
+
+<span class="sd">    ``time_unix``, ``float_hours_utc``, and ``float_hours_local`` are 3 hidden columns that cannot be</span>
+<span class="sd">    visualized in the main plot, since are not very human-readable. The purpose of these columns</span>
+<span class="sd">    is to provide some numerical values for time and dates, making them more easily filterable. </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    env : module-like</span>
+<span class="sd">        Object with required attributes:</span>
+<span class="sd">        </span>
+<span class="sd">        - env.DASHBOARD_DATA_PATH: :class:`pathlib.Path` — path to the folder containing JSON files.</span>
+<span class="sd">        - env.CHANNELS: list of str — e.g., [&#39;red&#39;, &#39;green&#39;, &#39;blue&#39;]</span>
+<span class="sd">        - env.LABELS: dict to be populated with &#39;gen&#39; and &#39;fit&#39; keys.</span>
+<span class="sd">        - env.LOCAL_TZ: tzinfo object for localizing timestamps.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    data : :class:`dict`</span>
+<span class="sd">        Flattened dictionary of all GONet metadata and channel-specific values.</span>
+
+<span class="sd">    options_x : :class:`list` of :class:`dict`</span>
+<span class="sd">        Dropdown options for the x-axis selector.</span>
+
+<span class="sd">    options_y : :class:`list` of :class:`dict`</span>
+<span class="sd">        Dropdown options for the y-axis selector.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    FileNotFoundError</span>
+<span class="sd">        If the directory is empty or contains no valid JSON files.</span>
+
+<span class="sd">    ValueError</span>
+<span class="sd">        If the JSON files are malformed or missing required fields.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">env</span><span class="o">.</span><span class="n">DASHBOARD_DATA_PATH</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The directory &#39;</span><span class="si">{</span><span class="n">env</span><span class="o">.</span><span class="n">DASHBOARD_DATA_PATH</span><span class="si">}</span><span class="s2">&#39; defined in GONET_ROOT does not exist.&quot;</span><span class="p">)</span>
+
+    <span class="n">json_files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">DASHBOARD_DATA_PATH</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.json&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">json_files</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No JSON files found in GONET_ROOT: </span><span class="si">{</span><span class="n">env</span><span class="o">.</span><span class="n">DASHBOARD_DATA_PATH</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;idx&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;channel&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+    <span class="n">image_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">data_initialized</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">for</span> <span class="n">file_name</span> <span class="ow">in</span> <span class="n">json_files</span><span class="p">:</span>
+        <span class="n">json_path</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">DASHBOARD_DATA_PATH</span> <span class="o">/</span> <span class="n">file_name</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">json_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">inp</span><span class="p">:</span>
+                <span class="n">night_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">inp</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to parse JSON file &#39;</span><span class="si">{</span><span class="n">file_name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">data_initialized</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">night_dict</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">l</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">CHANNELS</span><span class="p">]</span>
+                <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">env</span><span class="o">.</span><span class="n">CHANNEL_COLORS</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">l</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">]})</span>
+
+                <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;fit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">night_dict</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;red&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">l</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;fit&#39;</span><span class="p">]})</span>
+                <span class="n">data_initialized</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not initialize data structures from &#39;</span><span class="si">{</span><span class="n">file_name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">night_dict</span><span class="p">:</span>
+            <span class="n">image_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">CHANNELS</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_idx</span><span class="p">)</span>
+                    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+
+                    <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">]:</span>
+                        <span class="k">if</span> <span class="n">label</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">img</span> <span class="ow">and</span> <span class="n">label</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">CHANNEL_COLORS</span><span class="p">:</span>
+                            <span class="n">data</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+                        <span class="k">elif</span> <span class="n">label</span> <span class="o">==</span> <span class="s2">&quot;date&quot;</span><span class="p">:</span>
+                            <span class="n">data</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">img</span><span class="p">[</span><span class="n">label</span><span class="p">]))</span>
+                        <span class="k">elif</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">CHANNEL_COLORS</span><span class="p">:</span>
+                            <span class="n">ch1</span><span class="p">,</span><span class="n">ch2</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+                            <span class="n">data</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">img</span><span class="p">[</span><span class="n">ch1</span><span class="p">][</span><span class="s1">&#39;mean_counts&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">img</span><span class="p">[</span><span class="n">ch2</span><span class="p">][</span><span class="s1">&#39;mean_counts&#39;</span><span class="p">])</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">data</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">img</span><span class="p">[</span><span class="n">label</span><span class="p">])</span>
+                    <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;fit&#39;</span><span class="p">]:</span>
+                        <span class="n">data</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">img</span><span class="p">[</span><span class="n">c</span><span class="p">][</span><span class="n">label</span><span class="p">])</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error parsing image </span><span class="si">{</span><span class="n">image_idx</span><span class="si">}</span><span class="s2"> in file &#39;</span><span class="si">{</span><span class="n">file_name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+    <span class="c1"># Renaming time related keys and creating alternatives</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;time_unix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;date_utc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;date&#39;</span><span class="p">)</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;date_local&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;MJD&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;hours_utc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;hours_local&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># This is just to make easier time of the day comparisons</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;float_hours_utc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;float_hours_local&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="n">mjd0</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="s1">&#39;1858-01-11 00:00:00.000+00:00&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span>  <span class="n">data</span><span class="p">[</span><span class="s1">&#39;date_utc&#39;</span><span class="p">]:</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;date_local&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">LOCAL_TZ</span><span class="p">))</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;MJD&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">t</span> <span class="o">-</span> <span class="n">mjd0</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">/</span> <span class="mi">86400</span><span class="p">)</span>
+
+        <span class="n">parsed_time</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">decimal_time</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;MJD&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;MJD&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">parsed_time</span> <span class="o">&gt;</span> <span class="n">env</span><span class="o">.</span><span class="n">DAY_START_UTC</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;hours_utc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;2025-01-01T</span><span class="si">{</span><span class="n">parsed_time</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">))</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;hours_utc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;2025-01-02T</span><span class="si">{</span><span class="n">parsed_time</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">))</span>
+            <span class="n">decimal_time</span> <span class="o">=</span> <span class="n">decimal_time</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;float_hours_utc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decimal_time</span><span class="p">)</span>
+
+
+        <span class="n">parsed_time</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;date_local&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">decimal_time</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="mi">3600</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="nb">str</span><span class="p">(</span><span class="n">parsed_time</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)))</span> <span class="o">/</span> <span class="mi">86400</span>
+
+        <span class="k">if</span> <span class="n">parsed_time</span> <span class="o">&gt;</span> <span class="n">env</span><span class="o">.</span><span class="n">DAY_START_LOCAL</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;hours_local&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;2025-01-01T</span><span class="si">{</span><span class="n">parsed_time</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;hours_local&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;2025-01-02T</span><span class="si">{</span><span class="n">parsed_time</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">))</span>
+            <span class="n">decimal_time</span> <span class="o">=</span> <span class="n">decimal_time</span> <span class="o">+</span> <span class="mi">1</span> 
+
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;float_hours_local&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decimal_time</span><span class="p">)</span>
+
+    <span class="c1"># adding time related labels at the top of the labels list</span>
+    <span class="c1"># time_unix and float_hours are not very much human readable,</span>
+    <span class="c1"># so I removed them</span>
+    <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;hours_local&#39;</span><span class="p">,</span> <span class="s1">&#39;hours_utc&#39;</span><span class="p">,</span> <span class="s1">&#39;date_local&#39;</span><span class="p">,</span> <span class="s1">&#39;date_utc&#39;</span><span class="p">,</span> <span class="s1">&#39;MJD&#39;</span><span class="p">]:</span>
+        <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">]:</span>
+        <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">image_idx</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="s2">&quot;No valid data was extracted from any JSON file.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

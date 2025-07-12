@@ -1,0 +1,315 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GONet_Wizard.commands.show &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../settings.html">settings Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">GONet_Wizard.commands.show</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for GONet_Wizard.commands.show</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Plotting Utilities for GONet File Visualization.</span>
+
+<span class="sd">This module provides functions to visualize GONet image files,</span>
+<span class="sd">optionally saving figures and selecting specific RGB channels to display.</span>
+<span class="sd">The main function :func:`show` is meant to be used as a command-line tool.</span>
+
+<span class="sd">**Functions**</span>
+
+<span class="sd">- :func:`create_efficient_subplots` : Create optimized subplot grids for multiple channels.</span>
+<span class="sd">- :func:`save_figure` : Save matplotlib figures to disk with auto-incremented filenames.</span>
+<span class="sd">- :func:`auto_vmin_vmax` : Automatically scale image intensity using robust percentiles.</span>
+<span class="sd">- :func:`show` : Main interface to plot GONet files and optionally save the output.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">GONet_Wizard.GONet_utils.src.gonetfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">GONetFile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span><span class="o">,</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span>
+
+
+<div class="viewcode-block" id="create_efficient_subplots">
+<a class="viewcode-back" href="../../../commands/show.html#GONet_Wizard.commands.show.create_efficient_subplots">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_efficient_subplots</span><span class="p">(</span><span class="n">N</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">figsize</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a compact grid of subplots for displaying multiple images.</span>
+
+<span class="sd">    Automatically chooses the number of rows and columns based on the number of</span>
+<span class="sd">    plots required. Removes any unused axes to avoid blank spaces.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    N : :class:`int`</span>
+<span class="sd">        The number of subplots needed.</span>
+<span class="sd">    figsize : :class:`tuple`, optional</span>
+<span class="sd">        Size of the entire figure in inches (width, height).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`tuple`</span>
+<span class="sd">        A tuple of `(fig, axes)` where:</span>
+<span class="sd">        - `fig` is the matplotlib Figure</span>
+<span class="sd">        - `axes` is a list of Axes objects (length N)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">N</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;N must be at least 1 to create subplots.&quot;</span><span class="p">)</span>
+
+    <span class="n">rows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">N</span><span class="p">))</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">N</span> <span class="o">/</span> <span class="n">rows</span><span class="p">)</span>
+
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span><span class="n">axes</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">axes</span><span class="p">)):</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">delaxes</span><span class="p">(</span><span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">[:</span><span class="n">N</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="save_figure">
+<a class="viewcode-back" href="../../../commands/show.html#GONet_Wizard.commands.show.save_figure">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">save_figure</span><span class="p">(</span><span class="n">fig</span><span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">Figure</span><span class="p">,</span> <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Save a matplotlib figure to a PDF file, avoiding overwrites.</span>
+
+<span class="sd">    If a file with the same name already exists, appends a counter to the filename.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fig : :class:`matplotlib.figure.Figure`</span>
+<span class="sd">        The figure to be saved.</span>
+<span class="sd">    save_path : :class:`str`</span>
+<span class="sd">        The target filename (with or without `.pdf` extension).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">save_path</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.pdf&#39;</span><span class="p">):</span>
+        <span class="n">save_path</span> <span class="o">+=</span> <span class="s1">&#39;.pdf&#39;</span>
+
+    <span class="n">base</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">save_path</span><span class="p">)</span>
+    <span class="n">counter</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">final_path</span> <span class="o">=</span> <span class="n">save_path</span>
+
+    <span class="k">while</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">final_path</span><span class="p">):</span>
+        <span class="n">final_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">base</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">counter</span><span class="si">}{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">final_path</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Figure saved to </span><span class="si">{</span><span class="n">final_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="auto_vmin_vmax">
+<a class="viewcode-back" href="../../../commands/show.html#GONet_Wizard.commands.show.auto_vmin_vmax">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">auto_vmin_vmax</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">lower_percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">upper_percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">99.5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute intensity bounds for image display using percentiles.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : :class:`numpy.ndarray`</span>
+<span class="sd">        The image data array.</span>
+<span class="sd">    lower_percentile : :class:`float`, optional</span>
+<span class="sd">        The lower percentile for clipping (default is 0.5).</span>
+<span class="sd">    upper_percentile : :class:`float`, optional</span>
+<span class="sd">        The upper percentile for clipping (default is 99.5).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`tuple`</span>
+<span class="sd">        A tuple `(vmin, vmax)` suitable for image display scaling.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">vmin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">lower_percentile</span><span class="p">)</span>
+    <span class="n">vmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">upper_percentile</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span></div>
+
+
+<div class="viewcode-block" id="show_gonet_files">
+<a class="viewcode-back" href="../../../commands/show.html#GONet_Wizard.commands.show.show_gonet_files">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">show_gonet_files</span><span class="p">(</span><span class="n">files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">save</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">red</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">green</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">blue</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Display one or more GONet image files with optional channel filtering and saving.</span>
+
+<span class="sd">    This function loads and visualizes GONet files using matplotlib. By default, </span>
+<span class="sd">    all RGB channels are displayed unless specific channels are enabled via flags. </span>
+<span class="sd">    Images are arranged in a compact grid. If `save` is specified, the resulting figure </span>
+<span class="sd">    is saved to a PDF file with automatic filename disambiguation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    files : :class:`str` or :class:`list` of :class:`str`</span>
+<span class="sd">        A single file path or a list of paths to GONet files to display.</span>
+<span class="sd">    save : :class:`bool`, optional</span>
+<span class="sd">        If provided, saves the resulting figure to a `.pdf` file (default is False).</span>
+<span class="sd">        The filename or path can be passed as the value of `save`.</span>
+<span class="sd">    red : :class:`bool`, optional</span>
+<span class="sd">        Whether to include the red channel for visualization.</span>
+<span class="sd">    green : :class:`bool`, optional</span>
+<span class="sd">        Whether to include the green channel for visualization.</span>
+<span class="sd">    blue : :class:`bool`, optional</span>
+<span class="sd">        Whether to include the blue channel for visualization.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - If none of the color channel flags (`red`, `green`, `blue`) are set, all channels will be shown.</span>
+<span class="sd">    - Subplot titles include camera model and timestamp when available in metadata.</span>
+<span class="sd">    - Output intensity is automatically scaled using robust percentiles (0.5–99.5%).</span>
+<span class="sd">    - The saved figure will be named according to `save` with automatic suffixes to avoid overwrites.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># If all extensions are false, we will plot all them</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">extensions</span> <span class="o">:=</span> <span class="p">[</span><span class="n">red</span><span class="p">,</span> <span class="n">green</span><span class="p">,</span> <span class="n">blue</span><span class="p">]):</span>
+        <span class="n">extensions</span> <span class="o">=</span>  <span class="p">[</span><span class="ow">not</span> <span class="n">el</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">extensions</span><span class="p">]</span>
+
+    <span class="n">n_of_extensions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">extensions</span><span class="p">)</span>
+
+    <span class="n">Tot</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">*</span> <span class="n">n_of_extensions</span><span class="c1">#number_of_subplots</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">create_efficient_subplots</span><span class="p">(</span><span class="n">Tot</span><span class="p">)</span>
+
+    <span class="n">i_plot</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">gof</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="n">go</span> <span class="o">=</span> <span class="n">GONetFile</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">gof</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">go</span><span class="o">.</span><span class="n">meta</span> <span class="ow">and</span> <span class="s1">&#39;hostname&#39;</span> <span class="ow">in</span> <span class="n">go</span><span class="o">.</span><span class="n">meta</span><span class="p">:</span>
+            <span class="n">camera</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;hostname&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">camera</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">go</span><span class="o">.</span><span class="n">meta</span> <span class="ow">and</span> <span class="s1">&#39;DateTime&#39;</span> <span class="ow">in</span> <span class="n">go</span><span class="o">.</span><span class="n">meta</span><span class="p">:</span>
+            <span class="n">date</span> <span class="o">=</span> <span class="n">go</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;DateTime&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">date</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        
+        <span class="k">for</span> <span class="n">c</span><span class="p">,</span><span class="n">val</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">GONetFile</span><span class="o">.</span><span class="n">CHANNELS</span><span class="p">,</span> <span class="n">extensions</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">val</span><span class="p">:</span>
+                <span class="n">ax</span><span class="p">[</span><span class="n">i_plot</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">camera</span><span class="si">}</span><span class="s1"> - </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">date</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">z1</span><span class="p">,</span><span class="n">z2</span> <span class="o">=</span> <span class="n">auto_vmin_vmax</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">channel</span><span class="p">(</span><span class="n">c</span><span class="p">))</span>
+                <span class="n">ax</span><span class="p">[</span><span class="n">i_plot</span><span class="p">]</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">channel</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="n">vmin</span><span class="o">=</span><span class="n">z1</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">z2</span><span class="p">)</span>
+                <span class="n">i_plot</span><span class="o">+=</span><span class="mi">1</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+        <span class="n">save_figure</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">save</span><span class="p">)</span>
+
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s1">&#39;all&#39;</span><span class="p">)</span></div>
+
+
+
+
+    
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

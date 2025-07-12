@@ -1,0 +1,717 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>plot &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="GONet Utils Package" href="../../GONet_utils.html" />
+    <link rel="prev" title="load_data" href="load_data.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../settings.html">settings Module</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../GONet_dashboard.html">GONet Dashboard Package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../GONet_dashboard.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../app.html">app</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../callbacks.html">callbacks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../env.html">env</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../layout.html">layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../server.html">server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../utils.html">utils</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../hood.html">hood sub-package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../GONet_dashboard.html">GONet Dashboard Package</a></li>
+          <li class="breadcrumb-item"><a href="../hood.html">hood sub-package</a></li>
+      <li class="breadcrumb-item active">plot</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/dashboard/hood/plot.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-GONet_Wizard.GONet_dashboard.src.hood.plot">
+<span id="plot"></span><h1>plot<a class="headerlink" href="#module-GONet_Wizard.GONet_dashboard.src.hood.plot" title="Link to this heading"></a></h1>
+<p>Plot utilities for interactive visualization of GONet sky monitoring data.</p>
+<p>This module provides Plotly-compatible wrappers and helper classes for rendering,
+filtering, and interacting with GONet dashboard plots in a Dash application. It
+includes specialized data structures that extend standard Python types (e.g., <cite>dict</cite>)
+to support reactive behavior, styling changes, and integration with user inputs
+like selections and click events.</p>
+<p><strong>Classes</strong></p>
+<ul class="simple">
+<li><dl class="simple">
+<dt><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.Trace" title="GONet_Wizard.GONet_dashboard.src.hood.plot.Trace"><code class="xref py py-class docutils literal notranslate"><span class="pre">Trace</span></code></a>:</dt><dd><p>A dictionary-like wrapper for a single Plotly scatter trace with built-in
+styling logic tied to filter and visibility states. Automatically updates
+marker opacity and hover behavior when <cite>filtered</cite> or <cite>hidden</cite> flags are set.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper" title="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">FigureWrapper</span></code></a>:</dt><dd><p>A manager class that encapsulates a complete Plotly figure dictionary and
+provides high-level methods for trace filtering, channel updates, visibility
+toggling, point selection, and summary statistics. Designed to maintain
+JSON-serializability for use in Dash callbacks.</p>
+</dd>
+</dl>
+</li>
+</ul>
+<p>This module is intended to serve as the plotting backend for the GONet dashboard UI.</p>
+<section id="classes">
+<h2>Classes:<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.Trace">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.hood.plot.</span></span><span class="sig-name descname"><span class="pre">Trace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#Trace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.Trace" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+<p>A specialized dictionary-like object representing a single Plotly scatter trace
+with automatic styling and visibility behavior. This class is intended to be used
+in applications like Dash where Plotly figures must remain JSON-serializable, but
+where it is useful to treat individual traces as stateful, reactive objects.</p>
+<p>This wrapper class auto-initializes a full trace structure upon creation, and
+includes logic to modify the trace’s appearance when certain semantic fields
+(<code class="docutils literal notranslate"><span class="pre">filtered</span></code>, <code class="docutils literal notranslate"><span class="pre">hidden</span></code>) are updated.</p>
+<section id="reactive-key-behaviors">
+<h3>Reactive Key Behaviors<a class="headerlink" href="#reactive-key-behaviors" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Setting <cite>filtered = True</cite>:</dt><dd><ul>
+<li><p>Reduces marker opacity to 0.2.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Setting <cite>filtered = False</cite>:</dt><dd><ul>
+<li><p>Restores marker opacity to 1.0.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Setting <cite>hidden = True</cite>:</dt><dd><ul>
+<li><p>Sets marker opacity to 0 (fully transparent),</p></li>
+<li><p>Disables hover information,</p></li>
+<li><p>Sets marker line width to 0 (if applicable).</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Setting <cite>hidden = False</cite>:</dt><dd><ul>
+<li><p>Sets opacity back to 0.2 (like a filtered trace),</p></li>
+<li><p>Restores hover information and hovertemplate,</p></li>
+<li><p>Sets marker line width to 2 (if applicable).</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>Changing the <code class="docutils literal notranslate"><span class="pre">marker</span></code> key will automatically change
+the <code class="docutils literal notranslate"><span class="pre">unselected</span></code> marker as well.</p></li>
+</ul>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>This class behaves like a dictionary and can be appended directly to a Plotly
+figure’s <cite>data</cite> list.</p></li>
+<li><p>It is fully JSON-serializable and can be passed to Dash components.</p></li>
+<li><p>You must use this class instead of a plain dictionary if you want the special
+reactive behavior described above.</p></li>
+</ul>
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">GONet_Wizard.GONet_dashboard.src.hood.plot.</span></span><span class="sig-name descname"><span class="pre">FigureWrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A stateful wrapper around a Plotly figure dictionary for interactive visualization
+in the GONet dashboard.</p>
+<p>This class manages trace creation, filtering, visibility toggling, and interactivity
+for a multi-channel Plotly scatter plot. It provides a high-level API to dynamically
+update plots in response to user interactions (e.g., selection filters, click events,
+channel switching) while maintaining JSON-compatibility for use in Dash callbacks.</p>
+<section id="key-features">
+<h3>Key Features<a class="headerlink" href="#key-features" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Stores a reference to the full data (<cite>all_data</cite>) and x/y labels</p></li>
+<li><p>Tracks currently plotted channels and filter state</p></li>
+<li><p>Separates traces into normal, filtered, and big-point variants per channel</p></li>
+<li><p>Automatically updates trace styling and visibility when filters change</p></li>
+<li><p>Supports reconstruction from serialized figures (<cite>from_fig</cite>)</p></li>
+<li><p>Integrates with environment configuration (e.g., colors, filter ops)</p></li>
+</ul>
+</section>
+<section id="recommended-entry-point">
+<h3>Recommended Entry Point<a class="headerlink" href="#recommended-entry-point" title="Link to this heading"></a></h3>
+<p>Use <a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.build" title="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.build"><code class="xref py py-meth docutils literal notranslate"><span class="pre">FigureWrapper.build()</span></code></a> to initialize a fresh figure and add traces
+for each channel. Alternatively, use <a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.from_fig" title="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.from_fig"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_fig()</span></code></a> to restore a figure
+after a Dash callback round trip.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.fig">
+<span class="sig-name descname"><span class="pre">fig</span></span><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.fig" title="Link to this definition"></a></dt>
+<dd><p>The full Plotly figure dictionary (layout + traces), modified in-place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.x_label">
+<span class="sig-name descname"><span class="pre">x_label</span></span><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.x_label" title="Link to this definition"></a></dt>
+<dd><p>Name of the data field plotted on the x-axis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.y_label">
+<span class="sig-name descname"><span class="pre">y_label</span></span><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.y_label" title="Link to this definition"></a></dt>
+<dd><p>Name of the data field plotted on the y-axis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.all_data">
+<span class="sig-name descname"><span class="pre">all_data</span></span><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.all_data" title="Link to this definition"></a></dt>
+<dd><p>Full GONet dataset used for plotting, including x/y values, filters, and channels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.channels">
+<span class="sig-name descname"><span class="pre">channels</span></span><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.channels" title="Link to this definition"></a></dt>
+<dd><p>Currently visible channels in the figure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.total_filter">
+<span class="sig-name descname"><span class="pre">total_filter</span></span><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.total_filter" title="Link to this definition"></a></dt>
+<dd><p>Boolean array (same length as data) representing active filtering state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.show_filtered_points">
+<span class="sig-name descname"><span class="pre">show_filtered_points</span></span><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.show_filtered_points" title="Link to this definition"></a></dt>
+<dd><p>Whether to display filtered-out points with reduced opacity or hide them entirely.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.big_point_idx">
+<span class="sig-name descname"><span class="pre">big_point_idx</span></span><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.big_point_idx" title="Link to this definition"></a></dt>
+<dd><p>Index of the currently selected “big point” for highlighting and image preview.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a> or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Each channel has three associated traces: visible, filtered, and big-point.</p></li>
+<li><p>Traces are dynamically updated using <cite>filter_traces</cite>, <cite>update_filters</cite>, and <cite>apply_visibility</cite>.</p></li>
+<li><p>All traces are Plotly- and Dash-compatible (JSON-serializable).</p></li>
+</ul>
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize a <a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper" title="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">FigureWrapper</span></code></a> with an existing Plotly figure and data source.</p>
+<p>This constructor sets up the internal state of the wrapper using an existing
+Plotly figure dictionary, axis labels, and the full dataset. It initializes
+filters, channel tracking, and big-point selection support.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fig</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – A Plotly-compatible figure dictionary. This should contain a <cite>layout</cite> key with
+axis configurations and a <cite>data</cite> list for trace dictionaries or Trace objects.</p></li>
+<li><p><strong>x_label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – The field name used for the x-axis (must be a key in <cite>all_data</cite>).</p></li>
+<li><p><strong>y_label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – The field name used for the y-axis (must be a key in <cite>all_data</cite>).</p></li>
+<li><p><strong>all_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – <p>The full data dictionary used by the dashboard. It should contain at minimum:</p>
+<ul>
+<li><p><cite>’channel’</cite>: array of channel labels</p></li>
+<li><p><cite>’idx’</cite>: array of global image indices</p></li>
+<li><p>All fields needed for plotting and filtering</p></li>
+</ul>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.build">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">build</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.build" title="Link to this definition"></a></dt>
+<dd><p>Construct a new <a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper" title="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">FigureWrapper</span></code></a> with default layout and one trace per channel.</p>
+<p>This method initializes a Plotly figure dictionary with a standardized layout and styling
+settings based on the GONet dashboard environment. It then creates a new
+<a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper" title="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">FigureWrapper</span></code></a> instance and populates it with traces for each requested channel.</p>
+<p>If both <cite>x_label</cite> and <cite>y_label</cite> refer to general (non-channel-specific) quantities,
+only a single trace is created using channel <cite>“gen”</cite> as a placeholder.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – The quantity to be used for the x-axis. This must be a key in <cite>all_data</cite>.</p></li>
+<li><p><strong>y_label</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – The quantity to be used for the y-axis. This must be a key in <cite>all_data</cite>.</p></li>
+<li><p><strong>channels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – A list of channel names (e.g., <cite>[‘red’, ‘green’, ‘blue’]</cite>) to generate traces for.</p></li>
+<li><p><strong>all_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – <p>The full dataset dictionary containing:</p>
+<ul>
+<li><p><cite>’idx’</cite>: global index values</p></li>
+<li><p>All fields referenced by <cite>x_label</cite>, <cite>y_label</cite>, and filters</p></li>
+</ul>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new wrapper object containing the initialized figure and all traces.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper" title="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper">FigureWrapper</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Time-based x-labels (starting with <cite>‘hours_’</cite>) are formatted as HH:MM.</p></li>
+<li><p>The method uses <cite>env.LABELS[‘gen’]</cite> to determine if the selected axes are non-channel-specific.</p></li>
+<li><p>This is the standard entry point for figure creation at the beginning of a session.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.from_fig">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_fig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.from_fig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.from_fig" title="Link to this definition"></a></dt>
+<dd><p>Reconstruct a <a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper" title="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">FigureWrapper</span></code></a> from an existing Plotly figure dictionary.</p>
+<p>This method is used to rehydrate a previously serialized Plotly figure back into
+a fully functional <a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper" title="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">FigureWrapper</span></code></a> instance. It restores internal logic
+such as:</p>
+<ul class="simple">
+<li><p>Trace interactivity via the <a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.Trace" title="GONet_Wizard.GONet_dashboard.src.hood.plot.Trace"><code class="xref py py-class docutils literal notranslate"><span class="pre">Trace</span></code></a> wrapper</p></li>
+<li><p>Active channels</p></li>
+<li><p>Selection state (<cite>big_point_idx</cite>)</p></li>
+<li><p>Visibility toggle for filtered points</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fig</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – <p>A Plotly-compatible figure dictionary, typically from a callback.
+It must include:</p>
+<ul>
+<li><p>’layout’: with axis title strings under <cite>xaxis.title.text</cite> and <cite>yaxis.title.text</cite></p></li>
+<li><p>’data’: a list of trace dictionaries, each with at least a ‘channel’ field</p></li>
+</ul>
+</p></li>
+<li><p><strong>all_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – The full dataset originally used to construct the figure, including the keys
+referenced by each trace’s ‘x’, ‘y’, and ‘idx’ attributes. This is needed to
+restore filtering, indexing, and interactivity.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A fully reconstructed FigureWrapper with trace semantics, filter states,
+and internal configuration restored.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper" title="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper">FigureWrapper</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Each trace in <cite>fig[‘data’]</cite> is converted into a <a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.Trace" title="GONet_Wizard.GONet_dashboard.src.hood.plot.Trace"><code class="xref py py-class docutils literal notranslate"><span class="pre">Trace</span></code></a> object.</p></li>
+<li><p>Channels are inferred from the ‘channel’ field in each trace.</p></li>
+<li><p>If a trace is marked as <cite>big_point</cite>, its associated <cite>idx[0]</cite> is stored as <cite>big_point_idx</cite>.</p></li>
+<li><p>If any trace is marked as <cite>hidden</cite>, <cite>show_filtered_points</cite> is set to False.</p></li>
+<li><p>This method assumes that all necessary metadata exists in the figure dictionary
+and that <cite>all_data</cite> is consistent with what was used to generate the figure.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.to_dict" title="Link to this definition"></a></dt>
+<dd><p>Return the underlying figure dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The Plotly figure dictionary.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.add_trace">
+<span class="sig-name descname"><span class="pre">add_trace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channel</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.add_trace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.add_trace" title="Link to this definition"></a></dt>
+<dd><p>Add a new set of traces to the figure for a given channel.</p>
+<p>This method creates three separate traces for the specified channel:</p>
+<ul class="simple">
+<li><p>A primary trace for visible (unfiltered) points</p></li>
+<li><p>A secondary trace for filtered (low-opacity) points</p></li>
+<li><p>A third trace for the currently selected “big point”</p></li>
+</ul>
+<p>The traces are appended in order to the Plotly figure’s data list.
+Styling and visibility behaviors are configured using the <a class="reference internal" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.Trace" title="GONet_Wizard.GONet_dashboard.src.hood.plot.Trace"><code class="xref py py-class docutils literal notranslate"><span class="pre">Trace</span></code></a> class,
+which responds to keys like <cite>filtered</cite>, <cite>hidden</cite>, and <cite>big_point</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>channel</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – The name of the data channel to visualize (e.g., ‘red’, ‘green’, ‘blue’).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.filter_traces">
+<span class="sig-name descname"><span class="pre">filter_traces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channel</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.filter_traces"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.filter_traces" title="Link to this definition"></a></dt>
+<dd><p>Apply the current filter mask to all traces associated with a specific channel.</p>
+<p>This method updates the <cite>x</cite>, <cite>y</cite>, and <cite>idx</cite> values of traces in the figure
+based on whether they should be shown as filtered or not, using the
+<cite>self.total_filter</cite> boolean mask and the specified data channel.</p>
+<p>For “big point” traces, it toggles the <cite>filtered</cite> attribute depending on whether
+the corresponding index appears in the active subset. For other traces,
+it directly updates their data arrays with filtered or excluded values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>channel</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – The name of the data channel to apply filtering to. If ‘gen’ is passed,
+it will default to ‘red’ for trace alignment purposes.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.update_visibility">
+<span class="sig-name descname"><span class="pre">update_visibility</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">show_filtered_points</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.update_visibility"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.update_visibility" title="Link to this definition"></a></dt>
+<dd><p>Update the visibility flag for filtered points.</p>
+<p>This method sets the internal flag controlling whether traces marked as
+<cite>filtered</cite> should be displayed or hidden in the plot. It does not directly
+modify the figure; you must call <cite>apply_visibility()</cite> afterward to apply the change.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>show_filtered_points</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – If True, filtered points will be shown with reduced opacity.
+If False, filtered points will be hidden entirely.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.apply_visibility">
+<span class="sig-name descname"><span class="pre">apply_visibility</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.apply_visibility"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.apply_visibility" title="Link to this definition"></a></dt>
+<dd><p>Apply the current visibility setting to all filtered traces.</p>
+<p>This method updates the <cite>‘hidden’</cite> property of each trace based on whether
+filtered points should be shown or hidden. It uses the internal flag
+<cite>self.show_filtered_points</cite>, which can be modified via <cite>update_visibility()</cite>.</p>
+<p>Traces with <cite>filtered = True</cite> will be:
+:rtype: <span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+<ul class="simple">
+<li><p>Shown with reduced opacity if <cite>show_filtered_points</cite> is True</p></li>
+<li><p>Fully hidden if <cite>show_filtered_points</cite> is False</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.update_channels">
+<span class="sig-name descname"><span class="pre">update_channels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_channels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.update_channels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.update_channels" title="Link to this definition"></a></dt>
+<dd><p>Add or remove traces to match a new list of active channels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>new_channels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>) – The updated list of channels to be shown.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Traces with ‘channel’ not in <cite>new_channels</cite> are removed.</p></li>
+<li><p>Traces for new channels are added with default settings and shared data.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.update_filters">
+<span class="sig-name descname"><span class="pre">update_filters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">active_filters</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.update_filters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.update_filters" title="Link to this definition"></a></dt>
+<dd><p>Update the global filter mask based on the provided list of active filters.</p>
+<p>This method processes each filter definition and updates <cite>self.total_filter</cite>,
+a boolean mask indicating which data points should be retained. Filters may
+be simple threshold-based comparisons or special selection-based filters
+using image indices.</p>
+<p>Each filter is interpreted as either:</p>
+<ul class="simple">
+<li><p>A selection filter: matches image indices (<cite>label == “Selection …”</cite>)</p></li>
+<li><p>A numeric filter: compares a field against a value using a specified operator
+from <cite>env.OP</cite>, with optional secondary filter logic.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>active_filters</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a> of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – <p>Each filter dict must include:</p>
+<ul class="simple">
+<li><p>’label’ : <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> — the field name or “Selection …”.</p></li>
+<li><p>’operator’ : <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> — key in <cite>env.OP</cite> for the comparison function.</p></li>
+<li><p>’value’ : comparable — the value to compare against.</p></li>
+</ul>
+<p>Optionally:</p>
+<ul class="simple">
+<li><p>’secondary’ : <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> — a nested filter with the same keys (‘label’, ‘operator’, ‘value’).</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>All filters are combined using logical AND.</p></li>
+<li><p>Secondary filters are combined with the primary using logical OR.</p></li>
+<li><p>The resulting <cite>self.total_filter</cite> array is used by <cite>filter_traces()</cite> to control visibility.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.gather_big_point">
+<span class="sig-name descname"><span class="pre">gather_big_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">clickdata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.gather_big_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.gather_big_point" title="Link to this definition"></a></dt>
+<dd><p>Update the index of the selected “big point” based on click interaction data.</p>
+<p>This method extracts the index of the clicked point from Plotly’s <cite>clickData</cite>
+dictionary and stores it in <cite>self.big_point_idx</cite>. This index is later used
+for highlighting or retrieving detailed information about the selected point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>clickdata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – <p>A dictionary passed from a Dash Plotly <cite>clickData</cite> callback. It must contain
+a ‘points’ list with at least one item, each including:</p>
+<ul class="simple">
+<li><p>’curveNumber’: int — the index of the clicked trace in <cite>fig[‘data’]</cite></p></li>
+<li><p>’pointIndex’: int — the index of the clicked point within that trace</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.plot_big_point">
+<span class="sig-name descname"><span class="pre">plot_big_point</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.plot_big_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.plot_big_point" title="Link to this definition"></a></dt>
+<dd><p>Update the figure to highlight the currently selected “big point”.</p>
+<p>This method sets the data for the special “big point” trace associated with
+each channel. It updates the trace with the coordinates of the selected point,
+based on <cite>self.big_point_idx</cite> and the current x/y axis labels.</p>
+<p>The point is only plotted if both its index and channel match a known data entry.
+Its <cite>filtered</cite> flag is also updated depending on whether the point passes the current filter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>This method updates the figure in-place.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The “gen” channel is treated as “red” for indexing purposes.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.get_stats">
+<span class="sig-name descname"><span class="pre">get_stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.get_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.get_stats" title="Link to this definition"></a></dt>
+<dd><p>Compute summary statistics (mean and standard deviation) for plotted x and y values.</p>
+<p>This function extracts unfiltered, non-highlighted data from the figure and calculates
+per-axis statistics. It builds an HTML table as a list of <a class="reference external" href="https://dash.plotly.com/">Dash</a> row components to be
+rendered in the dashboard’s stats panel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of <code class="xref py py-class docutils literal notranslate"><span class="pre">dash.html.Tr</span></code> elements representing the statistics table rows.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.get_data_point_info">
+<span class="sig-name descname"><span class="pre">get_data_point_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.get_data_point_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.get_data_point_info" title="Link to this definition"></a></dt>
+<dd><p>Retrieve detailed metadata for the currently selected “big point”.</p>
+<p>This method gathers all relevant information for the data point indexed by
+<cite>self.big_point_idx</cite>, combining general metadata and channel-specific fit values
+into a single dictionary.</p>
+<p>General fields (from <cite>env.LABELS[‘gen’]</cite>) are assumed to be identical across channels
+and are taken from the first matching index. Channel-specific fields (from <cite>env.LABELS[‘fit’]</cite>)
+are extracted separately for each matching channel and labeled accordingly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary containing the values of all general and fit-related fields
+for the selected “big point”. Fit values are keyed by <cite>{label}_{channel}</cite>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.gonet_image">
+<span class="sig-name descname"><span class="pre">gonet_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">clickdata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/GONet_Wizard/GONet_dashboard/src/hood/plot.html#FigureWrapper.gonet_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.GONet_dashboard.src.hood.plot.FigureWrapper.gonet_image" title="Link to this definition"></a></dt>
+<dd><p>Retrieve and render a GONet image corresponding to the selected data point.</p>
+<p>This method locates the raw image file corresponding to the clicked data point
+and generates a Plotly-compatible figure dictionary for display in the dashboard.
+It overlays the image with a marker at the extraction center and a circular
+region representing the extraction aperture.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>clickdata</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>) – <p>A Plotly click event dictionary from a Dash callback. Must contain:</p>
+<ul class="simple">
+<li><p>’points’: list with at least one entry</p></li>
+<li><p>’curveNumber’: index of the clicked trace</p></li>
+<li><p>’pointIndex’: index of the clicked point within the trace</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A Plotly figure dictionary containing a heatmap of the selected image
+and overlay annotations. Returns None if the image cannot be loaded
+due to missing configuration or file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> or None</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>This function uses <cite>env.GONET_IMAGES_PATH</cite> to resolve image file paths.</p></li>
+</ul>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="load_data.html" class="btn btn-neutral float-left" title="load_data" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../GONet_utils.html" class="btn btn-neutral float-right" title="GONet Utils Package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

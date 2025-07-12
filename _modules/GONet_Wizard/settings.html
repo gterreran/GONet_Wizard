@@ -1,0 +1,452 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GONet_Wizard.settings &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../settings.html">settings Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">GONet_Wizard.settings</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for GONet_Wizard.settings</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Environment Configuration and Variable Management.</span>
+
+<span class="sd">This module provides utility functions and configuration classes for handling</span>
+<span class="sd">environment variables used by the GONet Wizard system, in particular for its </span>
+<span class="sd">entry points and various command-line tools. It includes validation</span>
+<span class="sd">tools that either require or gently warn about missing variables, as well as</span>
+<span class="sd">data classes that organize related environment values for dashboard and</span>
+<span class="sd">camera-side operations.</span>
+
+<span class="sd">**Functions**</span>
+
+<span class="sd">- :func:`require_env_var` : Prompt for required environment variables if missing.</span>
+<span class="sd">- :func:`warn_env_var_missing` : Prompt optionally for missing environment variables.</span>
+
+<span class="sd">**Classes**</span>
+
+<span class="sd">- :class:`EnvVar` : Represents an environment variable with an optional default value.</span>
+<span class="sd">- :class:`GONetConfig` : Environment settings for interacting with a remote GONet device.</span>
+<span class="sd">- :class:`DashboardConfig` : Environment settings for dashboard data and image access.</span>
+
+<span class="sd">Constants</span>
+<span class="sd">---------</span>
+<span class="sd">**GONet variables**</span>
+
+<span class="sd">GONET_USER : :class:`EnvVar`</span>
+<span class="sd">    Environment variable for the GONet user (default name: ``GONET_USER``; default value: ``&quot;pi&quot;``).</span>
+<span class="sd">GONET_PASSWORD : :class:`EnvVar`</span>
+<span class="sd">    Environment variable for the GONet password (default name: ``GONET_PASSWORD``).</span>
+<span class="sd">GONET4_PATH : :class:`EnvVar`</span>
+<span class="sd">    Environment variable for the path of the ``gonet4.py`` script in a GONet camera (default name: ``GONET4_PATH``; default value: ``&quot;/home/pi/Tools/Camera/gonet4.py&quot;``).</span>
+<span class="sd">GONET_CONFIG_FOLDER : :class:`EnvVar`</span>
+<span class="sd">    Environment variable for the path of the folder containing &#39;.config&#39; files in a GONet camera (default name: ``GONET_CONFIG_FOLDER``; default value: ``&quot;/home/pi/Tools/Camera/&quot;``).</span>
+<span class="sd">GONET_IMAGES_FOLDER : :class:`EnvVar`</span>
+<span class="sd">    Environment variable for the path of the folder containing the images acquired in a GONet camera (default name: ``GONET_IMAGES_FOLDER``; default value: ``&quot;/home/pi/images/&quot;``).</span>
+<span class="sd">LOCAL_OUTPUT_FOLDER : :class:`EnvVar`</span>
+<span class="sd">    Environment variable for the local path of where to download new GONet images (default name: ``LOCAL_OUTPUT_FOLDER``; default value: ``&quot;./downloaded_files/&quot;``).</span>
+
+<span class="sd">**Dashboard variables**</span>
+
+<span class="sd">GONET_ROOT : :class:`EnvVar`</span>
+<span class="sd">    Environment variable for the folder containing the json data of extracted GONet data.</span>
+<span class="sd">GONET_ROOT_IMG : :class:`EnvVar`</span>
+<span class="sd">    Environment variable for the folder containing the GONet images to visualize.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="n">load_dotenv</span><span class="p">()</span>    
+
+<div class="viewcode-block" id="EnvVar">
+<a class="viewcode-back" href="../../settings.html#GONet_Wizard.settings.EnvVar">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">EnvVar</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represents an environment variable with an optional default value.</span>
+
+<span class="sd">    This class provides a structured way to define environment variable names</span>
+<span class="sd">    and their default values, and offers methods to retrieve them from the</span>
+<span class="sd">    environment safely. Useful for centralizing and managing environment configuration</span>
+<span class="sd">    in a DRY and maintainable way.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        The name of the environment variable.</span>
+<span class="sd">    default : Optional[str], optional</span>
+<span class="sd">        The default value to use if the environment variable is not set. Defaults to None.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">default</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="EnvVar.get">
+<a class="viewcode-back" href="../../settings.html#GONet_Wizard.settings.EnvVar.get">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the environment variable&#39;s value or its default.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span><span class="p">)</span></div>
+</div>
+
+
+<span class="c1"># Gonet variables </span>
+<span class="n">GONET_USER</span> <span class="o">=</span> <span class="n">EnvVar</span><span class="p">(</span><span class="s2">&quot;GONET_USER&quot;</span><span class="p">,</span> <span class="s2">&quot;pi&quot;</span><span class="p">)</span>
+<span class="n">GONET_PASSWORD</span> <span class="o">=</span> <span class="n">EnvVar</span><span class="p">(</span><span class="s2">&quot;GONET_PASSWORD&quot;</span><span class="p">)</span>
+<span class="n">GONET4_PATH</span> <span class="o">=</span> <span class="n">EnvVar</span><span class="p">(</span><span class="s2">&quot;GONET4_PATH&quot;</span><span class="p">,</span> <span class="s2">&quot;/home/pi/Tools/Camera/gonet4.py&quot;</span><span class="p">)</span>
+<span class="n">GONET_CONFIG_FOLDER</span> <span class="o">=</span> <span class="n">EnvVar</span><span class="p">(</span><span class="s2">&quot;GONET_CONFIG_FOLDER&quot;</span><span class="p">,</span> <span class="s2">&quot;/home/pi/Tools/Camera/&quot;</span><span class="p">)</span>
+<span class="n">GONET_IMAGES_FOLDER</span> <span class="o">=</span> <span class="n">EnvVar</span><span class="p">(</span><span class="s2">&quot;GONET_IMAGES_FOLDER&quot;</span><span class="p">,</span> <span class="s2">&quot;/home/pi/images/&quot;</span><span class="p">)</span>
+<span class="n">LOCAL_OUTPUT_FOLDER</span> <span class="o">=</span> <span class="n">EnvVar</span><span class="p">(</span><span class="s2">&quot;LOCAL_OUTPUT_FOLDER&quot;</span><span class="p">,</span> <span class="s2">&quot;./downloaded_files/&quot;</span><span class="p">)</span>
+
+<span class="c1"># Dashboard variables</span>
+<span class="n">GONET_ROOT</span> <span class="o">=</span> <span class="n">EnvVar</span><span class="p">(</span><span class="s2">&quot;GONET_ROOT&quot;</span><span class="p">)</span>
+<span class="n">GONET_ROOT_IMG</span> <span class="o">=</span> <span class="n">EnvVar</span><span class="p">(</span><span class="s2">&quot;GONET_ROOT_IMG&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="require_env_var">
+<a class="viewcode-back" href="../../settings.html#GONet_Wizard.settings.require_env_var">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">require_env_var</span><span class="p">(</span><span class="n">envvar</span><span class="p">:</span> <span class="n">EnvVar</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieve a required environment variable, or prompt the user to input it.</span>
+
+<span class="sd">    This function ensures that a required environment variable is defined.</span>
+<span class="sd">    If not found, the user is prompted to provide a value.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : :class:`EnvVar`</span>
+<span class="sd">        The name of the required environment variable.</span>
+<span class="sd">    prompt : :class:`str`, optional</span>
+<span class="sd">        A custom prompt message shown to the user if the variable is not set.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`str`</span>
+<span class="sd">        The retrieved or user-provided value for the environment variable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">envvar</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">prompt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Enter a value for </span><span class="si">{</span><span class="n">envvar</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: &quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;⚠️  Environment variable &#39;</span><span class="si">{</span><span class="n">envvar</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; is not set.&quot;</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;💡 Tip: You can avoid this prompt in the future by setting </span><span class="si">{</span><span class="n">envvar</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> in your environment or in a .env file.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span></div>
+
+
+
+<div class="viewcode-block" id="warn_env_var_missing">
+<a class="viewcode-back" href="../../settings.html#GONet_Wizard.settings.warn_env_var_missing">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">warn_env_var_missing</span><span class="p">(</span><span class="n">envvar</span><span class="p">:</span> <span class="n">EnvVar</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Warn the user if an optional environment variable is not set.</span>
+
+<span class="sd">    This function checks whether a given environment variable is defined.</span>
+<span class="sd">    If it&#39;s missing, the user is prompted to define it interactively.</span>
+
+<span class="sd">    To avoid duplicate prompts when running a Dash app in debug mode,</span>
+<span class="sd">    the function only executes its logic in the reloader child process</span>
+<span class="sd">    (i.e., when the environment variable ``WERKZEUG_RUN_MAIN`` is set to &#39;true&#39;).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : :class:`EnvVar`</span>
+<span class="sd">        The name of the environment variable to check.</span>
+<span class="sd">    prompt : :class:`str`, optional</span>
+<span class="sd">        A custom input prompt if the user agrees to define the variable.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`str` or :class:`None`</span>
+<span class="sd">        The value of the environment variable if already set or newly defined,</span>
+<span class="sd">        or None if the user chooses not to define it.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    When `app.run_server(debug=True)` is used in Dash, the server restarts</span>
+<span class="sd">    itself in a child process for hot reloading. To avoid running this prompt</span>
+<span class="sd">    logic multiple times, we check for the environment variable</span>
+<span class="sd">    &#39;WERKZEUG_RUN_MAIN&#39; which is only &#39;true&#39; in the child process.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Only run in main or reloader child process to avoid duplicate prompts</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;WERKZEUG_RUN_MAIN&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;true&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">value</span> <span class="o">=</span> <span class="n">envvar</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">value</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;⚠️  The environment variable &#39;</span><span class="si">{</span><span class="n">envvar</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; is not set. You can still proceed, but some functionalities will not work.&quot;</span><span class="p">)</span>
+    <span class="n">choice</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Would you like to define </span><span class="si">{</span><span class="n">envvar</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> now? [y/N]: &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">choice</span> <span class="o">==</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">prompt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Enter a value for </span><span class="si">{</span><span class="n">envvar</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: &quot;</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="n">envvar</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Set </span><span class="si">{</span><span class="n">envvar</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ℹ️  Skipping </span><span class="si">{</span><span class="n">envvar</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">. You can set it later in your environment or .env file.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="GONetConfig">
+<a class="viewcode-back" href="../../settings.html#GONet_Wizard.settings.GONetConfig">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GONetConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Environment-based configuration for interacting with a remote GONet device.</span>
+
+<span class="sd">    This class retrieves configuration settings from environment variables,</span>
+<span class="sd">    including SSH credentials, paths to scripts and image directories, and</span>
+<span class="sd">    local output locations. Environment variables are loaded dynamically at</span>
+<span class="sd">    runtime to ensure flexibility and testability.</span>
+
+<span class="sd">    ⚠️ Implementation Note:</span>
+<span class="sd">    ------------------------</span>
+<span class="sd">    Environment variables are not read as default values at class definition time.</span>
+<span class="sd">    Instead, they are loaded dynamically in the `__post_init__` method.</span>
+
+<span class="sd">    Why?</span>
+<span class="sd">        If fields were defined like: gonet_user: str = GONET_USER.get()</span>
+<span class="sd">        the environment lookup would occur at **parse time**, not instantiation time.</span>
+<span class="sd">        This means:</span>
+
+<span class="sd">        - Tests using tools like `monkeypatch.setenv()` would not affect behavior.</span>
+<span class="sd">        - It becomes difficult to override variables dynamically.</span>
+<span class="sd">        - Test isolation and runtime flexibility are compromised.</span>
+
+<span class="sd">    Solution:</span>
+<span class="sd">        All environment lookups are deferred to `__post_init__()` to ensure they</span>
+<span class="sd">        reflect the current state of `os.environ` when the object is created.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    gonet_user : str</span>
+<span class="sd">        Username for SSH connection to the GONet device, from `GONET_USER`.</span>
+<span class="sd">    gonet4_path : str</span>
+<span class="sd">        Remote path to `gonet4.py`, from `GONET4_PATH`.</span>
+<span class="sd">    gonet_config_folder : str</span>
+<span class="sd">        Remote folder containing camera config files, from `GONET_CONFIG_FOLDER`.</span>
+<span class="sd">    gonet_images_folder : str</span>
+<span class="sd">        Remote folder where images are stored, from `GONET_IMAGES_FOLDER`.</span>
+<span class="sd">    local_output_folder : str</span>
+<span class="sd">        Local folder where downloaded files should be saved, from `LOCAL_OUTPUT_FOLDER`.</span>
+<span class="sd">    gonet_password : str</span>
+<span class="sd">        SSH password for the GONet device, from `GONET_PASSWORD`, or prompted interactively.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">gonet_user</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">gonet4_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">gonet_config_folder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">gonet_images_folder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">local_output_folder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gonet_user</span> <span class="o">=</span> <span class="n">GONET_USER</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gonet4_path</span> <span class="o">=</span> <span class="n">GONET4_PATH</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gonet_config_folder</span> <span class="o">=</span> <span class="n">GONET_CONFIG_FOLDER</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gonet_images_folder</span> <span class="o">=</span> <span class="n">GONET_IMAGES_FOLDER</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_output_folder</span> <span class="o">=</span> <span class="n">LOCAL_OUTPUT_FOLDER</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gonet_password</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_gonet_password</span><span class="p">()</span>
+
+<div class="viewcode-block" id="GONetConfig.get_gonet_password">
+<a class="viewcode-back" href="../../settings.html#GONet_Wizard.settings.GONetConfig.get_gonet_password">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_gonet_password</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        SSH password for the GONet device.</span>
+
+<span class="sd">        Retrieved from the `GONET_PASSWORD` environment variable,</span>
+<span class="sd">        or entered interactively if not set.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`str`</span>
+<span class="sd">            The SSH password.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">require_env_var</span><span class="p">(</span><span class="n">GONET_PASSWORD</span><span class="p">,</span> <span class="s2">&quot;Enter GONet SSH password: &quot;</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DashboardConfig">
+<a class="viewcode-back" href="../../settings.html#GONet_Wizard.settings.DashboardConfig">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DashboardConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Environment-based configuration for the GONet dashboard.</span>
+
+<span class="sd">    This class centralizes the retrieval of environment-based paths required</span>
+<span class="sd">    for the GONet dashboard to function properly. It ensures that environment</span>
+<span class="sd">    variables are not read until runtime, allowing for dynamic configuration</span>
+<span class="sd">    and interactive prompting or fallback handling if variables are missing.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dashboard_data_path : :class:`pathlib.Path`</span>
+<span class="sd">        Absolute path to the root directory where dashboard data is stored.</span>
+<span class="sd">        Retrieved from the environment variable `GONET_ROOT`. Set during object initialization.</span>
+<span class="sd">    </span>
+<span class="sd">    gonet_images_path : :class:`pathlib.Path` or :class:`None`</span>
+<span class="sd">        Optional absolute path to the directory containing image files for the dashboard.</span>
+<span class="sd">        Retrieved from the environment variable `GONET_ROOT_IMG`, or set to None if the</span>
+<span class="sd">        variable is not defined or skipped by the user.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">dashboard_data_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">gonet_images_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dashboard_data_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dashboard_data_path</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gonet_images_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_gonet_images_path</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="DashboardConfig.get_dashboard_data_path">
+<a class="viewcode-back" href="../../settings.html#GONet_Wizard.settings.DashboardConfig.get_dashboard_data_path">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_dashboard_data_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Path to the dashboard data directory.</span>
+
+<span class="sd">        Retrieves the value of the `GONET_ROOT` environment variable and</span>
+<span class="sd">        converts it to a `Path` object. If the variable is not set, the user</span>
+<span class="sd">        is prompted to enter a path interactively.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`pathlib.Path`</span>
+<span class="sd">            The absolute path defined by the `GONET_ROOT` environment variable.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">gonet_folder_path_str</span> <span class="o">=</span> <span class="n">require_env_var</span><span class="p">(</span><span class="n">GONET_ROOT</span><span class="p">,</span> <span class="s2">&quot;Enter the path for the GONet data: &quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">gonet_folder_path_str</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="DashboardConfig.get_gonet_images_path">
+<a class="viewcode-back" href="../../settings.html#GONet_Wizard.settings.DashboardConfig.get_gonet_images_path">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_gonet_images_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Optional path to the image directory for the dashboard.</span>
+
+<span class="sd">        Retrieves the value of the `GONET_ROOT_IMG` environment variable and</span>
+<span class="sd">        converts it to a `Path` object. If the variable is not set or skipped,</span>
+<span class="sd">        returns None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :class:`pathlib.Path` or :class:`None`</span>
+<span class="sd">            The path defined by the `GONET_ROOT_IMG` environment variable,</span>
+<span class="sd">            or None if the variable is missing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">gonet_images_folder_path_str</span> <span class="o">=</span> <span class="n">warn_env_var_missing</span><span class="p">(</span><span class="n">GONET_ROOT_IMG</span><span class="p">,</span> <span class="s2">&quot;Enter the path for the GONet images: &quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">gonet_images_folder_path_str</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">gonet_images_folder_path_str</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

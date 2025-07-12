@@ -1,0 +1,180 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GONet Raw Data Format &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="extract" href="extract.html" />
+    <link rel="prev" title="GONetFile Module" href="gonetfile.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../settings.html">settings Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../GONet_utils.html">GONet Utils Package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../GONet_utils.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="gonetfile.html">GONetFile Module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">GONet Raw Data Format</a></li>
+<li class="toctree-l3"><a class="reference internal" href="extract.html">extract</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../GONet_utils.html">GONet Utils Package</a></li>
+      <li class="breadcrumb-item active">GONet Raw Data Format</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/utils/raw_data.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="gonet-raw-data-format">
+<h1>GONet Raw Data Format<a class="headerlink" href="#gonet-raw-data-format" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>GONet cameras save raw image data in a special 12-bit packed format. Each frame is saved as a <cite>.jpg</cite> file, but the pixel data inside the file is encoded using a compact Bayer-mosaiced scheme with 12 bits per pixel. This allows storage of high dynamic range data with minimal space usage.</p>
+<p>The sensor uses a BGGR Bayer pattern, as shown below:</p>
+<figure class="align-center" id="id1">
+<a class="reference internal image-reference" href="../_images/bayer_pattern.pdf"><img alt="BGGR Bayer Pattern" src="../_images/bayer_pattern.pdf" style="width: 50%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">BGGR Bayer mosaic used by the GONet image sensor.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+<section id="byte-parsing">
+<h2>Byte Parsing<a class="headerlink" href="#byte-parsing" title="Link to this heading"></a></h2>
+<p>Each pixel is encoded with 12 bits, and every group of two pixels is packed into 3 consecutive bytes. The format is as follows:</p>
+<ul class="simple">
+<li><p><strong>Byte 0</strong>: lower 8 bits of Pixel 0</p></li>
+<li><p><strong>Byte 1</strong>: lower 8 bits of Pixel 1</p></li>
+<li><p><strong>Byte 2</strong>: upper 4 bits of both Pixel 0 and Pixel 1, packed as two nibbles</p></li>
+</ul>
+<p>This packaging is commonly known as a <em>12-bit packed little endian</em> format. The following diagram shows how 3 bytes form 2 pixel values:</p>
+<figure class="align-center" id="id2">
+<a class="reference internal image-reference" href="../_images/GONet_bytes_pixels.pdf"><img alt="Byte-wise packing of 12-bit pixels" src="../_images/GONet_bytes_pixels.pdf" style="width: 90%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Packing of 12-bit pixel values into 8-bit bytes.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>In <code class="xref py py-meth docutils literal notranslate"><span class="pre">GONetFile._parse_jpg_file()</span></code> raw files are read in binary mode. In order to reconstruct the original pixels values from the bytes, the following procedures are executed. Let’s assume the bytes are listed in a <code class="docutils literal notranslate"><span class="pre">bytes_array</span></code> <code class="xref py py-mod docutils literal notranslate"><span class="pre">numpy.array</span></code></p>
+<ul>
+<li><p>To recreate the first pixel, the first element of every block of 3 elements of <code class="docutils literal notranslate"><span class="pre">bytes_array</span></code> is left shifted by 4 bits (using the operator <code class="docutils literal notranslate"><span class="pre">&lt;&lt;</span></code>). The third element of every block of 3 elements is then cut to the first 4 less significant bits (done by using an <code class="docutils literal notranslate"><span class="pre">&amp;</span></code> operator with the number 15, which is 1111). These 2 new numbers are then summed.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">byte0</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;00010110&#39;</span>
+<span class="n">byte0_left_shifted</span> <span class="o">=</span> <span class="n">byte0</span> <span class="o">&lt;&lt;</span> <span class="mi">4</span> <span class="c1"># -&gt; 000101100000</span>
+<span class="n">byte2</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;10100111&#39;</span>
+<span class="n">byte2_cut</span> <span class="o">=</span> <span class="n">byte2</span> <span class="o">&amp;</span> <span class="mi">15</span> <span class="c1"># -&gt; 0111</span>
+<span class="n">pixel0</span> <span class="o">=</span> <span class="n">byte0_left_shifted</span> <span class="o">+</span> <span class="n">byte2_cut</span> <span class="c1"># -&gt; 000101100111</span>
+</pre></div>
+</div>
+</li>
+<li><p>To recreate the second pixel, the second element of every block of 3 elements of <code class="docutils literal notranslate"><span class="pre">bytes_array</span></code> is left shifted by 4 bits. The third element of every block of 3 elements is then right shifted by 4 bits (using the operator <code class="docutils literal notranslate"><span class="pre">&gt;&gt;</span></code>). These 2 new numbers are then summed.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">byte0</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;11000110&#39;</span>
+<span class="n">byte0_left_shifted</span> <span class="o">=</span> <span class="n">byte0</span> <span class="o">&lt;&lt;</span> <span class="mi">4</span> <span class="c1"># -&gt; 110001100000</span>
+<span class="n">byte2_right_shifted</span> <span class="o">=</span> <span class="n">byte2</span> <span class="o">&gt;&gt;</span> <span class="mi">4</span> <span class="c1"># -&gt; 1010</span>
+<span class="n">pixel0</span> <span class="o">=</span> <span class="n">byte0_left_shifted</span> <span class="o">+</span> <span class="n">byte2_right_shifted</span> <span class="c1"># -&gt; 110001101010</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<p>Each recreated pixel is then stored in each channel following the bayer pattern.</p>
+</section>
+<section id="reconstructing-the-full-image">
+<h2>Reconstructing the full image<a class="headerlink" href="#reconstructing-the-full-image" title="Link to this heading"></a></h2>
+<p>After decoding the raw bytes from the sensor, we reconstruct the pixel values and arrange them into three separate images—one for each color channel: red, green, and blue. Due to the nature of the Bayer pattern, the sensor contains twice as many green pixels as red or blue. To create a balanced color representation, we define a super pixel as a 2×2 block consisting of one red, one blue, and two green pixels. For each super pixel, we compute the green value as the average of its two green pixels, while red and blue are taken directly. As a result of this averaging, the green channel will exhibit different statistical properties, such as reduced variance, compared to the red and blue channels.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="gonetfile.html" class="btn btn-neutral float-left" title="GONetFile Module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="extract.html" class="btn btn-neutral float-right" title="extract" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

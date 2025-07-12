@@ -1,0 +1,171 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Command-Line Interface &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="settings Module" href="settings.html" />
+    <link rel="prev" title="Installation" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Command-Line Interface</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#available-commands">Available Commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#usage-examples">Usage Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="settings.html">settings Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Command-Line Interface</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/cli.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-GONet_Wizard.__main__">
+<span id="command-line-interface"></span><h1>Command-Line Interface<a class="headerlink" href="#module-GONet_Wizard.__main__" title="Link to this heading"></a></h1>
+<p>GONet Wizard Command-Line Interface.</p>
+<p>The GONet Wizard package provides a command-line interface for interacting
+with GONet devices, launching the dashboard, and inspecting or plotting GONet data.
+It allows users to:</p>
+<ul class="simple">
+<li><p>Visualize GONet images (<cite>show</cite>)</p></li>
+<li><p>View metadata from GONet files (<cite>show_meta</cite>)</p></li>
+<li><p>Launch the interactive dashboard (<cite>dashboard</cite>)</p></li>
+<li><p>Connect to a remote camera and run imaging-related commands (<cite>connect</cite>)</p></li>
+</ul>
+<p>This CLI is launched using the <a class="reference internal" href="#module-GONet_Wizard.__main__" title="GONet_Wizard.__main__"><code class="xref py py-mod docutils literal notranslate"><span class="pre">GONet_Wizard.__main__</span></code></a> module.</p>
+<section id="available-commands">
+<h2>Available Commands<a class="headerlink" href="#available-commands" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>show</strong> — Plot GONet GONet files by channel</p></li>
+<li><p><strong>show_meta</strong> — Print metadata of files</p></li>
+<li><p><strong>dashboard</strong> — Launch the interactive dashboard</p></li>
+<li><p><strong>connect snap</strong> — Trigger remote snapshot</p></li>
+<li><p><strong>connect terminate_imaging</strong> — Kill imaging processes remotely</p></li>
+</ul>
+</section>
+<section id="usage-examples">
+<h2>Usage Examples<a class="headerlink" href="#usage-examples" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>GONet_Wizard<span class="w"> </span>show<span class="w"> </span>image1.npy<span class="w"> </span>--red
+GONet_Wizard<span class="w"> </span>show_meta<span class="w"> </span>*.npy
+GONet_Wizard<span class="w"> </span>dashboard
+GONet_Wizard<span class="w"> </span>connect<span class="w"> </span><span class="m">192</span>.168.0.101<span class="w"> </span>snap<span class="w"> </span>config.json
+GONet_Wizard<span class="w"> </span>connect<span class="w"> </span><span class="m">192</span>.168.0.101<span class="w"> </span>terminate_imaging
+</pre></div>
+</div>
+<section id="submodules">
+<h3>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.__main__.main">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.__main__.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/GONet_Wizard/__main__.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.__main__.main" title="Link to this definition"></a></dt>
+<dd><p>Main CLI dispatch function for the GONet Wizard package.</p>
+<p>Parses user input from the command line and delegates to the appropriate
+command module. Supports both top-level and nested subcommands.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="settings.html" class="btn btn-neutral float-right" title="settings Module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

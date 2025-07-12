@@ -1,0 +1,168 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GONet_Wizard.GONet_dashboard.src.app &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../settings.html">settings Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">GONet_Wizard.GONet_dashboard.src.app</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for GONet_Wizard.GONet_dashboard.src.app</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">GONet Wizard Dashboard Application Entry Point.</span>
+
+<span class="sd">This module initializes the GONet Wizard `Dash &lt;https://dash.plotly.com/&gt;`_ application</span>
+<span class="sd">and performs environment validation before interactive components are used.</span>
+
+<span class="sd">Key responsibilities:</span>
+
+<span class="sd">- Loads and validates critical environment variables through :class:`DashboardConfig`</span>
+<span class="sd">- Assigns data and image paths to the shared `env` module used across the dashboard</span>
+<span class="sd">- Imports and registers all callback functions to enable interactivity</span>
+<span class="sd">- Ensures that configuration logic is only executed when explicitly called (e.g., at launch)</span>
+
+<span class="sd">This script is suitable as the WSGI entry point for deployment scenarios (e.g., with Gunicorn),</span>
+<span class="sd">since the Dash `app` object is imported and layout is assigned elsewhere (in `server.py`).</span>
+
+<span class="sd">By isolating configuration and callback registration inside the :func:`config_app` function,</span>
+<span class="sd">this design avoids triggering I/O or environment prompts during testing or static analysis.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">GONet_Wizard.settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">DashboardConfig</span>
+
+<div class="viewcode-block" id="config_app">
+<a class="viewcode-back" href="../../../../dashboard/app.html#GONet_Wizard.GONet_dashboard.src.app.config_app">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">config_app</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Configure the GONet Dashboard app by performing environment validation,</span>
+<span class="sd">    assigning layout paths, and registering interactive callbacks.</span>
+
+<span class="sd">    This function should be explicitly called during app startup to avoid</span>
+<span class="sd">    environment prompts at import time. It handles the following setup tasks:</span>
+
+<span class="sd">    - Loads the dashboard configuration using :class:`DashboardConfig`, which prompts</span>
+<span class="sd">      for required environment variables like ``GONET_ROOT`` and optionally ``GONET_ROOT_IMG``.</span>
+<span class="sd">    - Populates the shared `env` module with the resolved paths so they can be accessed</span>
+<span class="sd">      by plotting, filtering, and I/O logic across the dashboard.</span>
+<span class="sd">    - Registers all Dash callback functions by importing :mod:`callbacks`.</span>
+
+<span class="sd">    This function is safe to skip during automated testing or CLI-only workflows that</span>
+<span class="sd">    do not require the full Dash app stack.</span>
+
+<span class="sd">    Constants</span>
+<span class="sd">    ---------</span>
+
+<span class="sd">    DASHBOARD_DATA_PATH : :class:`pathlib.Path`</span>
+<span class="sd">        Loaded from the initialized :class:`GONet_Wizard.settings.DashboardConfig`.</span>
+<span class="sd">    GONET_IMAGES_PATH : :class:`pathlib.Path` or :class:`None`</span>
+<span class="sd">        Loaded from the initialized :class:`GONet_Wizard.settings.DashboardConfig`.</span>
+<span class="sd">        </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">DashboardConfig</span><span class="p">()</span>
+
+    <span class="c1"># Optionally store config globally if needed in callbacks</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">GONet_Wizard.GONet_dashboard.src.env</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">env</span>
+    <span class="n">env</span><span class="o">.</span><span class="n">DASHBOARD_DATA_PATH</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">dashboard_data_path</span>
+    <span class="n">env</span><span class="o">.</span><span class="n">GONET_IMAGES_PATH</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">gonet_images_path</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">GONet_Wizard.GONet_dashboard.src</span><span class="w"> </span><span class="kn">import</span> <span class="n">callbacks</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

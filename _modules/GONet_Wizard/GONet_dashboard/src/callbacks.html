@@ -1,0 +1,1065 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GONet_Wizard.GONet_dashboard.src.callbacks &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../settings.html">settings Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">GONet_Wizard.GONet_dashboard.src.callbacks</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for GONet_Wizard.GONet_dashboard.src.callbacks</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Callbacks for the GONet Dashboard.</span>
+
+<span class="sd">This module defines all `Dash &lt;https://dash.plotly.com/&gt;`_ callback functions that power the interactivity</span>
+<span class="sd">of the GONet Wizard dashboard. The callbacks handle core responsibilities such as:</span>
+
+<span class="sd">- Loading and parsing the GONet data archive</span>
+<span class="sd">- Applying and managing user-defined filters</span>
+<span class="sd">- Generating interactive plots and statistics</span>
+<span class="sd">- Managing UI state, selections, and saved configurations</span>
+<span class="sd">- Exporting data and application state to JSON</span>
+
+<span class="sd">**Callback Registration Decorators**</span>
+
+<span class="sd">Most callbacks in this module use the custom :func:`utils.gonet_callback` decorator, which extends</span>
+<span class="sd">Dash’s default callback mechanism to include:</span>
+
+<span class="sd">- Automatic alert handling (via the `alert-container`)</span>
+<span class="sd">- Inline warning and exception capture</span>
+<span class="sd">- Debug logging (including the triggering input and source line)</span>
+
+<span class="sd">This greatly simplifies development and debugging, especially for callbacks that modify user-facing</span>
+<span class="sd">components like figures and tables.</span>
+
+<span class="sd">**⚠️ Important Exception: MATCH/ALL Pattern-Matching Callbacks**</span>
+
+<span class="sd">Dash requires all Outputs in a callback to use the same wildcard keys when using pattern-matching IDs</span>
+<span class="sd">(`MATCH`, `ALL`, etc.). Since :func:`utils.gonet_callback` automatically adds static alert outputs,</span>
+<span class="sd">it **cannot** be used with callbacks that include pattern-matching outputs.</span>
+
+<span class="sd">For these cases, such as:</span>
+
+<span class="sd">.. code-block:: python</span>
+
+<span class="sd">    Output({&quot;type&quot;: &quot;filter-value&quot;, &quot;index&quot;: MATCH}, &quot;value&quot;)</span>
+
+<span class="sd">we used instead:</span>
+
+<span class="sd">- :func:`app.callback` directly</span>
+<span class="sd">- Decorate the callback with :func:`utils.debug_print` for logging</span>
+
+<span class="sd">This ensures compatibility with Dash&#39;s output constraints and avoids runtime errors.</span>
+
+
+<span class="sd">**Functions**</span>
+
+<span class="sd">- :func:`load` : Load available data from the configured ROOT directory and prepare dropdown options.</span>
+<span class="sd">- :func:`update_main_plot` : Update the main plot based on the selected axes, filters, and other plot parameters.</span>
+<span class="sd">- :func:`add_filter` : Add a new empty filter block to the filter container in the UI.</span>
+<span class="sd">- :func:`add_or_filter` : Add an additional (OR-based) condition to an existing filter block.</span>
+<span class="sd">- :func:`update_main_filters_value` : Automatically update the value of the main filter when a filter label is selected.</span>
+<span class="sd">- :func:`update_secondary_filters_value` : Automatically update the value of the secondary (OR) filter when a label is selected.</span>
+<span class="sd">- :func:`update_filters` : Assemble and update the active filters list based on user-defined filter inputs.</span>
+<span class="sd">- :func:`export_data` : Export filtered data from the plot to a downloadable JSON file.</span>
+<span class="sd">- :func:`save_status` : Save the current dashboard state, including axis selections and filter configurations.</span>
+<span class="sd">- :func:`load_status` : Load a previously saved dashboard state from a base64-encoded JSON file.</span>
+<span class="sd">- :func:`update_filter_selection_state` : Enable or disable the &quot;Add Selection Filter&quot; button based on current selection in the plot.</span>
+<span class="sd">- :func:`add_selection_filter` : Create and add a new filter based on the current selection region in the plot.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">base64</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dash</span><span class="w"> </span><span class="kn">import</span> <span class="n">no_update</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">html</span><span class="p">,</span> <span class="n">clientside_callback</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dash.dependencies</span><span class="w"> </span><span class="kn">import</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="n">State</span><span class="p">,</span> <span class="n">ALL</span><span class="p">,</span> <span class="n">MATCH</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">GONet_Wizard.GONet_dashboard.src.server</span><span class="w"> </span><span class="kn">import</span> <span class="n">app</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">GONet_Wizard.GONet_dashboard.src</span><span class="w"> </span><span class="kn">import</span> <span class="n">env</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">GONet_Wizard.GONet_dashboard.src</span><span class="w"> </span><span class="kn">import</span> <span class="n">utils</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">GONet_Wizard.GONet_dashboard.src.hood</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_data</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">GONet_Wizard.GONet_dashboard.src.hood</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot</span>
+
+
+<div class="viewcode-block" id="load">
+<a class="viewcode-back" href="../../../../dashboard/callbacks.html#GONet_Wizard.GONet_dashboard.src.callbacks.load">[docs]</a>
+<span class="nd">@utils</span><span class="o">.</span><span class="n">gonet_callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s1">&#39;data-json&#39;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">),</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;x-axis-dropdown&quot;</span><span class="p">,</span><span class="s1">&#39;options&#39;</span><span class="p">),</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;y-axis-dropdown&quot;</span><span class="p">,</span><span class="s1">&#39;options&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;top-container&quot;</span><span class="p">,</span><span class="s1">&#39;children&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="s1">&#39;initial_duplicate&#39;</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="n">_</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dash callback to initialize the dashboard data store and dropdown options.</span>
+
+<span class="sd">    This function is triggered once when the layout is rendered. It delegates the</span>
+<span class="sd">    actual data-loading logic to :func:`load_data.load_data_from_json`, which scans the directory</span>
+<span class="sd">    specified by the ``GONET_ROOT`` environment variable, loads GONet JSON files,</span>
+<span class="sd">    and returns a flat dictionary of observations along with axis selection options.</span>
+
+<span class="sd">    The callback is wrapped in :func:`handle_errors` to display any exceptions in the</span>
+<span class="sd">    alert container and halt further callback execution if a failure occurs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _ : Any</span>
+<span class="sd">        Dummy input triggered by layout initialization; unused.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    data : dict</span>
+<span class="sd">        Flattened dictionary of GONet metadata and per-channel measurements,</span>
+<span class="sd">        to be stored in a hidden dcc.Store component.</span>
+
+<span class="sd">    options_x : list of dict</span>
+<span class="sd">        Dropdown options for selecting the x-axis quantity.</span>
+
+<span class="sd">    options_y : list of dict</span>
+<span class="sd">        Dropdown options for selecting the y-axis quantity.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+
+    <span class="n">all_data</span> <span class="o">=</span> <span class="n">load_data</span><span class="o">.</span><span class="n">load_data_from_json</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
+
+    <span class="n">labels_dropdown</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">l</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="n">l</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;fit&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">l</span> <span class="o">!=</span> <span class="s1">&#39;filename&#39;</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">all_data</span><span class="p">,</span> <span class="n">labels_dropdown</span><span class="p">,</span> <span class="n">labels_dropdown</span></div>
+
+
+
+<div class="viewcode-block" id="update_main_plot">
+<a class="viewcode-back" href="../../../../dashboard/callbacks.html#GONet_Wizard.GONet_dashboard.src.callbacks.update_main_plot">[docs]</a>
+<span class="nd">@utils</span><span class="o">.</span><span class="n">gonet_callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;main-plot&quot;</span><span class="p">,</span><span class="s1">&#39;figure&#39;</span><span class="p">),</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;stats-table&quot;</span><span class="p">,</span> <span class="s1">&#39;children&#39;</span><span class="p">),</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;gonet-image&quot;</span><span class="p">,</span><span class="s1">&#39;figure&#39;</span><span class="p">),</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;info-table&quot;</span><span class="p">,</span><span class="s1">&#39;children&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;x-axis-dropdown&quot;</span><span class="p">,</span><span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;y-axis-dropdown&quot;</span><span class="p">,</span><span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;active-filters&quot;</span><span class="p">,</span><span class="s1">&#39;data&#39;</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;channels&quot;</span><span class="p">,</span><span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;show-filtered-data-switch&quot;</span><span class="p">,</span> <span class="s1">&#39;on&#39;</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;main-plot&quot;</span><span class="p">,</span><span class="s1">&#39;clickData&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;main-plot&quot;</span><span class="p">,</span><span class="s1">&#39;figure&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;gonet-image&quot;</span><span class="p">,</span><span class="s1">&#39;figure&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;info-table&quot;</span><span class="p">,</span><span class="s1">&#39;children&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;data-json&quot;</span><span class="p">,</span><span class="s1">&#39;data&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_main_plot</span><span class="p">(</span><span class="n">x_label</span><span class="p">,</span> <span class="n">y_label</span><span class="p">,</span> <span class="n">active_filters</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">show_filtered_points</span><span class="p">,</span> <span class="n">clickdata</span><span class="p">,</span> <span class="n">fig</span><span class="p">,</span> <span class="n">gonet_fig</span><span class="p">,</span> <span class="n">info_table</span><span class="p">,</span> <span class="n">all_data</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update the main plot, statistics table, image preview, and info panel in response to user interaction.</span>
+
+<span class="sd">    This is the central callback for GONet dashboard interactivity. It responds to any change</span>
+<span class="sd">    that affects how data should be visualized or interpreted, and coordinates all downstream</span>
+<span class="sd">    updates accordingly. It ensures that the displayed figure remains synchronized with the</span>
+<span class="sd">    current filter set, axis choices, selected channels, and clicked data point.</span>
+
+<span class="sd">    Triggers that activate this callback include:</span>
+
+<span class="sd">    - Changing the selected x- or y-axis quantity</span>
+<span class="sd">    - Adding, removing, or modifying any active filters</span>
+<span class="sd">    - Toggling the visibility of filtered-out points</span>
+<span class="sd">    - Enabling or disabling channels in the channel selector</span>
+<span class="sd">    - Clicking a data point on the plot</span>
+
+<span class="sd">    This function manages the following visual components:</span>
+
+<span class="sd">    - The main scatter plot (created or updated using :class:`FigureWrapper`)</span>
+<span class="sd">    - The statistics summary table (mean ± std for x and y values)</span>
+<span class="sd">    - The GONet image heatmap of the selected &quot;big point&quot; (if applicable)</span>
+<span class="sd">    - The information table containing metadata for the selected data point</span>
+
+<span class="sd">    Depending on the triggering input, the function will:</span>
+
+<span class="sd">    - Rebuild the entire figure from scratch (on axis change)</span>
+<span class="sd">    - Reapply filters and update trace visibility (on filter change)</span>
+<span class="sd">    - Show or hide filtered-out points (on toggle)</span>
+<span class="sd">    - Add or remove traces corresponding to visible channels (on channel change)</span>
+<span class="sd">    - Highlight and load image + metadata for the selected point (on click)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x_label : :class:`str`</span>
+<span class="sd">        Selected label for the x-axis (e.g., &#39;sky_brightness&#39;).</span>
+<span class="sd">    y_label : :class:`str`</span>
+<span class="sd">        Selected label for the y-axis (e.g., &#39;temperature&#39;).</span>
+<span class="sd">    active_filters : :class:`list` of :class:`dict`</span>
+<span class="sd">        User-defined filters to apply to the dataset. Each filter includes a label, operator, and value.</span>
+<span class="sd">    channels : :class:`list` of :class:`str`</span>
+<span class="sd">        List of active channels to display (e.g., [&#39;red&#39;, &#39;green&#39;, &#39;blue&#39;]).</span>
+<span class="sd">    show_filtered_points : :class:`bool`</span>
+<span class="sd">        Whether to display data points that fail the filter criteria with reduced opacity.</span>
+<span class="sd">    clickdata : :class:`dict` or :class:`None`</span>
+<span class="sd">        Plotly clickData object containing information about the clicked point (if any).</span>
+<span class="sd">    fig : :class:`dict`</span>
+<span class="sd">        Current Plotly figure, passed in from the Dash state.</span>
+<span class="sd">    gonet_fig : :class:`dict`</span>
+<span class="sd">        Current heatmap image figure, passed in from the Dash state.</span>
+<span class="sd">    info_table : :class:`list`</span>
+<span class="sd">        Current info table rows, passed in from the Dash state.</span>
+<span class="sd">    all_data : :class:`dict`</span>
+<span class="sd">        Complete flattened dataset returned by :func:`load_data_from_json`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`dict`</span>
+<span class="sd">        Updated Plotly figure reflecting current filters, axes, and channels.</span>
+<span class="sd">    :class:`list`</span>
+<span class="sd">        Updated statistics table rows with mean and standard deviation summaries.</span>
+<span class="sd">    :class:`dict` or :data:`dash.no_update`</span>
+<span class="sd">        Updated heatmap figure or :data:`dash.no_update` if no change is needed.</span>
+<span class="sd">    :class:`list`</span>
+<span class="sd">        Updated rows of the data point information table.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="n">x_label</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">y_label</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># If axes are not yet selected, abort update</span>
+        <span class="k">return</span> <span class="n">no_update</span><span class="p">,</span> <span class="n">no_update</span><span class="p">,</span> <span class="n">no_update</span><span class="p">,</span> <span class="n">no_update</span>
+
+    <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">triggered_id</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;x-axis-dropdown&#39;</span><span class="p">,</span> <span class="s1">&#39;y-axis-dropdown&#39;</span><span class="p">]:</span>
+        <span class="c1"># Axes changed → build a new figure from scratch</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">FigureWrapper</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">x_label</span><span class="p">,</span> <span class="n">y_label</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">all_data</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Rehydrate the figure to retain state (filtered points, big point, etc.)</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">FigureWrapper</span><span class="o">.</span><span class="n">from_fig</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">all_data</span><span class="p">)</span>
+
+    <span class="c1"># Apply filters to the dataset</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">update_filters</span><span class="p">(</span><span class="n">active_filters</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">fig</span><span class="o">.</span><span class="n">channels</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">filter_traces</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+
+    <span class="c1"># Toggle visibility of filtered points</span>
+    <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">triggered_id</span> <span class="o">==</span> <span class="s1">&#39;show-filtered-data-switch&#39;</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">update_visibility</span><span class="p">(</span><span class="n">show_filtered_points</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">apply_visibility</span><span class="p">()</span>
+
+    <span class="c1"># Add or remove channel traces</span>
+    <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">triggered_id</span> <span class="o">==</span> <span class="s1">&#39;channels&#39;</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">update_channels</span><span class="p">(</span><span class="n">channels</span><span class="p">)</span>
+
+    <span class="c1"># Generate statistics summary table</span>
+    <span class="n">formatted_stats_table</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">Tr</span><span class="p">([</span><span class="n">html</span><span class="o">.</span><span class="n">Td</span><span class="p">(</span><span class="n">el</span><span class="p">[</span><span class="n">val</span><span class="p">])</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">fig</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()[</span><span class="n">axis</span><span class="p">]</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">]])</span>
+        <span class="k">for</span> <span class="n">axis</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">]</span>
+    <span class="p">]</span>
+
+    <span class="c1"># Handle data point selection (&quot;big point&quot;)</span>
+    <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">triggered_id</span> <span class="o">==</span> <span class="s1">&#39;main-plot&#39;</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">gather_big_point</span><span class="p">(</span><span class="n">clickdata</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">plot_big_point</span><span class="p">()</span>
+
+        <span class="c1"># Extract point-specific metadata</span>
+        <span class="n">info_dictionary</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">get_data_point_info</span><span class="p">()</span>
+        <span class="n">info_table</span> <span class="o">=</span> <span class="p">[</span><span class="n">html</span><span class="o">.</span><span class="n">Tr</span><span class="p">([</span><span class="n">html</span><span class="o">.</span><span class="n">Td</span><span class="p">(</span><span class="n">el</span><span class="p">),</span> <span class="n">html</span><span class="o">.</span><span class="n">Td</span><span class="p">(</span><span class="n">info_dictionary</span><span class="p">[</span><span class="n">el</span><span class="p">])])</span> <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">info_dictionary</span><span class="p">]</span>
+
+        <span class="c1"># Attempt to render the corresponding image</span>
+        <span class="n">gonet_fig</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">gonet_image</span><span class="p">(</span><span class="n">clickdata</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">gonet_fig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">gonet_fig</span> <span class="o">=</span> <span class="n">no_update</span>
+
+    <span class="k">return</span> <span class="n">fig</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="n">formatted_stats_table</span><span class="p">,</span> <span class="n">gonet_fig</span><span class="p">,</span> <span class="n">info_table</span></div>
+
+            
+
+<div class="viewcode-block" id="add_filter">
+<a class="viewcode-back" href="../../../../dashboard/callbacks.html#GONet_Wizard.GONet_dashboard.src.callbacks.add_filter">[docs]</a>
+<span class="nd">@utils</span><span class="o">.</span><span class="n">gonet_callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;custom-filter-container&quot;</span><span class="p">,</span><span class="s1">&#39;children&#39;</span><span class="p">,</span> <span class="n">allow_duplicate</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;add-filter&quot;</span><span class="p">,</span><span class="s1">&#39;n_clicks&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;custom-filter-container&quot;</span><span class="p">,</span><span class="s1">&#39;children&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;x-axis-dropdown&quot;</span><span class="p">,</span><span class="s1">&#39;options&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_filter</span><span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">filter_div</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add a new empty filter block to the filter container in the UI.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _ : :class:`Any`</span>
+<span class="sd">        Dummy input from the button click (not used).</span>
+<span class="sd">    filter_div : :class:`list`</span>
+<span class="sd">        Current list of filter components in the container.</span>
+<span class="sd">    labels : :class:`list` of :class:`dict`</span>
+<span class="sd">        List of label options for dropdowns.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    filter_div : :class:`list`</span>
+<span class="sd">        Updated list of filter components with one new filter added.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">n_filter</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">filter_div</span><span class="p">)</span>
+    <span class="n">new_empty_filter</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">new_empty_filter</span><span class="p">(</span><span class="n">n_filter</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+    <span class="n">filter_div</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_empty_filter</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">filter_div</span></div>
+
+
+<div class="viewcode-block" id="add_or_filter">
+<a class="viewcode-back" href="../../../../dashboard/callbacks.html#GONet_Wizard.GONet_dashboard.src.callbacks.add_or_filter">[docs]</a>
+<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;second-filter-container&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">MATCH</span><span class="p">},</span> <span class="s1">&#39;children&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">Input</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;add-or-filter&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">MATCH</span><span class="p">},</span> <span class="s1">&#39;n_clicks&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;add-or-filter&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">MATCH</span><span class="p">},</span> <span class="s1">&#39;id&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;x-axis-dropdown&quot;</span><span class="p">,</span><span class="s1">&#39;options&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="nd">@utils</span><span class="o">.</span><span class="n">debug_print</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_or_filter</span><span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="nb">id</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add an additional (OR-based) condition to an existing filter block.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _ : :class:`Any`</span>
+<span class="sd">        Dummy input from the OR-button click (not used).</span>
+<span class="sd">    id : :class:`dict`</span>
+<span class="sd">        Dictionary containing the index of the filter block to update.</span>
+<span class="sd">    labels : :class:`list` of :class:`dict`</span>
+<span class="sd">        List of label options for the dropdowns.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    new_filter : dash component</span>
+<span class="sd">        A new filter component to be added to the filter block.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">idx</span> <span class="o">=</span> <span class="nb">id</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span>
+    <span class="n">new_filter</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">new_empty_second_filter</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">new_filter</span></div>
+
+
+
+<div class="viewcode-block" id="update_main_filters_value">
+<a class="viewcode-back" href="../../../../dashboard/callbacks.html#GONet_Wizard.GONet_dashboard.src.callbacks.update_main_filters_value">[docs]</a>
+<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-value&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">MATCH</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">Input</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-dropdown&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">MATCH</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="nd">@utils</span><span class="o">.</span><span class="n">debug_print</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_main_filters_value</span><span class="p">(</span><span class="n">label</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Automatically update the value of the main filter when a filter label is selected.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    label : :class:`str`</span>
+<span class="sd">        The selected label from the main filter dropdown.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    value : :class:`Any` or :class:`None`</span>
+<span class="sd">        Default value corresponding to the label, or None if not found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">DEFAULT_FILTER_VALUES</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">env</span><span class="o">.</span><span class="n">DEFAULT_FILTER_VALUES</span><span class="p">[</span><span class="n">label</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="update_secondary_filters_value">
+<a class="viewcode-back" href="../../../../dashboard/callbacks.html#GONet_Wizard.GONet_dashboard.src.callbacks.update_secondary_filters_value">[docs]</a>
+<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;second-filter-value&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">MATCH</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">Input</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;second-filter-dropdown&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">MATCH</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="nd">@utils</span><span class="o">.</span><span class="n">debug_print</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_secondary_filters_value</span><span class="p">(</span><span class="n">label</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Automatically update the value of the secondary (OR) filter when a label is selected.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    label : :class:`str`</span>
+<span class="sd">        The selected label from the secondary filter dropdown.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    value : :class:`Any` or :class:`None`</span>
+<span class="sd">        Default value corresponding to the label, or None if not found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">DEFAULT_FILTER_VALUES</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">env</span><span class="o">.</span><span class="n">DEFAULT_FILTER_VALUES</span><span class="p">[</span><span class="n">label</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+    
+
+<div class="viewcode-block" id="update_filters">
+<a class="viewcode-back" href="../../../../dashboard/callbacks.html#GONet_Wizard.GONet_dashboard.src.callbacks.update_filters">[docs]</a>
+<span class="nd">@utils</span><span class="o">.</span><span class="n">gonet_callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;active-filters&quot;</span><span class="p">,</span><span class="s1">&#39;data&#39;</span><span class="p">),</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;show-filtered-data-switch&quot;</span><span class="p">,</span><span class="s1">&#39;disabled&#39;</span><span class="p">),</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;show-filtered-data-switch&quot;</span><span class="p">,</span><span class="s1">&#39;on&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s1">&#39;data-json&#39;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-switch&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;on&#39;</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-operator&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-value&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-selection-data&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;data&#39;</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;second-filter-operator&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;second-filter-value&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-dropdown&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;second-filter-dropdown&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;second-filter-value&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;id&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-selection-data&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;id&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;active-filters&quot;</span><span class="p">,</span><span class="s1">&#39;data&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_filters</span><span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">switches</span><span class="p">,</span> <span class="n">ops</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">selections</span><span class="p">,</span> <span class="n">second_ops</span><span class="p">,</span> <span class="n">second_values</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">second_labels</span><span class="p">,</span> <span class="n">second_ids</span><span class="p">,</span> <span class="n">selections_ids</span><span class="p">,</span> <span class="n">filters_before</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Assemble and update the active filters list based on user-defined filter inputs.</span>
+
+<span class="sd">    This function collects the current state of all active filters, including their</span>
+<span class="sd">    labels, operators, and values, and constructs a list of active filters. If a</span>
+<span class="sd">    secondary (OR) filter is present, it is added as a nested dictionary.</span>
+
+<span class="sd">    This function is also triggered at load up. Since initially ``active_filters``</span>
+<span class="sd">    is ``None``, when triggered the `show-filtered-data-switch` is reset to default</span>
+<span class="sd">    status. </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    switches : :class:`list` of :class:`bool`</span>
+<span class="sd">        States of the main filter switches indicating whether each filter is active.</span>
+<span class="sd">    ops : :class:`list` of :class:`str`</span>
+<span class="sd">        Comparison operators for each main filter (e.g., &#39;&gt;&#39;, &#39;&lt;=&#39;, &#39;==&#39;).</span>
+<span class="sd">    values : :class:`list`</span>
+<span class="sd">        Values selected or entered for each main filter.</span>
+<span class="sd">    selections : :class:`list`</span>
+<span class="sd">        Lasso or box selection data used to override value-based filters.</span>
+<span class="sd">    second_ops : :class:`list` of :class:`str`</span>
+<span class="sd">        Comparison operators for each secondary filter.</span>
+<span class="sd">    second_values : :class:`list`</span>
+<span class="sd">        Values selected or entered for each secondary filter.</span>
+<span class="sd">    labels : :class:`list` of :class:`str`</span>
+<span class="sd">        Labels (field names) selected for each main filter.</span>
+<span class="sd">    second_labels : :class:`list` of :class:`str`</span>
+<span class="sd">        Labels selected for each secondary filter.</span>
+<span class="sd">    second_ids : :class:`list` of :class:`dict`</span>
+<span class="sd">        IDs of the secondary filter value fields, containing the filter index.</span>
+<span class="sd">    selections_ids : :class:`list` of :class:`dict`</span>
+<span class="sd">        IDs of the selection-based filters, containing the filter index.</span>
+<span class="sd">    filters_before : :class:`list` of :class:`dict`</span>
+<span class="sd">        Previously active filters, used to check whether an update is necessary.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`list` of :class:`dict` or :class:`dash.no_update`</span>
+<span class="sd">        Updated list of active filters, or `no_update` if unchanged.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">activate_show_filters</span><span class="p">(</span><span class="n">active_filters</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">active_filters</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span>
+
+    <span class="n">active_filters</span><span class="o">=</span><span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">switches</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="nb">id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">selections_ids</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="nb">id</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">selections</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="n">values</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="n">label</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="n">ops</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">s</span> <span class="ow">and</span> <span class="n">label</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># converting date filters to unix time for an easier comparison</span>
+            <span class="n">label</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">parse_date_time</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+            <span class="n">active_filters</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span> <span class="s1">&#39;operator&#39;</span><span class="p">:</span> <span class="n">op</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">value</span><span class="p">})</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span><span class="nb">id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">second_ids</span><span class="p">):</span>
+
+                <span class="n">second_label</span> <span class="o">=</span> <span class="n">second_labels</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">second_op</span> <span class="o">=</span> <span class="n">second_ops</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">second_value</span> <span class="o">=</span> <span class="n">second_values</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="nb">id</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">i</span> <span class="ow">and</span> <span class="n">second_label</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">second_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">second_label</span><span class="p">,</span> <span class="n">second_value</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">parse_date_time</span><span class="p">(</span><span class="n">second_label</span><span class="p">,</span> <span class="n">second_value</span><span class="p">)</span>
+                    <span class="n">active_filters</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;secondary&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="n">second_label</span><span class="p">,</span> <span class="s1">&#39;operator&#39;</span><span class="p">:</span> <span class="n">second_op</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">second_value</span><span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">filters_before</span> <span class="o">!=</span> <span class="n">active_filters</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">active_filters</span><span class="p">,</span> <span class="o">*</span><span class="n">activate_show_filters</span><span class="p">(</span><span class="n">active_filters</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">no_update</span><span class="p">,</span> <span class="n">no_update</span><span class="p">,</span> <span class="n">no_update</span></div>
+
+
+
+
+<div class="viewcode-block" id="export_data">
+<a class="viewcode-back" href="../../../../dashboard/callbacks.html#GONet_Wizard.GONet_dashboard.src.callbacks.export_data">[docs]</a>
+<span class="nd">@utils</span><span class="o">.</span><span class="n">gonet_callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;download-json&quot;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;export-data&quot;</span><span class="p">,</span> <span class="s1">&#39;n_clicks&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;main-plot&quot;</span><span class="p">,</span><span class="s1">&#39;figure&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;data-json&quot;</span><span class="p">,</span><span class="s1">&#39;data&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">export_data</span><span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">fig</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span><span class="c1">#, channels):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Export filtered data from the plot to a downloadable JSON file.</span>
+
+<span class="sd">    This function retrieves all points currently visible in the main plot that are not</span>
+<span class="sd">    filtered or marked as big points. It extracts relevant metadata and fit parameters</span>
+<span class="sd">    for each unique index across all channels, organizing the data into a structured JSON</span>
+<span class="sd">    format for export.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _ : :class:`Any`</span>
+<span class="sd">        Unused placeholder for the n_clicks input from the export button.</span>
+<span class="sd">    fig : :class:`dict`</span>
+<span class="sd">        The Plotly figure dictionary containing plotted data and metadata.</span>
+<span class="sd">    data : :class:`dict`</span>
+<span class="sd">        The full dataset loaded into the application, including all measurements</span>
+<span class="sd">        and metadata for each point.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`dict`</span>
+<span class="sd">        A dictionary containing:</span>
+
+<span class="sd">        - &#39;content&#39;: JSON string representing the filtered and formatted dataset.</span>
+<span class="sd">        - &#39;filename&#39;: Suggested filename for the download (&quot;filtered_data.json&quot;).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">json_out</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># The indexes will be the same for all the channels</span>
+    <span class="c1"># So I take the indexes from only one of them</span>
+    <span class="n">idx_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">img</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">fig</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;filtered&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">img</span><span class="p">[</span><span class="s1">&#39;big_point&#39;</span><span class="p">]][</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Converting the list into a numpy array only once here so that I can</span>
+    <span class="c1"># use np.where later multiple times</span>
+    <span class="n">data_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;idx&#39;</span><span class="p">])</span>
+    <span class="n">data_channel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;channel&#39;</span><span class="p">])</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx_list</span><span class="p">:</span>
+        <span class="n">out_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># `data` will have 3 entries with the same idx (one per channel)</span>
+        <span class="c1"># so `matching_idx` will be a list of 3 elements.</span>
+        <span class="c1"># Taking just the first to fetch the labels unrelated to the channel</span>
+        <span class="n">matching_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">data_idx</span> <span class="o">==</span> <span class="n">i</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;gen&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">label</span> <span class="o">==</span> <span class="s1">&#39;idx&#39;</span><span class="p">:</span> <span class="k">continue</span>
+            <span class="n">out_dict</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">label</span><span class="p">][</span><span class="n">matching_idx</span><span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">CHANNELS</span><span class="p">:</span>
+            <span class="n">out_dict</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">=</span><span class="p">{}</span>
+            <span class="n">matching_idx_and_channel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">((</span><span class="n">data_idx</span> <span class="o">==</span> <span class="n">i</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">data_channel</span><span class="o">==</span><span class="n">c</span><span class="p">))[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">LABELS</span><span class="p">[</span><span class="s1">&#39;fit&#39;</span><span class="p">]:</span>
+                <span class="n">out_dict</span><span class="p">[</span><span class="n">c</span><span class="p">][</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">label</span><span class="p">][</span><span class="n">matching_idx_and_channel</span><span class="p">]</span>
+
+        <span class="n">json_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out_dict</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">json_out</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span> <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;filtered_data.json&quot;</span><span class="p">)</span></div>
+
+
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<span class="c1"># Clientside Callback: Download Dashboard Status as JSON</span>
+<span class="c1"># ------------------------------------------------------------------------------</span>
+<span class="c1">#</span>
+<span class="c1"># This clientside callback enables users to export the current dashboard status</span>
+<span class="c1"># (e.g., selected axes, filters, and switches) as a downloadable JSON file.</span>
+<span class="c1"># The data is serialized on the client and offered as a file via the browser’s</span>
+<span class="c1"># native download mechanism, using a temporary Blob URL.</span>
+<span class="c1">#</span>
+<span class="c1"># Although this method is simple and effective for small payloads, it relies on</span>
+<span class="c1"># Data URLs, which are not ideal for large or binary content. In future versions,</span>
+<span class="c1"># it may be preferable to offload download handling to the backend (e.g., via Django).</span>
+<span class="c1">#</span>
+<span class="c1"># Parameters</span>
+<span class="c1"># ----------</span>
+<span class="c1"># data : object</span>
+<span class="c1">#     A small dictionary representing the dashboard’s state, typically stored in</span>
+<span class="c1">#     the `status-data` component. This includes axis values, filter configurations,</span>
+<span class="c1">#     and switch states.</span>
+<span class="c1">#</span>
+<span class="c1"># Returns</span>
+<span class="c1"># -------</span>
+<span class="c1"># str</span>
+<span class="c1">#     An empty string upon successful trigger of the download process,</span>
+<span class="c1">#     or `dash_clientside.no_update` if no action is taken.</span>
+<span class="c1">#</span>
+<span class="c1"># Behavior</span>
+<span class="c1"># --------</span>
+<span class="c1"># - Prompts the user to enter a filename (default: &quot;status.json&quot;)</span>
+<span class="c1"># - Converts the input data to a formatted JSON string</span>
+<span class="c1"># - Creates a Blob and object URL for download</span>
+<span class="c1"># - Triggers the download using a temporary anchor tag</span>
+<span class="c1"># - Cleans up the temporary elements after the download completes</span>
+<span class="c1">#</span>
+<span class="c1"># Notes</span>
+<span class="c1"># -----</span>
+<span class="c1"># While the current solution provides a user-friendly browser-based download</span>
+<span class="c1"># experience, it bypasses the native file save dialog and may not be ideal for</span>
+<span class="c1"># production workflows. A more robust implementation using the File System Access API</span>
+<span class="c1"># is also provided below (commented out), offering deeper integration with the</span>
+<span class="c1"># operating system at the cost of browser compatibility and UI polish.</span>
+<span class="c1">#</span>
+<span class="c1"># Future versions may delegate this task to Django to provide cleaner handling,</span>
+<span class="c1"># especially for larger payloads or authenticated sessions.</span>
+
+<span class="n">clientside_callback</span><span class="p">(</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    async function(data) {</span>
+<span class="sd">        if (data) {</span>
+<span class="sd">            try {</span>
+<span class="sd">                const jsonString = JSON.stringify(data, null, 2);</span>
+<span class="sd">                const blob = new Blob([jsonString], { type: &#39;application/json&#39; });</span>
+
+<span class="sd">                const filename = prompt(&quot;Please enter the filename:&quot;, &quot;status.json&quot;); // Get filename</span>
+
+<span class="sd">                if (filename === null || filename.trim() === &quot;&quot;) {</span>
+<span class="sd">                    return window.dash_clientside.no_update;</span>
+<span class="sd">                }</span>
+
+<span class="sd">                const url = window.URL.createObjectURL(blob); // Create URL for blob</span>
+
+<span class="sd">                const a = document.createElement(&#39;a&#39;);</span>
+<span class="sd">                a.href = url;</span>
+<span class="sd">                a.download = filename; // Set filename</span>
+<span class="sd">                document.body.appendChild(a);</span>
+<span class="sd">                a.click(); // Trigger download</span>
+<span class="sd">                document.body.removeChild(a); // Clean up</span>
+<span class="sd">                window.URL.revokeObjectURL(url); // Release blob URL</span>
+
+<span class="sd">                return &quot;&quot;;</span>
+<span class="sd">            } catch (err) {</span>
+<span class="sd">                console.error(&quot;Download error:&quot;, err);</span>
+<span class="sd">                alert(&quot;Download failed. Please try again. Check the console for more details.&quot;);</span>
+<span class="sd">                return window.dash_clientside.no_update;</span>
+<span class="sd">            }</span>
+<span class="sd">        }</span>
+<span class="sd">        return window.dash_clientside.no_update;</span>
+<span class="sd">    }</span>
+<span class="sd">    &quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;dummy-div&quot;</span><span class="p">,</span> <span class="s1">&#39;children&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;status-data&quot;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># &quot;&quot;&quot;</span>
+<span class="c1">#     async function(data) {</span>
+<span class="c1">#         if (data) {</span>
+<span class="c1">#             try {</span>
+<span class="c1">#                 const jsonString = JSON.stringify(data, null, 2);</span>
+<span class="c1">#                 const blob = new Blob([jsonString], { type: &#39;application/json&#39; });</span>
+
+<span class="c1">#                 // Let showSaveFilePicker handle the prompt:</span>
+<span class="c1">#                 const handle = await window.showSaveFilePicker({ suggestedName: &quot;data.json&quot; }); // Suggested filename</span>
+<span class="c1">#                 const writable = await handle.createWritable();</span>
+<span class="c1">#                 await writable.write(blob);</span>
+<span class="c1">#                 await writable.close();</span>
+
+<span class="c1">#                 // Explicitly set handle to null to release access:</span>
+<span class="c1">#                 handle = null; // Important: Release the handle!</span>
+
+<span class="c1">#                 return &quot;downloaded&quot;;</span>
+<span class="c1">#             } catch (err) {</span>
+<span class="c1">#                 console.error(&quot;Download error:&quot;, err);</span>
+<span class="c1">#                 alert(&quot;Download failed. Please try again. Check the console for more details.&quot;);</span>
+<span class="c1">#                 return window.dash_clientside.no_update;</span>
+<span class="c1">#             }</span>
+<span class="c1">#         }</span>
+<span class="c1">#         return window.dash_clientside.no_update;</span>
+<span class="c1">#     }</span>
+<span class="c1"># &quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="save_status">
+<a class="viewcode-back" href="../../../../dashboard/callbacks.html#GONet_Wizard.GONet_dashboard.src.callbacks.save_status">[docs]</a>
+<span class="nd">@utils</span><span class="o">.</span><span class="n">gonet_callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;status-data&quot;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;save-status&quot;</span><span class="p">,</span> <span class="s1">&#39;n_clicks&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;x-axis-dropdown&quot;</span><span class="p">,</span><span class="s1">&#39;id&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;x-axis-dropdown&quot;</span><span class="p">,</span><span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;y-axis-dropdown&quot;</span><span class="p">,</span><span class="s1">&#39;id&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;y-axis-dropdown&quot;</span><span class="p">,</span><span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-switch&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;id&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-switch&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;on&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-dropdown&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;id&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-dropdown&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-operator&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;id&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-operator&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-value&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;id&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;filter-value&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;second-filter-dropdown&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;id&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;second-filter-dropdown&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;second-filter-operator&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;id&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;second-filter-operator&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;second-filter-value&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;id&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;second-filter-value&quot;</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">ALL</span><span class="p">},</span> <span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;channels&quot;</span><span class="p">,</span><span class="s1">&#39;id&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;channels&quot;</span><span class="p">,</span><span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;show-filtered-data-switch&quot;</span><span class="p">,</span> <span class="s1">&#39;id&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;show-filtered-data-switch&quot;</span><span class="p">,</span> <span class="s1">&#39;on&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">save_status</span><span class="p">(</span><span class="n">_</span><span class="p">,</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Save the current dashboard state, including axis selections and filter configurations.</span>
+
+<span class="sd">    This function collects the current state of all dashboard controls—such as axis dropdowns,</span>
+<span class="sd">    filters, channel selections, and switches—and assembles them into a dictionary suitable</span>
+<span class="sd">    for export or persistent storage. It supports both primary and secondary filters.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _ : :class:`Any`</span>
+<span class="sd">        Unused placeholder for the `n_clicks` input from the &quot;save status&quot; button.</span>
+<span class="sd">    *args : :class:`list`</span>
+<span class="sd">        Interleaved list of (id, value) pairs for all input states. Each id can either be a string</span>
+<span class="sd">        (for global components like axis dropdowns and switches) or a dictionary (for indexed filters).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`dict`</span>
+<span class="sd">        A dictionary representing the current state of the dashboard, including:</span>
+
+<span class="sd">        - Axis selection values.</span>
+<span class="sd">        - All filters and their properties.</span>
+<span class="sd">        - Active channels and switch states.</span>
+
+<span class="sd">        The structure is compatible with later reloading via the :func:`load_status` function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">out_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;filters&#39;</span><span class="p">:[]}</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">el</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span> <span class="k">continue</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">f</span><span class="p">,</span><span class="n">flt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+                <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">flt</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">out_dict</span><span class="p">[</span><span class="s1">&#39;filters&#39;</span><span class="p">]):</span>
+                        <span class="k">break</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">out_dict</span><span class="p">[</span><span class="s1">&#39;filters&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;secondary&#39;</span><span class="p">:{}})</span>
+                <span class="k">if</span> <span class="n">flt</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;second&#39;</span><span class="p">:</span>
+                    <span class="n">out_dict</span><span class="p">[</span><span class="s1">&#39;filters&#39;</span><span class="p">][</span><span class="n">flt</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]][</span><span class="s1">&#39;secondary&#39;</span><span class="p">][</span><span class="n">flt</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">][</span><span class="n">f</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">out_dict</span><span class="p">[</span><span class="s1">&#39;filters&#39;</span><span class="p">][</span><span class="n">flt</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]][</span><span class="n">flt</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">][</span><span class="n">f</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out_dict</span><span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">out_dict</span></div>
+
+
+<div class="viewcode-block" id="load_status">
+<a class="viewcode-back" href="../../../../dashboard/callbacks.html#GONet_Wizard.GONet_dashboard.src.callbacks.load_status">[docs]</a>
+<span class="nd">@utils</span><span class="o">.</span><span class="n">gonet_callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;x-axis-dropdown&quot;</span><span class="p">,</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">allow_duplicate</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;y-axis-dropdown&quot;</span><span class="p">,</span><span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;channels&quot;</span><span class="p">,</span><span class="s1">&#39;value&#39;</span><span class="p">),</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;show-filtered-data-switch&quot;</span><span class="p">,</span> <span class="s1">&#39;on&#39;</span><span class="p">,</span> <span class="n">allow_duplicate</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;custom-filter-container&quot;</span><span class="p">,</span><span class="s1">&#39;children&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;upload-status&quot;</span><span class="p">,</span> <span class="s1">&#39;contents&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;custom-filter-container&quot;</span><span class="p">,</span><span class="s1">&#39;children&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;x-axis-dropdown&quot;</span><span class="p">,</span><span class="s1">&#39;options&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_status</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="n">filter_div</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load a previously saved dashboard state from a base64-encoded JSON file.</span>
+
+<span class="sd">    This function decodes and parses the uploaded status file and restores the application state,</span>
+<span class="sd">    including axis selections, active channels, switches, and filters. It dynamically reconstructs</span>
+<span class="sd">    each filter (both primary and secondary) and injects them into the dashboard.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    contents : :class:`str`</span>
+<span class="sd">        Base64-encoded string representing the uploaded file contents from the `Dash &lt;https://dash.plotly.com/&gt;`_ upload component.</span>
+<span class="sd">    filter_div : :class:`list`</span>
+<span class="sd">        List of existing filter components already present in the dashboard.</span>
+<span class="sd">    labels : :class:`list`</span>
+<span class="sd">        List of available labels used to populate new filters.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    x_axis_value : :class:`str`</span>
+<span class="sd">        Restored value for the x-axis dropdown.</span>
+<span class="sd">    y_axis_value : :class:`str`</span>
+<span class="sd">        Restored value for the y-axis dropdown.</span>
+<span class="sd">    channels : :class:`list`</span>
+<span class="sd">        Restored list of selected channels.</span>
+<span class="sd">    show_filtered : :class:`bool`</span>
+<span class="sd">        Whether to show filtered points, as restored from the saved state.</span>
+<span class="sd">    filter_div : :class:`list`</span>
+<span class="sd">        Updated list of filter UI components reflecting the saved configuration.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">decoded_string</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">contents</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+    <span class="n">base64</span><span class="o">.</span><span class="n">b64decode</span><span class="p">(</span><span class="n">decoded_string</span><span class="p">)</span>
+    <span class="n">status_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">decoded_string</span><span class="p">)</span>
+
+    <span class="n">n_filter</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">filter_div</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">f</span><span class="p">,</span><span class="n">flt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">status_dict</span><span class="p">[</span><span class="s1">&#39;filters&#39;</span><span class="p">]):</span>
+        <span class="n">new_empty_filter</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">new_empty_filter</span><span class="p">(</span><span class="n">n_filter</span><span class="o">+</span><span class="n">f</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+
+        <span class="n">filter_div</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_empty_filter</span><span class="p">)</span>
+        <span class="n">filter_div</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">on</span> <span class="o">=</span> <span class="n">flt</span><span class="p">[</span><span class="s1">&#39;filter-switch&#39;</span><span class="p">]</span>
+        <span class="n">filter_div</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">flt</span><span class="p">[</span><span class="s1">&#39;filter-dropdown&#39;</span><span class="p">]</span>
+        <span class="n">filter_div</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">flt</span><span class="p">[</span><span class="s1">&#39;filter-operator&#39;</span><span class="p">]</span>
+        <span class="n">filter_div</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">flt</span><span class="p">[</span><span class="s1">&#39;filter-value&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">flt</span><span class="p">[</span><span class="s1">&#39;secondary&#39;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">filter_div</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">children</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">new_empty_second_filter</span><span class="p">(</span><span class="n">n_filter</span><span class="o">+</span><span class="n">f</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+
+            <span class="n">filter_div</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">flt</span><span class="p">[</span><span class="s1">&#39;secondary&#39;</span><span class="p">][</span><span class="s1">&#39;second-filter-dropdown&#39;</span><span class="p">]</span>
+            <span class="n">filter_div</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">flt</span><span class="p">[</span><span class="s1">&#39;secondary&#39;</span><span class="p">][</span><span class="s1">&#39;second-filter-operator&#39;</span><span class="p">]</span>
+            <span class="n">filter_div</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">flt</span><span class="p">[</span><span class="s1">&#39;secondary&#39;</span><span class="p">][</span><span class="s1">&#39;second-filter-value&#39;</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">status_dict</span><span class="p">[</span><span class="s2">&quot;x-axis-dropdown&quot;</span><span class="p">],</span> <span class="n">status_dict</span><span class="p">[</span><span class="s2">&quot;y-axis-dropdown&quot;</span><span class="p">],</span> <span class="n">status_dict</span><span class="p">[</span><span class="s2">&quot;channels&quot;</span><span class="p">],</span> <span class="n">status_dict</span><span class="p">[</span><span class="s2">&quot;show-filtered-data-switch&quot;</span><span class="p">],</span> <span class="n">filter_div</span></div>
+
+
+
+<div class="viewcode-block" id="update_filter_selection_state">
+<a class="viewcode-back" href="../../../../dashboard/callbacks.html#GONet_Wizard.GONet_dashboard.src.callbacks.update_filter_selection_state">[docs]</a>
+<span class="nd">@utils</span><span class="o">.</span><span class="n">gonet_callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s1">&#39;selection-filter&#39;</span><span class="p">,</span> <span class="s1">&#39;disabled&#39;</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s1">&#39;main-plot&#39;</span><span class="p">,</span> <span class="s1">&#39;relayoutData&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s1">&#39;main-plot&#39;</span><span class="p">,</span> <span class="s1">&#39;figure&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;data-json&quot;</span><span class="p">,</span><span class="s1">&#39;data&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_filter_selection_state</span><span class="p">(</span><span class="n">relayout_data</span><span class="p">,</span> <span class="n">fig</span><span class="p">,</span> <span class="n">all_data</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Enable or disable the &quot;Add Selection Filter&quot; button based on current selection in the plot.</span>
+
+<span class="sd">    This function checks whether a valid lasso or box selection exists in the main plot.</span>
+<span class="sd">    If such a selection is detected (i.e., a non-empty path is present), the filter button</span>
+<span class="sd">    becomes enabled; otherwise, it remains disabled.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    relayout_data : :class:`dict`</span>
+<span class="sd">        The relayout metadata from the Plotly plot, which may include a &#39;selections&#39; field.</span>
+<span class="sd">    fig : :class:`dict`</span>
+<span class="sd">        The current figure displayed in the main plot (unused, but passed for context).</span>
+<span class="sd">    all_data : :class:`dict`</span>
+<span class="sd">        The full dataset shown in the dashboard (unused, but passed for context).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :class:`bool`</span>
+<span class="sd">        `False` if a valid selection exists (enabling the button), `True` otherwise (disabling it).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">relayout_data</span> <span class="ow">and</span> <span class="s1">&#39;selections&#39;</span> <span class="ow">in</span> <span class="n">relayout_data</span><span class="p">:</span>
+        <span class="n">selection</span> <span class="o">=</span> <span class="n">relayout_data</span><span class="p">[</span><span class="s1">&#39;selections&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">selection</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;path&#39;</span> <span class="ow">in</span> <span class="n">selection</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+
+<div class="viewcode-block" id="add_selection_filter">
+<a class="viewcode-back" href="../../../../dashboard/callbacks.html#GONet_Wizard.GONet_dashboard.src.callbacks.add_selection_filter">[docs]</a>
+<span class="nd">@utils</span><span class="o">.</span><span class="n">gonet_callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;custom-filter-container&quot;</span><span class="p">,</span><span class="s1">&#39;children&#39;</span><span class="p">,</span> <span class="n">allow_duplicate</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s1">&#39;main-plot&#39;</span><span class="p">,</span> <span class="s1">&#39;relayoutData&#39;</span><span class="p">),</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s1">&#39;main-plot&#39;</span><span class="p">,</span> <span class="s1">&#39;figure&#39;</span><span class="p">,</span> <span class="n">allow_duplicate</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;selection-filter&quot;</span><span class="p">,</span><span class="s1">&#39;n_clicks&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">&quot;custom-filter-container&quot;</span><span class="p">,</span><span class="s1">&#39;children&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s1">&#39;main-plot&#39;</span><span class="p">,</span> <span class="s1">&#39;relayoutData&#39;</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s1">&#39;main-plot&#39;</span><span class="p">,</span> <span class="s1">&#39;figure&#39;</span><span class="p">),</span>
+    <span class="c1">#---------------------</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_selection_filter</span><span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">filter_div</span><span class="p">,</span> <span class="n">relayout_data</span><span class="p">,</span> <span class="n">figure</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create and add a new filter based on the current selection region in the plot.</span>
+
+<span class="sd">    This function checks if a valid lasso or box selection exists in the plot&#39;s ``relayoutData``.</span>
+<span class="sd">    If so, it generates a new filter corresponding to the selected data points and appends it</span>
+<span class="sd">    to the list of existing filters. The selection is then removed from the plot layout to avoid</span>
+<span class="sd">    reprocessing.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _ : :class:`Any`</span>
+<span class="sd">        Placeholder for the button click triggering the addition of a selection-based filter.</span>
+<span class="sd">    filter_div : :class:`list`</span>
+<span class="sd">        Existing list of `Dash &lt;https://dash.plotly.com/&gt;`_ filter components displayed in the UI.</span>
+<span class="sd">    relayout_data : :class:`dict`</span>
+<span class="sd">        Plotly relayout data containing information about lasso/box selections.</span>
+<span class="sd">    figure : :class:`dict`</span>
+<span class="sd">        The current figure dictionary shown in the main plot.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    filter_div : :class:`list`</span>
+<span class="sd">        Updated list of filter components, now including the new selection-based filter.</span>
+<span class="sd">    relayoutData : :class:`dict`</span>
+<span class="sd">        An empty dictionary to reset plot selection state.</span>
+<span class="sd">    figure : :class:`dict`</span>
+<span class="sd">        The updated figure with the selection metadata removed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">relayout_data</span> <span class="ow">or</span> <span class="s1">&#39;selections&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">relayout_data</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">no_update</span><span class="p">,</span> <span class="n">no_update</span><span class="p">,</span> <span class="n">no_update</span>
+
+    <span class="n">selection</span> <span class="o">=</span> <span class="n">relayout_data</span><span class="p">[</span><span class="s1">&#39;selections&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">selection</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selection</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;path&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">selection</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">no_update</span><span class="p">,</span> <span class="n">no_update</span><span class="p">,</span> <span class="n">no_update</span>
+
+
+    <span class="k">del</span> <span class="n">figure</span><span class="p">[</span><span class="s1">&#39;layout&#39;</span><span class="p">][</span><span class="s1">&#39;selections&#39;</span><span class="p">]</span>
+
+    <span class="n">n_filter</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">filter_div</span><span class="p">)</span>
+    <span class="n">new_empty_filter</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">new_selection_filter</span><span class="p">(</span><span class="n">n_filter</span><span class="p">,</span> <span class="n">figure</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;selectedpoints&#39;</span><span class="p">])</span>
+    <span class="n">filter_div</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_empty_filter</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">filter_div</span><span class="p">,</span> <span class="p">{},</span> <span class="n">figure</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

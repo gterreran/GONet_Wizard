@@ -1,0 +1,325 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Installation &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Command-Line Interface" href="cli.html" />
+    <link rel="prev" title="GONet Wizard" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#creating-a-python-environment">Creating a Python environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installing-from-github">Installing from GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installing-from-a-local-clone">Installing from a local clone</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-via-pyproject-toml">Installation via <cite>pyproject.toml</cite></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#required-environment-variables">Required environment variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#future-pypi-installation">Future PyPI Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-tips-for-windows-users">Installation tips for Windows Users</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#check-if-python-and-git-are-installed">Check if Python and Git are installed:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#installing-gonet-wizard-via-pip">Installing GONet Wizard via pip:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#run-the-cli-commands">Run the CLI commands</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="settings.html">settings Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commands.html">commands Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Installation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/installation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<p>The GONet Wizard package provides tools for analyzing and monitoring data from GONet cameras.
+This guide walks you through setting up the environment and installing the package.</p>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#creating-a-python-environment" id="id1">Creating a Python environment</a></p></li>
+<li><p><a class="reference internal" href="#installing-from-github" id="id2">Installing from GitHub</a></p></li>
+<li><p><a class="reference internal" href="#installing-from-a-local-clone" id="id3">Installing from a local clone</a></p></li>
+<li><p><a class="reference internal" href="#installation-via-pyproject-toml" id="id4">Installation via <cite>pyproject.toml</cite></a></p></li>
+<li><p><a class="reference internal" href="#required-environment-variables" id="id5">Required environment variables</a></p></li>
+<li><p><a class="reference internal" href="#future-pypi-installation" id="id6">Future PyPI Installation</a></p></li>
+<li><p><a class="reference internal" href="#installation-tips-for-windows-users" id="id7">Installation tips for Windows Users</a></p>
+<ul>
+<li><p><a class="reference internal" href="#check-if-python-and-git-are-installed" id="id8">Check if Python and Git are installed:</a></p></li>
+<li><p><a class="reference internal" href="#installing-gonet-wizard-via-pip" id="id9">Installing GONet Wizard via pip:</a></p></li>
+<li><p><a class="reference internal" href="#run-the-cli-commands" id="id10">Run the CLI commands</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#troubleshooting" id="id11">Troubleshooting</a></p></li>
+</ul>
+</nav>
+<hr class="docutils" />
+<section id="creating-a-python-environment">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Creating a Python environment</a><a class="headerlink" href="#creating-a-python-environment" title="Link to this heading"></a></h2>
+<p>It is highly recommended to use a <strong>dedicated environment</strong> for GONet Wizard to avoid conflicts with system packages.</p>
+<p>You can create one using either <cite>venv</cite> or <cite>conda</cite>.</p>
+<p>Using <cite>venv</cite>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>gonet-env
+<span class="nb">source</span><span class="w"> </span>gonet-env/bin/activate<span class="w">  </span><span class="c1"># On Windows: gonet-env\Scripts\activate</span>
+pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
+</pre></div>
+</div>
+<p>Using <cite>conda</cite>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>gonet-env<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10
+conda<span class="w"> </span>activate<span class="w"> </span>gonet-env
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="installing-from-github">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Installing from GitHub</a><a class="headerlink" href="#installing-from-github" title="Link to this heading"></a></h2>
+<p>You can install the latest development version of GONet Wizard directly from GitHub:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/gterreran/GONet_Wizard.git
+</pre></div>
+</div>
+<p>To install a specific version or tag:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/gterreran/GONet_Wizard.git@v0.9.0
+</pre></div>
+</div>
+<p>To install from a specific development branch:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/gterreran/GONet_Wizard.git@dev
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="installing-from-a-local-clone">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Installing from a local clone</a><a class="headerlink" href="#installing-from-a-local-clone" title="Link to this heading"></a></h2>
+<p>If you wish to contribute to development or experiment with the source code, perform an <strong>editable install</strong>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/gterreran/GONet_Wizard.git
+<span class="nb">cd</span><span class="w"> </span>GONet_Wizard
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</pre></div>
+</div>
+<p>This will install the package in-place, so any code changes are immediately reflected.</p>
+</section>
+<hr class="docutils" />
+<section id="installation-via-pyproject-toml">
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">Installation via <cite>pyproject.toml</cite></a><a class="headerlink" href="#installation-via-pyproject-toml" title="Link to this heading"></a></h2>
+<p>GONet Wizard follows modern Python packaging standards using <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> and <code class="docutils literal notranslate"><span class="pre">setuptools</span></code>.</p>
+<p>To build or install the package locally using this configuration:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>.
+</pre></div>
+</div>
+<p>Or, for development mode:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</pre></div>
+</div>
+<p>You do not need to run <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> directly. It exists only for compatibility and delegates to <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="required-environment-variables">
+<h2><a class="toc-backref" href="#id5" role="doc-backlink">Required environment variables</a><a class="headerlink" href="#required-environment-variables" title="Link to this heading"></a></h2>
+<p>Some functionality—particularly within the dashboard and remote connection tools—requires certain environment variables to be defined.</p>
+<p>At a minimum, you should define:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">GONET_ROOT</span></code> – path to the local GONet data</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ROOT_EXT</span></code> – optional path to the extended image archive</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GONET_USER</span></code> – remote SSH user (default is <code class="docutils literal notranslate"><span class="pre">pi</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GONET_PASSWORD</span></code> – SSH password for the GONet unit</p></li>
+</ul>
+<p>If one of these variables is not defined but is essential for the functionality you are trying to use, <strong>you will be prompted to provide it at runtime</strong>. However, note that variables set this way are only valid for the current session and will not persist.</p>
+<p>To avoid repeated prompts, it is recommended to set these variables persistently by one of the following methods:</p>
+<p><strong>Option 1: Define in a `.env` file</strong></p>
+<p>Create a file named <cite>.env</cite> in your project root and add:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="na">GONET_ROOT</span><span class="o">=</span><span class="s">/path/to/gonet/data</span>
+<span class="na">GONET_USER</span><span class="o">=</span><span class="s">pi</span>
+<span class="na">GONET_PASSWORD</span><span class="o">=</span><span class="s">your_password</span>
+</pre></div>
+</div>
+<p>This file will be automatically loaded if <cite>python-dotenv</cite> is installed (it is included in GONet Wizard’s dependencies).</p>
+<p><strong>Option 2: Export directly in your shell</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">GONET_ROOT</span><span class="o">=</span>/path/to/gonet/data
+<span class="nb">export</span><span class="w"> </span><span class="nv">GONET_PASSWORD</span><span class="o">=</span>your_password
+</pre></div>
+</div>
+<p>Add these lines to your <cite>.bashrc</cite>, <cite>.zshrc</cite>, or equivalent to make them persistent across sessions.</p>
+<p><strong>Option 3: Add to a conda environment</strong></p>
+<p>If using a conda environment, you can add environment variables by editing the <cite>env</cite> file or manually setting them:</p>
+<p>To make the variables persist in your environment:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>env<span class="w"> </span>config<span class="w"> </span>vars<span class="w"> </span><span class="nb">set</span><span class="w"> </span><span class="nv">GONET_ROOT</span><span class="o">=</span>/path/to/gonet/data
+conda<span class="w"> </span>env<span class="w"> </span>config<span class="w"> </span>vars<span class="w"> </span><span class="nb">set</span><span class="w"> </span><span class="nv">GONET_PASSWORD</span><span class="o">=</span>your_password
+</pre></div>
+</div>
+<p>You must deactivate and reactivate the environment to apply the changes:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>deactivate
+conda<span class="w"> </span>activate<span class="w"> </span>gonet-env
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="future-pypi-installation">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Future PyPI Installation</a><a class="headerlink" href="#future-pypi-installation" title="Link to this heading"></a></h2>
+<p>GONet Wizard is not yet available on PyPI, but in future releases you will be able to install it using:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>GONet_Wizard
+</pre></div>
+</div>
+<p>Stay tuned for announcements on the GitHub page:
+<a class="reference external" href="https://github.com/gterreran/GONet_Wizard">https://github.com/gterreran/GONet_Wizard</a></p>
+</section>
+<hr class="docutils" />
+<section id="installation-tips-for-windows-users">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">Installation tips for Windows Users</a><a class="headerlink" href="#installation-tips-for-windows-users" title="Link to this heading"></a></h2>
+<p>Before installing the GONet Wizard package, ensure that you have both Python and Git installed and accessible from your terminal or command prompt.</p>
+<section id="check-if-python-and-git-are-installed">
+<h3><a class="toc-backref" href="#id8" role="doc-backlink">Check if Python and Git are installed:</a><a class="headerlink" href="#check-if-python-and-git-are-installed" title="Link to this heading"></a></h3>
+<p>You can verify their availability with the following commands:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>--version
+git<span class="w"> </span>--version
+</pre></div>
+</div>
+<p>If either command results in a “command not found” error or opens a system prompt, follow the instructions to install them. On some systems, a prompt may appear automatically offering to install the missing component — accept it. This ensures the tools are correctly installed and added to your system’s <cite>PATH</cite>.</p>
+<p>If the prompt does not appear, download them from:</p>
+<ul class="simple">
+<li><p>Python: <a class="reference external" href="https://www.python.org/downloads/">https://www.python.org/downloads/</a></p></li>
+<li><p>Git: <a class="reference external" href="https://git-scm.com/downloads">https://git-scm.com/downloads</a></p></li>
+</ul>
+</section>
+<section id="installing-gonet-wizard-via-pip">
+<h3><a class="toc-backref" href="#id9" role="doc-backlink">Installing GONet Wizard via pip:</a><a class="headerlink" href="#installing-gonet-wizard-via-pip" title="Link to this heading"></a></h3>
+<p>Once Python and Git are available, install GONet Wizard directly from GitHub using:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/gterreran/GONet_Wizard.git
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>After installation, you may see a message like:</p>
+<p><code class="docutils literal notranslate"><span class="pre">WARNING:</span> <span class="pre">The</span> <span class="pre">script</span> <span class="pre">GONet_Wizard</span> <span class="pre">is</span> <span class="pre">installed</span> <span class="pre">in</span> <span class="pre">'/Users/yourname/.local/bin'</span> <span class="pre">which</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">on</span> <span class="pre">PATH.</span></code></p>
+<p>If so, you’ll need to add that directory to your system <code class="docutils literal notranslate"><span class="pre">PATH</span></code>.</p>
+<p>To permanently add environment variables on Windows:</p>
+<ol class="arabic">
+<li><p>Press Win + S, search for Environment Variables, and select</p>
+<p><cite>Edit the system environment variables → Environment Variables…</cite></p>
+</li>
+<li><p>Under User variables, click New.</p></li>
+<li><p>Enter the variable name (e.g., <code class="docutils literal notranslate"><span class="pre">PATH</span></code>, <code class="docutils literal notranslate"><span class="pre">GONET_ROOT</span></code>) and its value (e.g., C:\Users\YourName\gonet\data).</p></li>
+<li><p>Repeat for any additional variables (e.g., <code class="docutils literal notranslate"><span class="pre">ROOT_EXT</span></code>).</p></li>
+<li><p>Click OK and restart your terminal for the changes to take effect.</p></li>
+</ol>
+</div>
+<p>These variables will be automatically loaded if you’re running the dashboard or CLI tools.</p>
+</section>
+<section id="run-the-cli-commands">
+<h3><a class="toc-backref" href="#id10" role="doc-backlink">Run the CLI commands</a><a class="headerlink" href="#run-the-cli-commands" title="Link to this heading"></a></h3>
+<p>You are now ready to run any GONet Wizard command from the command line, e.g.:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>GONet_Wizard<span class="w"> </span>dashboard
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="troubleshooting">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">Troubleshooting</a><a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
+<p>If you encounter issues during install:</p>
+<ul>
+<li><p>Try cleaning previous builds:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rm<span class="w"> </span>-rf<span class="w"> </span>build/<span class="w"> </span>dist/<span class="w"> </span>*.egg-info/
+</pre></div>
+</div>
+</li>
+<li><p>Ensure your environment is activated and Python ≥ 3.10 is installed</p></li>
+<li><p>If installing from GitHub, ensure Git is installed and available in your <code class="docutils literal notranslate"><span class="pre">PATH</span></code></p></li>
+</ul>
+<p>For support or to open issues, visit: <a class="reference external" href="https://github.com/gterreran/GONet_Wizard/issues">https://github.com/gterreran/GONet_Wizard/issues</a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="GONet Wizard" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cli.html" class="btn btn-neutral float-right" title="Command-Line Interface" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

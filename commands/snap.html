@@ -1,0 +1,268 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>snap &mdash; GONet Wizard 0.0.post1+g325b170 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=bbebbfc6"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="terminate_imaging" href="terminate.html" />
+    <link rel="prev" title="connect" href="connect.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            GONet Wizard
+              <img src="../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../settings.html">settings Module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GONet_dashboard.html">GONet Dashboard Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../GONet_utils.html">GONet Utils Package</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../commands.html">commands Package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../commands.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="run_dashboard.html">run_dashboard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="show.html">show</a></li>
+<li class="toctree-l3"><a class="reference internal" href="show_meta.html">show_meta</a></li>
+<li class="toctree-l3"><a class="reference internal" href="connect.html">connect</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">snap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="terminate.html">terminate_imaging</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../_version.html">_version</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GONet Wizard</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../commands.html">commands Package</a></li>
+      <li class="breadcrumb-item active">snap</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/commands/snap.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-GONet_Wizard.commands.snap">
+<span id="snap"></span><h1>snap<a class="headerlink" href="#module-GONet_Wizard.commands.snap" title="Link to this heading"></a></h1>
+<p>Remote Snapshot Execution for GONet Devices.</p>
+<p>This script provides functionality to remotely run the <cite>gonet4.py</cite> imaging script on a GONet device,
+optionally upload a local configuration file, and download newly created image files. It handles SSH
+and SCP connections securely and efficiently, including file hashing to avoid redundant uploads.</p>
+<p><strong>Functions</strong></p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#GONet_Wizard.commands.snap.list_remote_files" title="GONet_Wizard.commands.snap.list_remote_files"><code class="xref py py-func docutils literal notranslate"><span class="pre">list_remote_files()</span></code></a> : Lists files in a remote directory.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.commands.snap.get_local_file_hash" title="GONet_Wizard.commands.snap.get_local_file_hash"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_local_file_hash()</span></code></a> : Computes a hash of a local file.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.commands.snap.get_remote_file_hash" title="GONet_Wizard.commands.snap.get_remote_file_hash"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_remote_file_hash()</span></code></a> : Retrieves the hash of a remote file.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.commands.snap.upload_if_different" title="GONet_Wizard.commands.snap.upload_if_different"><code class="xref py py-func docutils literal notranslate"><span class="pre">upload_if_different()</span></code></a> : Uploads a file only if it differs from the remote version.</p></li>
+<li><p><a class="reference internal" href="#GONet_Wizard.commands.snap.run_remote_script_with_live_output" title="GONet_Wizard.commands.snap.run_remote_script_with_live_output"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_remote_script_with_live_output()</span></code></a> : Executes a command remotely with live output streaming.</p></li>
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">snap()</span></code> : Main entry point to execute a snapshot and transfer resulting images.</p></li>
+</ul>
+<section id="functions">
+<h2>Functions:<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.commands.snap.list_remote_files">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.commands.snap.</span></span><span class="sig-name descname"><span class="pre">list_remote_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ssh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">folder</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/commands/snap.html#list_remote_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.commands.snap.list_remote_files" title="Link to this definition"></a></dt>
+<dd><p>List files in a remote folder using SSH.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ssh</strong> (<a class="reference external" href="https://docs.paramiko.org/en/stable/api/client.html#paramiko.client.SSHClient" title="(in Paramiko)"><code class="xref py py-class docutils literal notranslate"><span class="pre">paramiko.client.SSHClient</span></code></a>) – An active SSH client connection to the remote GONet device.</p></li>
+<li><p><strong>folder</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Path to the remote folder to list.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A set of filenames found in the remote folder.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#set" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">set</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.commands.snap.get_local_file_hash">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.commands.snap.</span></span><span class="sig-name descname"><span class="pre">get_local_file_hash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">algo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sha256'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/commands/snap.html#get_local_file_hash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.commands.snap.get_local_file_hash" title="Link to this definition"></a></dt>
+<dd><p>Compute the hash of a local file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Path to the local file.</p></li>
+<li><p><strong>algo</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Hashing algorithm to use (default is ‘sha256’).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The computed hash as a hexadecimal string.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.commands.snap.get_remote_file_hash">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.commands.snap.</span></span><span class="sig-name descname"><span class="pre">get_remote_file_hash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ssh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">algo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sha256'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/commands/snap.html#get_remote_file_hash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.commands.snap.get_remote_file_hash" title="Link to this definition"></a></dt>
+<dd><p>Compute the hash of a remote file using SSH.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ssh</strong> (<a class="reference external" href="https://docs.paramiko.org/en/stable/api/client.html#paramiko.client.SSHClient" title="(in Paramiko)"><code class="xref py py-class docutils literal notranslate"><span class="pre">paramiko.client.SSHClient</span></code></a>) – An active SSH client connection.</p></li>
+<li><p><strong>remote_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Path to the remote file.</p></li>
+<li><p><strong>algo</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Hashing algorithm (default is ‘sha256’).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The remote file’s hash, or None if the file does not exist or cannot be read.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> or <code class="xref py py-class docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.commands.snap.upload_if_different">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.commands.snap.</span></span><span class="sig-name descname"><span class="pre">upload_if_different</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ssh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/commands/snap.html#upload_if_different"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.commands.snap.upload_if_different" title="Link to this definition"></a></dt>
+<dd><p>Upload a file only if it differs from the remote version.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ssh</strong> (<a class="reference external" href="https://docs.paramiko.org/en/stable/api/client.html#paramiko.client.SSHClient" title="(in Paramiko)"><code class="xref py py-class docutils literal notranslate"><span class="pre">paramiko.client.SSHClient</span></code></a>) – SSH connection to the GONet device.</p></li>
+<li><p><strong>local_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Path to the local file.</p></li>
+<li><p><strong>remote_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – Destination path on the remote device.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.commands.snap.run_remote_script_with_live_output">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.commands.snap.</span></span><span class="sig-name descname"><span class="pre">run_remote_script_with_live_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ssh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">command</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/commands/snap.html#run_remote_script_with_live_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.commands.snap.run_remote_script_with_live_output" title="Link to this definition"></a></dt>
+<dd><p>Run a remote command and stream stdout in real time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ssh</strong> (<a class="reference external" href="https://docs.paramiko.org/en/stable/api/client.html#paramiko.client.SSHClient" title="(in Paramiko)"><code class="xref py py-class docutils literal notranslate"><span class="pre">paramiko.client.SSHClient</span></code></a>) – SSH connection to the GONet device.</p></li>
+<li><p><strong>command</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) – The command to run remotely.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="GONet_Wizard.commands.snap.take_snapshot">
+<span class="sig-prename descclassname"><span class="pre">GONet_Wizard.commands.snap.</span></span><span class="sig-name descname"><span class="pre">take_snapshot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ssh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_file_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/GONet_Wizard/commands/snap.html#take_snapshot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#GONet_Wizard.commands.snap.take_snapshot" title="Link to this definition"></a></dt>
+<dd><p>Run the GONet imaging script remotely and download new files.</p>
+<p>This function:
+- Checks current files in the image folder
+- Optionally uploads a config file if provided
+- Executes <cite>gonet4.py</cite> on the remote device
+- Downloads any newly created image files to the local machine</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ssh</strong> (<a class="reference external" href="https://docs.paramiko.org/en/stable/api/client.html#paramiko.client.SSHClient" title="(in Paramiko)"><code class="xref py py-class docutils literal notranslate"><span class="pre">paramiko.client.SSHClient</span></code></a>) – SSH connection (automatically provided by the decorator).</p></li>
+<li><p><strong>config_file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Local path to a configuration file to be used with <cite>gonet4.py</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Files are downloaded to the folder defined by <code class="docutils literal notranslate"><span class="pre">LOCAL_OUTPUT_FOLDER</span></code>.</p></li>
+<li><p>Requires appropriate environment variables as defined in <code class="xref py py-class docutils literal notranslate"><span class="pre">GONet_Wizard.commands.settings.GONetConfig</span></code>.</p></li>
+</ul>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="connect.html" class="btn btn-neutral float-left" title="connect" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="terminate.html" class="btn btn-neutral float-right" title="terminate_imaging" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Giacomo Terreran.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
