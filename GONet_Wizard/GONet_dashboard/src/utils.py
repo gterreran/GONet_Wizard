@@ -168,33 +168,33 @@ def parse_date_time(label, value):
     """
     Parses and converts a date/time value based on the provided label.
 
-    This function processes a given date/time value and returns it in a standardized format. Depending on the label, it 
-    either converts an ISO datetime string to Unix time or a time string (hours:minutes:seconds) to a fraction of the day.
-    If the label corresponds to 'date', the value is converted to Unix time. If the label corresponds to 'hours', the value 
-    is converted to a fraction of the day, accounting for potential time zone shifts.
+    This function processes a given date/time value and returns it in a standardized format. Depending on the label,
+    it either converts an ISO datetime string to Unix time or a time string (hours:minutes:seconds) to a fraction of
+    the day. If the label corresponds to 'date', the value is converted to Unix time. If the label corresponds to
+    'hours', the value is converted to a fraction of the day, accounting for potential time zone shifts.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     label : :class:`str`
-        A string representing the quantity parsed. If not time or date related it will return itself.
-    
-    value : :class:`str`
-        Value of the quantity parsed. If `label` is not time or date related it will return itself.
+        A string representing the quantity parsed. If not time or date related, it will return itself.
 
-    Returns:
-    --------
+    value : :class:`str`
+        Value of the quantity parsed. If `label` is not time or date related, it will return itself.
+
+    Returns
+    -------
     tuple
         A tuple containing the processed label and the parsed value:
-        
+
         - If the label starts with 'date', the value will be the corresponding Unix time as an integer.
         - If the label starts with 'hours', the value will be a float representing the fraction of the day.
-        - If the time is earlier than the defined 'day start' (UTC or local), the function will adjust the value to the 
-          following day.
+        - If the time is earlier than the defined 'day start' (UTC or local), the function will adjust the value
+          to the following day.
 
-    Raises:
-    -------
+    Raises
+    ------
     ValueError
-        If the 'value' cannot be parsed into a valid datetime or time string, the function will print an error message 
+        If the 'value' cannot be parsed into a valid datetime or time string, the function will print an error message
         and return None.
     """
 

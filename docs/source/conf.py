@@ -70,5 +70,5 @@ autodoc_typehints = 'signature'
 autodoc_member_order = 'bysource'
 
 html_theme_options = {
-    "navigation_depth": 3,  # Required for function-level sidebar nesting
+    "navigation_depth": 2,  # Required for function-level sidebar nesting
 }

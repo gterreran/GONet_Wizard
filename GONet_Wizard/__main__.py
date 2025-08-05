@@ -43,7 +43,7 @@ def main() -> None:
 
     # === Subcommand: show ===
     show_parser = subparsers.add_parser(
-        "show", help="Plot the content of one or more GONet .npy files."
+        "show", help="Plot the content of one or more GONet files."
     )
     show_parser.add_argument("filenames", nargs='+', help="GONet file(s) to plot.")
     show_parser.add_argument("--save", help="Save output as a PDF.")
@@ -80,6 +80,23 @@ def main() -> None:
         "terminate_imaging", help="Terminate remote imaging (clear crontab, kill processes)."
     )
 
+    # === Subcommand: extract ===
+    extract_parser = subparsers.add_parser(
+        "extract", help="Extract counts from a region one or more GONet files."
+    )
+    extract_parser.add_argument("filenames", nargs='+', help="GONet file(s) to extract, or folder containing GONet files.")
+
+    extract_parser.add_argument("--red", action="store_true", default=False, help="Extract only the red channel.")
+    extract_parser.add_argument("--green", action="store_true", default=False, help="Extract only the green channel.")
+    extract_parser.add_argument("--blue", action="store_true", default=False, help="Extract only the blue channel.")
+
+    extract_parser.add_argument("--shape", choices=["circle", "rectangle", "annulus", "free"], help="Shape of the extraction region.  If shape is free, or no shape is parsed, the user will select the region interactively.")
+    extract_parser.add_argument("--center", help="Center of the region in pixels, format: x,y")
+    extract_parser.add_argument("--radius", help="Radius in pixels (required if shape is circle or annulus). For an annulus, this corresponds to the radius of the circle half way between the outer and the inner edges.")
+    extract_parser.add_argument("--sides", help="Sides in pixels, format: width,height (required if shape is rectangle).")
+    extract_parser.add_argument("--width", help="Width in pixels of the annulus (required if shape is annulus).")
+
+
     # === Dispatch logic ===
     args = parser.parse_args()
 
@@ -94,6 +111,8 @@ def main() -> None:
             commands.take_snapshot(args.gonet_ip, args.config_file)
         elif args.subcommand == "terminate_imaging":
             commands.terminate_imaging(args.gonet_ip)
+    elif args.command == 'extract':
+        commands.extract_counts_from_GONet(args.filenames, args.red, args.green, args.blue, args.shape, args.center, args.radius, args.sides, args.width)
     else:
         parser.print_help()
 

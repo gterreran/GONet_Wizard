@@ -1,16 +1,14 @@
-hood sub-package
-=======================
+hood
+====
 
 .. automodule:: GONet_Wizard.GONet_dashboard.src.hood
    :members:
    :undoc-members:
    :show-inheritance:
 
-Submodules
-----------
-
 .. toctree::
    :maxdepth: 3
+   :hidden:
 
-   hood/load_data
-   hood/plot
+   load_data
+   plot

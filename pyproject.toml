@@ -25,7 +25,8 @@ dependencies = [
     "python-dotenv",
     "paramiko",
     "scp",
-    "astropy"
+    "astropy",
+    "pywebview"
 ]
 
 [project.optional-dependencies]

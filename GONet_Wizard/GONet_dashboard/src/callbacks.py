@@ -70,6 +70,7 @@ from GONet_Wizard.GONet_dashboard.src import env
 from GONet_Wizard.GONet_dashboard.src import utils
 from GONet_Wizard.GONet_dashboard.src.hood import load_data
 from GONet_Wizard.GONet_dashboard.src.hood import plot
+from GONet_Wizard.GONet_dashboard.src.load_save_callbacks import register_json_download, load_json
 
 
 @utils.gonet_callback(
@@ -564,90 +565,11 @@ def export_data(_, fig, data):#, channels):
 
     return dict(content=json.dumps(json_out, indent=4), filename="filtered_data.json")
 
-# ------------------------------------------------------------------------------
-# Clientside Callback: Download Dashboard Status as JSON
-# ------------------------------------------------------------------------------
-#
-# This clientside callback enables users to export the current dashboard status
-# (e.g., selected axes, filters, and switches) as a downloadable JSON file.
-# The data is serialized on the client and offered as a file via the browser’s
-# native download mechanism, using a temporary Blob URL.
-#
-# Although this method is simple and effective for small payloads, it relies on
-# Data URLs, which are not ideal for large or binary content. In future versions,
-# it may be preferable to offload download handling to the backend (e.g., via Django).
-#
-# Parameters
-# ----------
-# data : object
-#     A small dictionary representing the dashboard’s state, typically stored in
-#     the `status-data` component. This includes axis values, filter configurations,
-#     and switch states.
-#
-# Returns
-# -------
-# str
-#     An empty string upon successful trigger of the download process,
-#     or `dash_clientside.no_update` if no action is taken.
-#
-# Behavior
-# --------
-# - Prompts the user to enter a filename (default: "status.json")
-# - Converts the input data to a formatted JSON string
-# - Creates a Blob and object URL for download
-# - Triggers the download using a temporary anchor tag
-# - Cleans up the temporary elements after the download completes
-#
-# Notes
-# -----
-# While the current solution provides a user-friendly browser-based download
-# experience, it bypasses the native file save dialog and may not be ideal for
-# production workflows. A more robust implementation using the File System Access API
-# is also provided below (commented out), offering deeper integration with the
-# operating system at the cost of browser compatibility and UI polish.
-#
-# Future versions may delegate this task to Django to provide cleaner handling,
-# especially for larger payloads or authenticated sessions.
-
-clientside_callback(
-    """
-    async function(data) {
-        if (data) {
-            try {
-                const jsonString = JSON.stringify(data, null, 2);
-                const blob = new Blob([jsonString], { type: 'application/json' });
-
-                const filename = prompt("Please enter the filename:", "status.json"); // Get filename
-
-                if (filename === null || filename.trim() === "") {
-                    return window.dash_clientside.no_update;
-                }
-
-                const url = window.URL.createObjectURL(blob); // Create URL for blob
-
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename; // Set filename
-                document.body.appendChild(a);
-                a.click(); // Trigger download
-                document.body.removeChild(a); // Clean up
-                window.URL.revokeObjectURL(url); // Release blob URL
-
-                return "";
-            } catch (err) {
-                console.error("Download error:", err);
-                alert("Download failed. Please try again. Check the console for more details.");
-                return window.dash_clientside.no_update;
-            }
-        }
-        return window.dash_clientside.no_update;
-    }
-    """,
+register_json_download(
+    app,
     Output("dummy-div", 'children'),
     #---------------------
     Input("status-data", 'data'),
-    #---------------------
-    prevent_initial_call=True,
 )
 
 # """
@@ -798,9 +720,8 @@ def load_status(contents, filter_div, labels):
     filter_div : :class:`list`
         Updated list of filter UI components reflecting the saved configuration.
     """
-    decoded_string = base64.b64decode(contents.split(',')[1]).decode('utf-8')
-    base64.b64decode(decoded_string)
-    status_dict = json.loads(decoded_string)
+    
+    status_dict = load_json(contents)
 
     n_filter = len(filter_div)
     for f,flt in enumerate(status_dict['filters']):

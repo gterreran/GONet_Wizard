@@ -1,5 +1,5 @@
-settings Module
-================
+settings
+========
 
 .. automodule:: GONet_Wizard.settings
 

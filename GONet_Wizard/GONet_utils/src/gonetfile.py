@@ -444,7 +444,8 @@ class GONetFile:
         - The FITS file is created using the :mod:`astropy.io.fits` library.
         - Each color channel (red, green, blue) is stored in a separate image extension.
         - Metadata keys longer than 8 characters or containing lowercase letters or symbols
-        will be truncated or sanitized to conform to FITS header requirements.
+          will be truncated or sanitized to conform to FITS header requirements.
+        
         """
 
         def build_base_header():

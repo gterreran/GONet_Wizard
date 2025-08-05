@@ -24,17 +24,17 @@ The following packages are included in the GONet Wizard:
 Each module is documented in its own section below.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    installation
    cli
    settings
-   GONet_dashboard
-   GONet_utils
-   commands
+   GONet_dashboard/index
+   GONet_utils/index
+   commands/index
    _version
-   Changelog <https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md>
+   Changelog <https://github.com/gterreran/GONet_Wizard/blob/master/CHANGELOG.md>
 
 
 Versioning
@@ -50,6 +50,6 @@ The version is defined by :mod:`_version` and can be retrieved accessing the ``_
 Changelog
 =========
 
-The full `changelong <https://github.com/gterreran/GONet_Wizard/blob/main/CHANGELOG.md>`_ is available on GitHub:
+The full `changelong <https://github.com/gterreran/GONet_Wizard/blob/master/CHANGELOG.md>`_ is available on GitHub:
 
 The project uses `git-changelog <https://github.com/pawamoy/git-changelog>`_ to automatically generate a structured changelog from the commit history and Git tags.
