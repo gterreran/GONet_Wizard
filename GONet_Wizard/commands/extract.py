@@ -221,8 +221,8 @@ def extract_counts_from_GONet(
         'path': None
     }
 
-    # Angles are defaulted to "-180,180" se they should be always defined
-    extraction_params["start_angle"], extraction_params["end_angle"] = comma_separated_pair(angles, "angles")
+    if angles is not None:
+        extraction_params["start_angle"], extraction_params["end_angle"] = comma_separated_pair(angles, "angles")
 
     # Validate based on shape
     if shape in ["circle", "rectangle", "annulus"]:
