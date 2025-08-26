@@ -16,5 +16,6 @@ GONet Utils Package
 
    gonetfile
    raw_data
-   extract
+   extractors
+   data_spec
    extract_app/index

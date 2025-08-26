@@ -84,7 +84,7 @@ def main() -> None:
     extract_parser = subparsers.add_parser(
         "extract", help="Extract counts from a region one or more GONet files."
     )
-    extract_parser.add_argument("filenames", nargs='+', help="GONet file(s) to extract, or folder containing GONet files.")
+    extract_parser.add_argument("filenames", nargs='+', help="GONet file(s) to extract. `*` wildcards and comma-separated lists are supported.")
 
     extract_parser.add_argument("--red", action="store_true", default=False, help="Extract only the red channel.")
     extract_parser.add_argument("--green", action="store_true", default=False, help="Extract only the green channel.")
@@ -92,9 +92,12 @@ def main() -> None:
 
     extract_parser.add_argument("--shape", choices=["circle", "rectangle", "annulus", "free"], help="Shape of the extraction region.  If shape is free, or no shape is parsed, the user will select the region interactively.")
     extract_parser.add_argument("--center", help="Center of the region in pixels, format: x,y")
-    extract_parser.add_argument("--radius", help="Radius in pixels (required if shape is circle or annulus). For an annulus, this corresponds to the radius of the circle half way between the outer and the inner edges.")
+    extract_parser.add_argument("--radius", help="Radius in pixels (required if shape is circle).")
     extract_parser.add_argument("--sides", help="Sides in pixels, format: width,height (required if shape is rectangle).")
-    extract_parser.add_argument("--width", help="Width in pixels of the annulus (required if shape is annulus).")
+    extract_parser.add_argument("--inner_radius", help="Inner radius in pixels. (required if shape is annulus).")
+    extract_parser.add_argument("--outer_radius", help="Outer radius in pixels (required if shape is annulus).")
+    extract_parser.add_argument("--angles", help="Angles in degrees, format: start_angle,end_angle (optional). 0 degrees is along the +x axis, and angles increase counter-clockwise.", default="-180,180")
+    extract_parser.add_argument("--output", help="Output JSON file name.")
 
 
     # === Dispatch logic ===
@@ -112,7 +115,7 @@ def main() -> None:
         elif args.subcommand == "terminate_imaging":
             commands.terminate_imaging(args.gonet_ip)
     elif args.command == 'extract':
-        commands.extract_counts_from_GONet(args.filenames, args.red, args.green, args.blue, args.shape, args.center, args.radius, args.sides, args.width)
+        commands.extract_counts_from_GONet(args.filenames, args.red, args.green, args.blue, args.shape, args.center, args.radius, args.sides, args.inner_radius, args.outer_radius, args.angles, args.output)
     else:
         parser.print_help()
 

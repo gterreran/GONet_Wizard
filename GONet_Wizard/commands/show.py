@@ -176,8 +176,8 @@ def show_gonet_files(files: Union[str, List[str]], save: bool = False, red: bool
         for c,val in zip(GONetFile.CHANNELS, extensions):
             if val:
                 ax[i_plot].set_title(f'{camera} - {c}\n{date}')
-                z1,z2 = auto_vmin_vmax(go.channel(c))
-                ax[i_plot].imshow(go.channel(c), vmin=z1, vmax=z2)
+                z1,z2 = auto_vmin_vmax(go.get_channel(c))
+                ax[i_plot].imshow(go.get_channel(c), vmin=z1, vmax=z2)
                 i_plot+=1
 
     plt.tight_layout()

@@ -912,7 +912,7 @@ class FigureWrapper:
 
             outfig = {
                 'data': [{
-                    'z': go.channel(channel),
+                    'z': go.get_channel(channel),
                     'type': 'heatmap'
                 }],
                 'layout': {

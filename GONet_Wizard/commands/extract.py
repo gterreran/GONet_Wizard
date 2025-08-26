@@ -1,34 +1,76 @@
 """
+GONet Pixel Extraction Command-Line Module
+==========================================
+
 This module provides command-line utility functions to extract pixel counts
 from GONet image files. It supports different geometric selection shapes
 (e.g., circles, rectangles, annuli, and free-form shapes) for region-of-interest
 definition. The extraction can be triggered either through direct parameters
 or by launching an interactive GUI.
 
+The module validates user-provided parameters for the selected shape and ensures
+that the extraction process is performed correctly. Results are saved to a JSON
+file, with automatic handling of file overwrites.
+
 Functions
 ---------
-- :func:`comma_separated_pair`:
+:func:`validate_output_file`
+    Validate the output file path and ensure it does not overwrite an existing file.
+:func:`comma_separated_pair`
     Parse and validate a string representing two comma-separated integers.
-- :func:`extract_counts_from_GONet`:
+:func:`extract_counts_from_GONet`
     Perform counts extraction from one or more GONet files, using shape
     parameters provided by the user or launching the extraction GUI.
 
-Notes
------
-- The `extract_counts_from_GONet` function validates input parameters
-  according to the selected shape.
-- If no color channels are specified (`red`, `green`, `blue`), all channels
-  are extracted by default.
-- For shapes not specified or set to `'free'`, an interactive extraction
-  GUI will be launched.
-
-
 """
 
-import argparse
+import json
 from typing import Union, List
-from GONet_Wizard.GONet_utils.src.gonetfile import GONetFile
 from GONet_Wizard.GONet_utils.src.extract_app.extract_gui import launch_extraction_gui
+from GONet_Wizard.GONet_utils.src.extractors import extract_all
+from pathlib import Path
+
+def validate_output_file(output: str) -> str:
+    """
+    Validate the output file path and ensure it does not overwrite an existing file.
+
+    If the file already exists, an index is appended or incremented to create a unique filename.
+
+    Parameters
+    ----------
+    output : :class:`str`
+        Path to the output file.
+
+    Returns
+    -------
+    str
+        A unique output file path.
+
+    Raises
+    ------
+    ValueError
+        If the output file path is invalid.
+    """
+    if not output.endswith(".json"):
+        raise ValueError("Output file must be a JSON file.")
+
+    output_path = Path(output)
+    if output_path.exists():
+        print(f"Warning: {output} already exists.")
+        # Generate a unique filename by appending or incrementing an index
+        stem = output_path.stem
+        suffix = output_path.suffix
+        parent = output_path.parent
+
+        index = 1
+        while True:
+            new_filename = parent / f"{stem}_{index}{suffix}"
+            if not new_filename.exists():
+                print(f"Saving to {new_filename} instead.")
+                return str(new_filename)
+            index += 1
+
+    return output
 
 def comma_separated_pair(value, name):
     """
@@ -47,8 +89,8 @@ def comma_separated_pair(value, name):
 
     Returns
     -------
-    :class:`list` of :class:`int`
-        A list containing exactly two integers parsed from the input string.
+    tuple of :class:`int`
+        A tuple containing the two parsed integers.
 
     Raises
     ------
@@ -60,7 +102,7 @@ def comma_separated_pair(value, name):
         parts = [int(x) for x in value.split(',')]
         if len(parts) != 2:
             raise ValueError
-        return parts
+        return parts[0], parts[1]
     except ValueError:
         raise ValueError(f"--{name} must be two comma-separated integers.")
 
@@ -73,13 +115,16 @@ def extract_counts_from_GONet(
         center : str = None,
         radius: float = None,
         sides: str = None,
-        width: float = None
+        inner_radius: float = None,
+        outer_radius: float = None,
+        angles: str = None,
+        output: str = None
     ) -> None:
     """
     Extract pixel counts from one or more GONet image files.
 
     Depending on the provided `shape` parameter, the function validates
-    associated geometric arguments (`center`, `radius`, `sides`, `width`)
+    associated geometric arguments (e.g. `center`, `radius`, `sides`, ...)
     and performs counts extraction from the specified regions. If no shape
     is given or `shape` is set to `'free'`, the interactive extraction GUI
     is launched.
@@ -103,7 +148,7 @@ def extract_counts_from_GONet(
         
         - `"circle"`: Requires `center` and `radius`.
         - `"rectangle"`: Requires `center` and `sides`.
-        - `"annulus"`: Requires `center`, `radius`, and `width`.
+        - `"annulus"`: Requires `center`, `radius` or `inner_radius` and `outer_radius`.
         - `"free"` or None: Launch the interactive extraction GUI.
 
     center : :class:`str`, optional
@@ -115,8 +160,23 @@ def extract_counts_from_GONet(
     sides : :class:`str`, optional
         Side lengths of the rectangle as `"width,height"` (pixels).
 
-    width : :class:`float`, optional
-        Width of the annulus region (pixels), required for `"annulus"`.
+    inner_radius : :class:`float`, optional
+        Inner radius (pixels) for the `"annulus"` shape. Either `inner_radius`
+        or `radius` must be provided for annulus.
+        
+    outer_radius : :class:`float`, optional
+        Outer radius (pixels) for the `"annulus"` shape.
+    
+    angles : :class:`str`, optional
+        Start and end angles in degrees, as `"start_angle,end_angle"`.
+        Defaults to `"-180,180"`.
+
+    output : :class:`str`, optional
+        Name of the output JSON file.
+
+    Returns
+    -------
+    None
 
     Raises
     ------
@@ -130,42 +190,80 @@ def extract_counts_from_GONet(
 
     """
 
-    # If all extensions are false, we will extract all them
-    if not any(extensions := [red, green, blue]):
-        extensions =  [not el for el in extensions]
+    # Check if files is a single string
+    if isinstance(files, str):
+        # Check if it's a comma-separated list
+        if ',' in files:
+            files = [f.strip() for f in files.split(',')]
+        else:
+            files = [files]
+
+    # If all extensions are false, we will extract all of them
+    if not any([red, green, blue]):
+        extensions = ["red", "green", "blue"]
+    else:
+        extensions = []
+        if red:
+            extensions.append("red")
+        if green:
+            extensions.append("green")
+        if blue:
+            extensions.append("blue")
+
+    extraction_params = {
+        'shape': shape,
+        'x0': None,
+        'y0': None,
+        'param1': None,
+        'param2': None,
+        'start_angle': -180,
+        'end_angle': 180,
+        'path': None
+    }
+
+    # Angles are defaulted to "-180,180" se they should be always defined
+    extraction_params["start_angle"], extraction_params["end_angle"] = comma_separated_pair(angles, "angles")
 
     # Validate based on shape
-    if shape == "circle":
-        if center is None or radius is None:
-            raise ValueError("For shape 'circle', both --center and --radius are required.")
-        center = comma_separated_pair(center, "center")
-        try:
-            radius = float(radius)
-        except ValueError:
-            argparse.ArgumentTypeError("--radius must be a float.")
+    if shape in ["circle", "rectangle", "annulus"]:
+        if center is None:
+            raise ValueError(f"For shape {shape}, --center is required.")
+        extraction_params['x0'], extraction_params['y0'] = comma_separated_pair(center, "center")
 
-    elif shape == "rectangle":
-        if center is None or sides is None:
-            raise ValueError("For shape 'rectangle', both --center and --sides are required.")
-        center = comma_separated_pair(center, "center")
-        sides = comma_separated_pair(sides, "sides")
+    if shape == "circle":
+        if radius is None:
+            raise ValueError(f"For shape {shape}, --radius is required.")
+        extraction_params['param1'] = radius        
 
     elif shape == "annulus":
-        if center is None or radius is None or width is None:
-            raise ValueError("For shape 'annulus', all --center, --radius and --width are required.")
-        center = comma_separated_pair(center, "center")
-        try:
-            radius = float(radius)
-        except ValueError:
-            raise ValueError("--radius must be a float.")
-        try:
-            width = float(width)
-        except ValueError:
-            raise ValueError("--width must be a float.")
+        if inner_radius is None or outer_radius is None:
+            raise ValueError("For shape 'annulus', provide both --inner_radius and --outer_radius.")
+        extraction_params['param1'] = inner_radius
+        extraction_params['param2'] = outer_radius
+        
+    elif shape == "rectangle":
+        if sides is None:
+            raise ValueError(f"For shape {shape}, --sides is required.")
+        extraction_params['param1'], extraction_params['param2'] = comma_separated_pair(sides, "sides")    
+
     # this include both shape=='free' and None
     else:
-        launch_extraction_gui(files)
-        
+        extraction_params = launch_extraction_gui(files)
 
-    for gof in files:
-        go = GONetFile.from_file(gof)
+    if extraction_params is None:
+        print("Extraction parameters were not set. Exiting.")
+        return
+
+    print(f"Extracting {shape}")
+    print(f"Channels - {', '.join(extensions)}")
+    out_dict = extract_all(files, extensions, extraction_params)
+
+    if output is None:
+        output = f"extraction_{shape}.json"
+
+    output = validate_output_file(output)
+    
+
+    with open(output, "w") as f:
+        json.dump(out_dict, f, indent=4)
+        print(f"Results saved to {output}")

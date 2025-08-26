@@ -28,7 +28,7 @@ can arise from working with fixed-width integer types.
 
 **Functions**
 
-- :func:`cast`: Convert a value to a JSON-serializable type if necessary.
+- :func:`.scale_uint12_to_16bit_range`: Linearly scales unsigned 12-bit integer values to the full 16-bit range [0, 65535].
 
 **Classes**
 
@@ -46,7 +46,7 @@ Example usage
 """
 
 from tifffile import tifffile
-import os, PIL, operator, re, ast, pprint
+import operator, re
 from PIL import Image
 from PIL.ExifTags import TAGS
 import numpy as np
@@ -290,7 +290,7 @@ class GONetFile:
         """
         return self._filetype
 
-    def channel(self, channel_name: str) -> np.ndarray:
+    def get_channel(self, channel_name: str) -> np.ndarray:
         """
         Retrieve the pixel data for a specified color channel.
 
@@ -317,6 +317,101 @@ class GONetFile:
             raise ValueError(f"Invalid channel name: {channel_name}. Allowed channels: {self.CHANNELS}")
         return getattr(self, channel_name)
     
+    def set_channel(self, channel_name: str, data: np.ndarray) -> None:
+        """
+        Set the pixel data for a specified color channel.
+
+        This method updates the image data associated with the specified
+        color channel.
+
+        Parameters
+        ----------
+        channel_name : :class:`str`
+            The name of the channel to update. Must be one of
+            ``'red'``, ``'green'``, or ``'blue'``.
+
+        data : :class:`numpy.ndarray`
+            A 2D array of pixel values to assign to the specified channel.
+            The shape of the array must match the current channel dimensions.
+
+        Raises
+        ------
+        :class:`ValueError`
+            If an invalid channel name is provided or if the shape of the
+            input data does not match the current channel dimensions.
+        """
+        if channel_name not in self.CHANNELS:
+            raise ValueError(f"Invalid channel name: {channel_name}. Allowed channels: {self.CHANNELS}")
+        
+        current_channel = getattr(self, channel_name)
+        if data.shape != current_channel.shape:
+            raise ValueError(f"Shape mismatch: Expected shape {current_channel.shape}, but got {data.shape}.")
+        
+        setattr(self, f"_{channel_name}", data)
+
+    def remove_overscan(self, inplace: bool = True, channels: Optional[list[str]] = None) -> Optional['GONetFile']:
+        """
+        Remove overscan regions from the image data.
+
+        This method subtracts the mean value of a predefined overscan region
+        from the specified channels (red, green, blue). By default, the operation
+        is performed on all channels and modifies the current instance in-place.
+        Optionally, a new instance with the overscan-subtracted data can be returned.
+
+        Parameters
+        ----------
+        inplace : bool, optional
+            If True (default), modifies the current instance in-place.
+            If False, returns a new instance with the overscan-subtracted data.
+
+        channels : list of str, optional
+            A list of channel names to operate on. Must be a subset of ``self.CHANNELS``.
+            Defaults to all channels (``self.CHANNELS``).
+
+        Returns
+        -------
+        GONetFile or None
+            If `inplace` is False, returns a new instance with the overscan-subtracted data.
+            Otherwise, returns None.
+
+        Notes
+        -----
+        - The overscan region is defined as the slice of rows from 10 to 20 (exclusive).
+        - If `inplace` is False, the metadata and file type are preserved in the returned instance.
+        """
+        if channels is None:
+            channels = self.CHANNELS  # Default to all channels
+
+        # Validate channels
+        invalid_channels = [ch for ch in channels if ch not in self.CHANNELS]
+        if invalid_channels:
+            raise ValueError(f"Invalid channel(s): {invalid_channels}. Allowed channels: {self.CHANNELS}")
+
+        overscan_region = slice(10, 20)  # Define the overscan region
+        subtracted_data = {}
+
+        # Loop over the specified channels and calculate the overscan-subtracted data
+        for channel in channels:
+            channel_data = self.get_channel(channel)
+            overscan_mean = np.mean(channel_data[overscan_region])
+            subtracted_data[channel] = channel_data - overscan_mean
+
+        if inplace:
+            # Modify the current instance in-place using set_channel
+            for channel in channels:
+                self.set_channel(channel, subtracted_data[channel])
+            return None
+        else:
+            # Return a new instance with the overscan-subtracted data
+            return GONetFile(
+                filename=self.filename,
+                red=subtracted_data.get('red', self.red),
+                green=subtracted_data.get('green', self.green),
+                blue=subtracted_data.get('blue', self.blue),
+                meta=self.meta,
+                filetype=self.filetype
+            )
+
     def write_to_jpeg(self, output_filename: str, white_balance: bool = True) -> None:
         """
         Write the RGB image data to a JPEG file.

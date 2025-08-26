@@ -9,6 +9,7 @@ and trigger actions (Extract / Exit).
 
 **Notes**
 
+- The file list shows only file names, while the actual path is stored
 - The figure uses a fixed aspect ratio matching the expected data shape
   (height/width = 1520/2028) via ``yaxis_scaleanchor`` / ``yaxis_scaleratio``.
 - The layout uses a two-column flex container: the graph area on the left
@@ -18,10 +19,21 @@ and trigger actions (Extract / Exit).
     
 """
 
+import os
 from dash import dcc, html
 from GONet_Wizard.GONet_utils.src.extract_app.extract_server import app
 
-data_list = app.server.config.get("data_files", ['------'])
+data_list = app.server.config.get("data_files")
+# Extract the directory (assuming all are the same)
+if data_list:
+    files_path = os.path.dirname(data_list[0])
+    # Keep only file names
+    data_list = [os.path.basename(f) for f in data_list]
+    file_to_show = data_list[0]
+else:
+    files_path = ''
+    data_list = []
+    file_to_show = None
 
 aspect_ratio = 1520 / 2028
 
@@ -39,6 +51,7 @@ gonet_fig = {
                 'yaxis': {'automargin': True, 'ticks': "outside", 'mirror': True},
                 'yaxis_scaleanchor':"x",
                 'yaxis_scaleratio': aspect_ratio,
+                'dragmode': 'zoom'
             },
         }
 
@@ -48,23 +61,38 @@ layout = dcc.Loading(
     type="circle", 
     overlay_style={"visibility":"visible", "filter": "blur(2px)"},
     children=html.Div([
-        dcc.Store(id='save-path'),
-        dcc.Store(id='load-path'),
+        # Dummy divs.
+        html.Div(id='ready-dummy-div'),
         html.Div(id='dummy-div'),
+        # Stores
+        dcc.Store(id='save-path'),
+        dcc.Store(id='drawn-path'),
+        dcc.Store(
+            id='extraction-params',
+            data={
+                'shape': None,
+                'x0': None,
+                'y0': None,
+                'param1': None,
+                'param2': None,
+                'start_angle': -180,
+                'end_angle': 180,
+            },
+        ),
         # Heatmap area
         html.Div([
             dcc.Graph(
-                id="gonet_image",
+                id="gonet-image",
                 figure=gonet_fig,
                 style={
-                    # "height": "100vh",
-                    # "width": "100%",
-                    # "paddingBottom": f"{aspect_ratio * 100}%",  # CSS trick
-                    # "position": "relative",
                     "width": "900px",   # Scales with data width
                     "height": "608px"
                 },
-                config={"responsive": True}
+                config={
+                    "responsive": True,
+                    "modeBarButtonsToAdd": []
+                }
+                
             )
         ], style={"flex": 1, "overflow": "hidden"}),
 
@@ -75,7 +103,7 @@ layout = dcc.Loading(
             dcc.Dropdown(
                 id="file-selector",
                 options=data_list,
-                value=data_list[0],
+                value=file_to_show,
                 style={"width": "100%"}
             )
         ], style={"padding": "10px", "borderBottom": "1px solid #ccc"}),
@@ -114,64 +142,25 @@ layout = dcc.Loading(
             html.Div(id="shape-options-container", children=[
                 html.Div([
                     html.Label("Center (x, y):"),
-                    dcc.Input(id="circle-center-x", type="number", placeholder="x", debounce=True,
+                    dcc.Input(id="shape-center-x", type="number", placeholder="x", debounce=True,
                             style={"marginRight": "5px", "width": "100%"}),
-                    dcc.Input(id="circle-center-y", type="number", placeholder="y", debounce=True,
+                    dcc.Input(id="shape-center-y", type="number", placeholder="y", debounce=True,
                             style={"width": "100%"}),
                     html.Br(), html.Br(),
-                    html.Label("Radius:"),
-                    dcc.Input(id="circle-radius", type="number", placeholder="radius", debounce=True,
-                            style={"width": "100%"}),
+                    html.Label(id='shape-extra-parameters'),
+                    dcc.Input(id="shape-parameter1", type="number", placeholder="Side 1", debounce=True, style={"width": "100%"}),
+                    dcc.Input(id="shape-parameter2", type="number", placeholder="Side 2", debounce=True, style={"width": "100%"}),
                     html.Br(), html.Br(),
                     html.Label("Sector Start Angle (deg):"),
-                    dcc.Input(id="circle-sector-start", type="number", debounce=True,
+                    dcc.Input(id="shape-sector-start", type="number", debounce=True,
                             value=-180, style={"width": "100%"}),
                     html.Br(), html.Br(),
                     html.Label("Sector End Angle (deg):"),
-                    dcc.Input(id="circle-sector-end", type="number", debounce=True,
+                    dcc.Input(id="shape-sector-end", type="number", debounce=True,
                             value=180, style={"width": "100%"}),
-                ], id="circle-options"),
+                ], id="shape-options"),
 
                 html.Div([
-                    html.Label("Center (x, y):"),
-                    dcc.Input(id="rectangle-center-x", type="number", placeholder="x", debounce=True, style={"marginRight": "5px", "width": "100%"}),
-                    dcc.Input(id="rectangle-center-y", type="number", placeholder="y", debounce=True, style={"width": "100%"}),
-                    html.Br(), html.Br(),
-                    html.Label("Side 1, Side 2:"),
-                    dcc.Input(id="rectangle-side1", type="number", placeholder="Side 1", debounce=True, style={"width": "100%"}),
-                    dcc.Input(id="rectangle-side2", type="number", placeholder="Side 2", debounce=True, style={"width": "100%"}),
-                    html.Br(), html.Br(),
-                    html.Label("Sector Start Angle (deg):"),
-                    dcc.Input(id="rectangle-sector-start", type="number", debounce=True,
-                            value=-180, style={"width": "100%"}),
-                    html.Br(), html.Br(),
-                    html.Label("Sector End Angle (deg):"),
-                    dcc.Input(id="rectangle-sector-end", type="number", debounce=True,
-                            value=180, style={"width": "100%"}),
-                ], id="rectangle-options", style={"display": "none"}),
-
-                html.Div([
-                    html.Label("Center (x, y):"),
-                    dcc.Input(id="annulus-center-x", type="number", placeholder="x", debounce=True, style={"marginRight": "5px", "width": "100%"}),
-                    dcc.Input(id="annulus-center-y", type="number", placeholder="y", debounce=True, style={"width": "100%"}),
-                    html.Br(), html.Br(),
-                    html.Label("Outer Radius:"),
-                    dcc.Input(id="annulus-outer-radius", type="number", placeholder="radius", debounce=True, style={"width": "100%"}),
-                    html.Br(), html.Br(),
-                    html.Label("Inner Radius:"),
-                    dcc.Input(id="annulus-inner-width", type="number", placeholder="width", debounce=True, style={"width": "100%"}),
-                    html.Br(), html.Br(),
-                    html.Label("Sector Start Angle (deg):"),
-                    dcc.Input(id="annulus-sector-start", type="number", debounce=True,
-                            value=-180, style={"width": "100%"}),
-                    html.Br(), html.Br(),
-                    html.Label("Sector End Angle (deg):"),
-                    dcc.Input(id="annulus-sector-end", type="number", debounce=True,
-                            value=180, style={"width": "100%"}),
-                ], id="annulus-options", style={"display": "none"}),
-
-                html.Div([
-                    dcc.Store("freehand-path", data = []),
                     html.P("Draw your region directly on the figure."),
 
                     html.Div([

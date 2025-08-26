@@ -23,66 +23,67 @@ def register_json_download(app, output_component, input_component):
     Register a reusable clientside callback for JSON download.
 
     **Behavior**:
-    - Prompts the user to enter a filename (default: ``.json``).
-    - Converts the input dictionary into a formatted JSON string.
-    - Creates a Blob and object URL.
-    - Initiates the download using a temporary anchor tag.
-    - Cleans up all temporary DOM elements and object URLs afterward.
+    - Detects environment: PyWebview or regular browser.
+    - In PyWebview: Calls the exposed `download_json()` API method to handle download.
+    - In Browser: Prompts user for filename, creates a Blob, and initiates download.
 
     **Usage Notes**:
-    - This approach is quick and convenient for small data payloads.
-    - It uses browser-native functionality and does not require server interaction.
-    - The callback is designed to be self-contained and avoids the need for backend downloads.
-    - A more robust alternative using the File System Access API is commented in the code, but is currently disabled due to limited UI polish and cross-browser compatibility.
-
-    **Future Improvements**:
-    - For larger payloads or enhanced control, this behavior may eventually be migrated to the Django backend.
+    - Add this only once when initializing the app.
+    - `output_component` can be a dummy Div or Store (e.g., Output("download-trigger", "data")).
+    - `input_component` should supply a serializable dictionary to download as JSON.
 
     Parameters
     ----------
     app : dash.Dash
-        `Dash <https://dash.plotly.com/>`_ app instance (to register the callback).
+        Dash app instance.
     output_component : dash.Output
-        The Output where the callback returns (usually a dummy Div).
+        Target output to complete Dash callback structure (can be dummy).
     input_component : dash.Input
-        The Input triggering the download (e.g., a Store's data).
+        Source of the JSON data to download.
     """
     app.clientside_callback(
         """
         async function(data) {
-            if (data) {
-                try {
-                    const jsonString = JSON.stringify(data, null, 2);
-                    const blob = new Blob([jsonString], { type: 'application/json' });
+            if (!data) {
+                return window.dash_clientside.no_update;
+            }
 
-                    const filename = prompt("Please enter the filename:", ".json");
-                    if (filename === null || filename.trim() === "") {
+            try {
+                const jsonString = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+
+                // Check if PyWebview is available
+                if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.download_json === 'function') {
+                    await window.pywebview.api.download_json(data);
+                } else {
+                    const filename = prompt("Please enter the filename:", "data.json");
+                    if (!filename || filename.trim() === "") {
                         return window.dash_clientside.no_update;
                     }
 
-                    const url = window.URL.createObjectURL(blob);
+                    const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = filename;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-
-                    return "";
-                } catch (err) {
-                    console.error("Download error:", err);
-                    alert("Download failed. Check console for details.");
-                    return window.dash_clientside.no_update;
+                    URL.revokeObjectURL(url);
                 }
+
+                return "";
+            } catch (err) {
+                console.error("Download error:", err);
+                alert("Download failed.");
+                return window.dash_clientside.no_update;
             }
-            return window.dash_clientside.no_update;
         }
         """,
         output_component,
         input_component,
         prevent_initial_call=True,
     )
+
 
 def load_json(contents: str) -> dict:
     """

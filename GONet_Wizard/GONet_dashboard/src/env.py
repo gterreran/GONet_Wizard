@@ -3,45 +3,78 @@ GONet Dashboard Configuration Environment.
 
 This module defines constants and environment-specific settings shared across
 the GONet Wizard dashboard. It includes plotting styles, default UI parameters,
-and display properties.
+geolocation metadata, timezone definitions, filtering thresholds, and other
+common resources used throughout the dashboard and data processing utilities.
 
 Constants
 ---------
 CHANNELS : :class:`list` of :class:`str`
     Image channels used in processing and plotting (e.g., 'red', 'green', 'blue').
+
 CHANNEL_COLORS : :class:`list` of :class:`str`
-    Available ratios between channels (e.g. 'green/blue').
+    Available color ratios between channels (e.g., 'green/blue').
+
 BG_COLOR : :class:`str`
     Background color used across the dashboard and plot components.
+
 TEXT_COLOR : :class:`str`
     Foreground text color used for UI elements and figure labels.
-COLORS : :class:`dict`
-    Dictionary mapping each channel to an RGBA-generating function with configurable alpha.
+
+BASE_COLORS : :class:`dict`
+    Dictionary mapping each channel to a base RGB color (without alpha).
+    Used to generate RGBA strings via the `rgba()` function.
+
+LOC_LAT : :class:`~astropy.units.Quantity`
+    Latitude of the observing location (Adler roof) in degrees.
+
+LOC_LON : :class:`~astropy.units.Quantity`
+    Longitude of the observing location in degrees.
+
+LOC_ALT : :class:`~astropy.units.Quantity`
+    Altitude of the observing location in meters.
+
 LOCAL_TZ : :class:`tzinfo`
-    Local timezone for converting timestamps (America/Chicago).
+    Timezone object for local time conversions (America/Chicago).
+
 DAY_START_LOCAL : :class:`datetime.time`
-    Starting time used to group nightly observations across local midnight.
+    Local time used as the start of a "night" (used for grouping observations).
+
 DAY_START_UTC : :class:`datetime.time`
-    Starting UTC time used to group nightly observations across local midnight.
+    UTC equivalent of `DAY_START_LOCAL`.
+
 DEFAULT_FILTER_VALUES : :class:`dict`
-    Predefined defaults for the interactive filtering interface.
+    Threshold defaults for interactive filtering components. Includes:
+        - 'sunaltaz': minimum Sun altitude
+        - 'moonaltaz': minimum Moon altitude
+        - 'moon_illumination': maximum Moon illumination
+        - 'condition_code': maximum weather condition index
+
 LABELS : :class:`dict`
-    Dictionary storing metadata keys categorized as:
-    
-    - 'gen': General labels not tied to specific channels.
-    - 'fit': Fit-specific labels associated with individual channels.
+    Dictionary storing metadata field categories:
+        - 'gen': General, non-channel-specific metadata fields.
+        - 'fit': Fit-derived, channel-specific metadata fields.
 
 OP : :class:`dict`
-    Dictionary mapping string operators (e.g., '<', '!=') to their Python equivalents.
+    Dictionary mapping string-based logical operators to Python equivalents.
+    Supports basic comparison operations for filtering logic.
+
 DEFAULT_OP : :class:`str`
-    Default operator from the `OP` dictionary.
+    Default operator to apply during filter initialization (e.g., '<=').
+
+Functions
+---------
+rgba(channel, alpha)
+    Return a valid RGBA string for the given channel color and transparency.
 
 Notes
 -----
 - This module is imported across layout, callbacks, and plotting utilities.
+- The geolocation constants define the fixed position of the GONet camera system at Adler.
+- Filtering logic and color styling are centralized here for consistent UI behavior.
 """
 import datetime, operator
 from dateutil import tz
+import astropy.units as u
 
 CHANNELS = ['red', 'green', 'blue']
 CHANNEL_COLORS = ['green/blue', 'red/green', 'red/blue']
@@ -73,6 +106,11 @@ def rgba(channel: str, alpha: float) -> str:
     """
     r, g, b = BASE_COLORS[channel]
     return f'rgba({r},{g},{b},{alpha})'
+
+#Adler roof location
+LOC_LAT = 41.86634580958955 * u.deg
+LOC_LON = -87.60706566982965 * u.deg
+LOC_ALT = (176+10) * u.m
 
 LOCAL_TZ = tz.gettz('America/Chicago')
 DAY_START_LOCAL = datetime.datetime.strptime('12:00', '%H:%M').time()

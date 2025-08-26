@@ -12,4 +12,7 @@ Functions:
 Classes:
 ---------------
 
-.. autoclass:: GONet_Wizard.GONet_utils.src.extract_app.extract_gui.ExitAPI
+.. autoclass:: GONet_Wizard.GONet_utils.src.extract_app.extract_gui.GONetAPI
+   :members:
+   :undoc-members:
+   :show-inheritance:

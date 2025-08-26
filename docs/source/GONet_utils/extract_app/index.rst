@@ -13,4 +13,4 @@ Extract GUI
    extract_gui
    extract_layout
    extract_callbacks
-   shapes
+   shapes/index

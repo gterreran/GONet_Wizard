@@ -9,7 +9,7 @@ Dash frontend to trigger native window actions (such as closing the app).
 
 **Classes**
 
-- :class:`ExitAPI`:
+- :class:`GONetAPI`:
     A JavaScript API exposed to the PyWebview window
 
 **Functions**
@@ -24,7 +24,7 @@ Dash frontend to trigger native window actions (such as closing the app).
 """
 
 from GONet_Wizard.GONet_utils.src.extract_app.extract_server import app
-import threading, webview, logging
+import threading, webview, logging, json
 
 
 def run_app():
@@ -63,26 +63,40 @@ def run_app():
     app.run_server(port=8050, debug=False, use_reloader=False)
 
 
-class ExitAPI:
+class GONetAPI:
     """
-    JavaScript API for closing the PyWebview window.
+    JavaScript API for PyWebview interactions including window control and JSON downloads.
 
-    This class is passed as the ``js_api`` parameter to
-    :func:`webview.create_window`. PyWebview injects it into the browser
-    environment as ``window.pywebview.api``, allowing JavaScript code in the
-    Dash frontend to call exposed Python methods.
+    This object is exposed to JavaScript as `window.pywebview.api`, allowing your
+    Dash frontend to call methods like `download_json()` and `close_window()`.
 
     Methods
     -------
+    download_json(data: dict):
+        Prompts the user with a file dialog and saves `data` as a formatted JSON file.
+
     close_window():
-        Close the current PyWebview window. This schedules
-        :func:`webview.windows[0].destroy` to run after a short delay using
-        :class:`threading.Timer`. The delay (0.1 s) ensures that the JS call
-        can return and the UI can complete any final updates before the window
-        is destroyed.
+        Gracefully closes the PyWebview window after a short delay.
     """
 
-    def close_window(self):
+    def download_json(self, data: dict) -> None:
+        """Save the given data dictionary as a JSON file using a save dialog."""
+        window = webview.windows[0]
+
+        if not hasattr(window, 'create_file_dialog'):
+            print("File dialog not supported in current backend.")
+            return
+
+        path = window.create_file_dialog(
+            webview.SAVE_DIALOG,
+            file_types=('JSON files (*.json)', 'All files (*.*)')
+        )
+        if path:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4)
+    
+
+    def close_window(self) -> None:
         """Schedule the destruction of the current PyWebview window."""
         threading.Timer(0.1, lambda: webview.windows[0].destroy()).start()
 
@@ -100,11 +114,21 @@ def launch_extraction_gui(data_files):
     - Creates a PyWebview window pointing to the Dash app URL and passes an
       instance of :class:`ExitAPI` as the JavaScript API for window control.
     - Starts the PyWebview event loop, which blocks until the window is closed.
+    - After the GUI closes, checks whether ``extraction_params`` were stored
+      in the server config during the session. If present, returns them so
+      the caller can proceed with the extraction outside of the GUI.
 
     Parameters
     ----------
     data_files : :class:`list` of :class:`str`
         List of data file paths to be made available to the GUI.
+
+    Returns
+    -------
+    :class:`dict` or :data:`None`
+        The extraction parameters stored in
+        ``app.server.config["extraction_params"]`` during the GUI session,
+        or ``None`` if no parameters were set by the user.
     """
     # Make data_files available to the Dash server
     app.server.config["data_files"] = data_files
@@ -124,6 +148,14 @@ def launch_extraction_gui(data_files):
         "http://127.0.0.1:8050",
         width=1250,
         height=700,
-        js_api=ExitAPI()
+        js_api=GONetAPI()
     )
     webview.start()
+
+    if "extraction_params" in app.server.config:
+        # Return the extraction parameters if they were set in the GUI
+        # This allows the caller to access them after the GUI is closed
+        return app.server.config["extraction_params"]
+    else:
+        # If no parameters were set, return None
+        return None

@@ -176,7 +176,7 @@ def test_invalid_channel_request():
     )
 
     with pytest.raises(ValueError, match=r"Invalid channel name: fake."):
-        gnf.channel("fake")
+        gnf.get_channel("fake")
 
 def test_from_file_nonexistent_path():
     """
