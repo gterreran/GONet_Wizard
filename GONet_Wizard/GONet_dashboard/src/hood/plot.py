@@ -101,9 +101,10 @@ class Trace(dict):
         }
 
         self.update({
-            'hovertemplate': f"{x_label}=%{{x}}<br>{y_label}=%{{y}}",
+            'hovertemplate': f"{x_label}=%{{x}}<br>{y_label}=%{{y}}<br>Night=%{{customdata}}",
             'x': [],
             'y': [],
+            'customdata': [],
             'type': 'scatter',
             'mode': 'markers',
             'marker': marker,
@@ -508,6 +509,7 @@ class FigureWrapper:
         # Extract data arrays
         x_data = np.array(self.all_data[self.x_label])
         y_data = np.array(self.all_data[self.y_label])
+        night_data = np.array(self.all_data['night'])
         idx_data = np.array(self.all_data['idx'])
         channel_filter = np.array(self.all_data['channel']) == channel
 
@@ -530,10 +532,12 @@ class FigureWrapper:
                 if not img['filtered']:
                     self.fig['data'][i]['x'] = x_data[selected_data]
                     self.fig['data'][i]['y'] = y_data[selected_data]
+                    self.fig['data'][i]['customdata'] = night_data[selected_data]
                     self.fig['data'][i]['idx'] = idx_data[selected_data]
                 else:
                     self.fig['data'][i]['x'] = x_data[filtered_out_data]
                     self.fig['data'][i]['y'] = y_data[filtered_out_data]
+                    self.fig['data'][i]['customdata'] = night_data[filtered_out_data]
                     self.fig['data'][i]['idx'] = idx_data[filtered_out_data]
 
 
@@ -751,6 +755,7 @@ class FigureWrapper:
 
                 self.fig['data'][i]['x'] = np.array(self.all_data[self.x_label])[selected_data_filter]
                 self.fig['data'][i]['y'] = np.array(self.all_data[self.y_label])[selected_data_filter]
+                self.fig['data'][i]['customdata'] = np.array(self.all_data['night'])[selected_data_filter]
                 self.fig['data'][i]['idx'] = np.array(self.all_data['idx'])[selected_data_filter]
 
                 # Determine whether the selected point passes the current filters

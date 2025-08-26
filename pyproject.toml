@@ -26,7 +26,10 @@ dependencies = [
     "paramiko",
     "scp",
     "astropy",
-    "pywebview"
+    "pywebview",
+    "astroplan",
+    "meteostat",
+    "tdqm"
 ]
 
 [project.optional-dependencies]
