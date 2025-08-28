@@ -12,13 +12,53 @@ It allows users to:
 
 This CLI is launched using the :mod:`GONet_Wizard.__main__` module.
 
+**Classes**
+
+- ExpandFilenames: Custom argparse action to expand wildcard and comma-separated filenames.
+
 """
 
 
 
-import argparse
+import argparse, glob
 from GONet_Wizard import commands
 from GONet_Wizard._version import __version__
+
+class ExpandFilenames(argparse.Action):
+    """
+    Custom argparse action to expand wildcard and comma-separated filenames.
+
+    This class allows command-line arguments that specify multiple files
+    using wildcards (e.g., `*.tiff`) or comma-separated lists (e.g., `file1,file2`)
+    to be automatically expanded into full lists of matching filenames.
+
+    """
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        """
+        Expand input values into individual filenames and assign to namespace.
+
+        Parameters
+        ----------
+        parser : :class:`argparse.ArgumentParser`
+            The parser instance calling this action.
+
+        namespace : :class:`argparse.Namespace`
+            The namespace object that holds parsed arguments.
+
+        values : :class:`list` of :class:`str`
+            The list of raw input values provided by the user.
+
+        option_string : :class:`str`, optional
+            The option string that was used to invoke this action (e.g., '--files').
+
+        """
+        expanded = []
+        for item in values:
+            for part in item.split(','):
+                matches = glob.glob(part)
+                expanded.extend(matches if matches else [part])
+        setattr(namespace, self.dest, expanded)
 
 
 def main() -> None:
@@ -45,7 +85,7 @@ def main() -> None:
     show_parser = subparsers.add_parser(
         "show", help="Plot the content of one or more GONet files."
     )
-    show_parser.add_argument("filenames", nargs='+', help="GONet file(s) to plot.")
+    show_parser.add_argument("filenames", nargs='+', action=ExpandFilenames, help="GONet file(s) to plot.")
     show_parser.add_argument("--save", help="Save output as a PDF.")
     show_parser.add_argument("--red", action="store_true", default=False, help="Plot only the red channel.")
     show_parser.add_argument("--green", action="store_true", default=False, help="Plot only the green channel.")
@@ -55,7 +95,7 @@ def main() -> None:
     meta_parser = subparsers.add_parser(
         "show_meta", help="Print metadata from one or more GONet files."
     )
-    meta_parser.add_argument("filenames", nargs='+', help="GONet file(s) to inspect.")
+    meta_parser.add_argument("filenames", nargs='+', action=ExpandFilenames, help="GONet file(s) to inspect.")
 
     # === Subcommand: dashboard ===
     dashboard_parser = subparsers.add_parser(
@@ -84,20 +124,20 @@ def main() -> None:
     extract_parser = subparsers.add_parser(
         "extract", help="Extract counts from a region one or more GONet files."
     )
-    extract_parser.add_argument("filenames", nargs='+', help="GONet file(s) to extract. `*` wildcards and comma-separated lists are supported.")
+    extract_parser.add_argument("filenames", nargs='+', action=ExpandFilenames, help="GONet file(s) to extract. `*` wildcards and comma-separated lists are supported.")
 
     extract_parser.add_argument("--red", action="store_true", default=False, help="Extract only the red channel.")
     extract_parser.add_argument("--green", action="store_true", default=False, help="Extract only the green channel.")
     extract_parser.add_argument("--blue", action="store_true", default=False, help="Extract only the blue channel.")
 
-    extract_parser.add_argument("--shape", choices=["circle", "rectangle", "annulus", "free"], help="Shape of the extraction region.  If shape is free, or no shape is parsed, the user will select the region interactively.")
-    extract_parser.add_argument("--center", help="Center of the region in pixels, format: x,y")
+    extract_parser.add_argument("--shape", choices=["circle", "rectangle", "annulus", "interactive"], help="Shape of the extraction region.  If shape is 'interactive', or no shape is parsed, the user will select the region interactively.")
+    extract_parser.add_argument("--center", help="Center of the region in pixels, as 2 comma-separated values: x,y. Example: 1000,800")
     extract_parser.add_argument("--radius", help="Radius in pixels (required if shape is circle).")
-    extract_parser.add_argument("--sides", help="Sides in pixels, format: width,height (required if shape is rectangle).")
+    extract_parser.add_argument("--sides", help="Sides in pixels, as 2 comma-separated values: x,y. width,height (required if shape is rectangle). Example: 300,400")
     extract_parser.add_argument("--inner_radius", help="Inner radius in pixels. (required if shape is annulus).")
     extract_parser.add_argument("--outer_radius", help="Outer radius in pixels (required if shape is annulus).")
-    extract_parser.add_argument("--angles", help="Angles in degrees, format: start_angle,end_angle (optional). 0 degrees is along the +x axis, and angles increase counter-clockwise.", default="-180,180")
-    extract_parser.add_argument("--output", help="Output JSON file name.")
+    extract_parser.add_argument("--angles", help="Angles in degrees, as 2 comma-separated values: start_angle,end_angle (optional). 0 degrees is along the +x axis, and angles increase counter-clockwise. Example: -120,120", default="-180,180")
+    extract_parser.add_argument("--output", help="Output JSON file name. Default name is 'extraction_shape.json'. If files already exists, it will not be overwritten, but a new file will be created with sequential number added to it.")
 
 
     # === Dispatch logic ===

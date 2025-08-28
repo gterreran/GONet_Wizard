@@ -23,7 +23,20 @@ Usage Examples
    GONet_Wizard connect 192.168.0.101 snap config.json
    GONet_Wizard connect 192.168.0.101 terminate_imaging
 
-Submodules
-__________
+
+Classes:
+--------
+
+.. autoclass:: GONet_Wizard.__main__.ExpandFilenames
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :exclude-members:  __dict__, __module__, __weakref__
+   :special-members:
+   :private-members:
+
+
+Functions:
+----------
 
 .. autofunction:: GONet_Wizard.__main__.main
