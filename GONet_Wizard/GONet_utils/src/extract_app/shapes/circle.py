@@ -190,6 +190,11 @@ class Circle(base.Shape):
         dx = xv - self.x0
         dy = yv - self.y0
         r2 = dx**2 + dy**2
+        
+        # Detect full circle edge case (tolerate small numerical errors)
+        if np.isclose((self.end_angle - self.start_angle) % 360, 0, atol=1e-5):
+            return r2 <= self.radius**2
+
         angle = np.degrees(np.arctan2(dy, dx))  # Already in [-180, 180]
 
         if self.end_angle >= self.start_angle:

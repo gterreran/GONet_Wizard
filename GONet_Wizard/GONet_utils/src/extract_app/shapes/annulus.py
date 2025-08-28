@@ -182,15 +182,15 @@ class Annulus(base.Shape):
             return [inner_circle, outer_circle]
 
         # Build arc paths
-        outer_arc = base.build_arc_path(x0, y0, self.outer_radius, self.start_angle, self.end_angle, n_segments)
-        inner_arc = base.build_arc_path(x0, y0, self.inner_radius, self.end_angle, self.start_angle, n_segments)  # reversed arc
+        outer_arc = base.build_arc_path(self.x0, self.y0, self.outer_radius, self.start_angle, self.end_angle, n_segments)
+        inner_arc = base.build_arc_path(self.x0, self.y0, self.inner_radius, self.end_angle, self.start_angle, n_segments)  # reversed arc
 
         # Starting point (outer arc start)
         theta0 = np.radians(self.start_angle)
-        x0 = x0 + self.outer_radius * np.cos(theta0)
-        y0 = y0 + self.outer_radius * np.sin(theta0)
+        xstart = self.x0 + self.outer_radius * np.cos(theta0)
+        ystart = self.y0 + self.outer_radius * np.sin(theta0)
 
-        path = f"M {x0},{y0} "
+        path = f"M {xstart},{ystart} "
         path += outer_arc
         path += inner_arc
         path += "Z"
@@ -228,6 +228,14 @@ class Annulus(base.Shape):
         dx = xv - self.x0
         dy = yv - self.y0
         r2 = dx**2 + dy**2
+
+        # Radial mask (annulus)
+        radial_mask = (r2 >= self.inner_radius**2) & (r2 <= self.outer_radius**2)
+
+        if np.isclose((self.end_angle - self.start_angle), 0, atol=1e-5):
+            # Full circle, skip angular mask
+            return radial_mask
+
         angle = np.degrees(np.arctan2(dy, dx))  # range [-180, 180]
 
         # Angular mask
@@ -235,9 +243,6 @@ class Annulus(base.Shape):
             angular_mask = (angle >= self.start_angle) & (angle <= self.end_angle)
         else:
             angular_mask = (angle >= self.start_angle) | (angle <= self.end_angle)
-
-        # Radial mask (annulus)
-        radial_mask = (r2 >= self.inner_radius**2) & (r2 <= self.outer_radius**2)
 
         return radial_mask & angular_mask
 

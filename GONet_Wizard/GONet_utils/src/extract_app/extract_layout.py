@@ -16,7 +16,9 @@ and trigger actions (Extract / Exit).
   and a fixed-width sidebar (300px) on the right.
 - The sidebar hosts controls (file, channel, shape selectors), shape-specific
   inputs, extraction statistics, and action buttons.
-    
+- The figure is initialized with 2 data components, one for the main image and
+  one for the overlay. The overlay will mark the pixels used by the masked shape.
+
 """
 
 import os
@@ -43,6 +45,13 @@ gonet_fig = {
                 'z': [],
                 'type': 'heatmap',
                 'shapes':{}
+            },
+            {
+                'z': [],
+                'colorscale': [[0, "rgba(255, 0, 0, 0.4)"], [1, "rgba(255, 0, 0, 0.4)"]],  # same color throughout
+                'type': 'heatmap',
+                'showscale': False,
+                'opacity': 1.0,  # full opacity on the red but RGBA gives transparency
             }],
             'layout': {
                 'showlegend': False,
@@ -63,6 +72,7 @@ layout = dcc.Loading(
     children=html.Div([
         # Dummy divs.
         html.Div(id='ready-dummy-div'),
+        html.Div(id='config-done-dummy-div'),
         html.Div(id='dummy-div'),
         # Stores
         dcc.Store(id='save-path'),

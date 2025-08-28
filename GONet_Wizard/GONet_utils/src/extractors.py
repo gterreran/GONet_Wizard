@@ -555,12 +555,12 @@ class WeatherInfo(Extractor):
         weather_times = np.array(weather_data.index, dtype="datetime64[s]")
 
         # Convert weather_data columns to NumPy arrays
-        temp = weather_data["temp"].values
-        dwpt = weather_data["dwpt"].values
-        wspd = weather_data["wspd"].values
-        pres = weather_data["pres"].values
-        rhum = weather_data["rhum"].values
-        coco = weather_data["coco"].values
+        temp = weather_data["temp"].to_numpy(dtype=float)
+        dwpt = weather_data["dwpt"].to_numpy(dtype=float)
+        wspd = weather_data["wspd"].to_numpy(dtype=float)
+        pres = weather_data["pres"].to_numpy(dtype=float)
+        rhum = weather_data["rhum"].to_numpy(dtype=float)
+        coco = weather_data["coco"].to_numpy(dtype=int)
 
         # Match observation times to the closest weather times
         matched_indices = np.searchsorted(weather_times, times, side="left")
@@ -929,54 +929,26 @@ def extract_all(file_list: List[str], extensions: List[str], extraction_params: 
 
 def convert_to_serializable(obj: Any) -> Any:
     """
-    Convert numpy, pandas, and extension objects to standard Python types
-    for JSON serialization.
+    Convert numpy objects to standard Python types for JSON serialization.
 
     Parameters
     ----------
-    obj : Any
+    obj : :class:`Any`
         The object to convert.
 
     Returns
     -------
-    Any
+    :class:`Any`
         A JSON-serializable object.
+
     """
-    import numpy as np
-    import pandas as pd
-
-    # Handle NumPy arrays
     if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    
-    # Handle Pandas ExtensionArrays (e.g., FloatingArray, StringArray)
-    elif hasattr(obj, "to_numpy"):
-        try:
-            return obj.to_numpy().tolist()
-        except Exception:
-            pass  # Fallback if .to_numpy() fails
-
-    # Handle NumPy scalar types
-    elif isinstance(obj, (np.integer, np.int32, np.int64)):
-        return int(obj)
-    elif isinstance(obj, (np.floating, np.float32, np.float64)):
-        return float(obj)
-    elif isinstance(obj, np.bool_):
-        return bool(obj)
+        return obj.tolist()  # Convert numpy arrays to lists
+    elif isinstance(obj, (np.float64, np.float32)):
+        return float(obj)  # Convert numpy floats to Python floats
+    elif isinstance(obj, (np.int64, np.int32)):
+        return int(obj)  # Convert numpy integers to Python integers
     elif isinstance(obj, np.str_):
-        return str(obj)
-
-    # Handle Pandas scalar NA types
-    elif obj is pd.NA:
-        return None
-
-    # Handle lists or tuples (recursively)
-    elif isinstance(obj, (list, tuple)):
-        return [convert_to_serializable(x) for x in obj]
-
-    # Already serializable
-    elif isinstance(obj, (str, int, float, bool)) or obj is None:
-        return obj
-
-    raise ValueError(f"Unsupported data type: {type(obj)}")
-
+        return str(obj)  # Convert numpy strings to Python strings
+    else:
+        return obj  # Return the object as is if it's already serializable

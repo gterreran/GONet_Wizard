@@ -249,6 +249,8 @@ def extract_counts_from_GONet(
     # this include both shape=='free' and None
     else:
         extraction_params = launch_extraction_gui(files)
+        if extraction_params:
+            shape = extraction_params['shape']
 
     if extraction_params is None:
         print("Extraction parameters were not set. Exiting.")

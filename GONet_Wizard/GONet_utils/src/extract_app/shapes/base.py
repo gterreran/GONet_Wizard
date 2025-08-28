@@ -34,8 +34,8 @@ import math
 
 
 plotly_shape = {
-    "line": {"color": "RoyalBlue"},
-    "fillcolor": "rgba(65, 105, 225, 0.3)",
+    "line": {"color": "red"},
+    #"fillcolor": "rgba(65, 105, 225, 0.3)",
     "opacity": 1
 }
 

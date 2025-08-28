@@ -48,10 +48,10 @@ def run_app():
     main thread to remain responsive for PyWebview's event loop.
     """
     # Suppress Flask/Werkzeug/Dash startup logging
-    logging.getLogger('werkzeug').setLevel(logging.ERROR)
-    logging.getLogger("dash.dash").setLevel(logging.ERROR)
-    import flask.cli
-    flask.cli.show_server_banner = lambda *args, **kwargs: None
+    # logging.getLogger('werkzeug').setLevel(logging.ERROR)
+    # logging.getLogger("dash.dash").setLevel(logging.ERROR)
+    # import flask.cli
+    # flask.cli.show_server_banner = lambda *args, **kwargs: None
 
     # Set up the app layout and callbacks
     from GONet_Wizard.GONet_utils.src.extract_app.extract_layout import layout
@@ -60,7 +60,7 @@ def run_app():
     from GONet_Wizard.GONet_utils.src.extract_app import extract_callbacks
 
     # Start the Dash server (blocking call until thread exit)
-    app.run_server(port=8050, debug=False, use_reloader=False)
+    app.run_server(port=8050, debug=True, use_reloader=False)
 
 
 class GONetAPI:

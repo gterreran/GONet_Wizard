@@ -9,7 +9,7 @@ client-side callback for JSON downloads of the drawn region.
 
 **Functions**
 
-- :func:`update_figure`:
+- :func:`update_figure_heatmap`:
     Updates the displayed image based on the selected file and channel.
 
 - :func:`update_shape_options`:
@@ -24,11 +24,11 @@ client-side callback for JSON downloads of the drawn region.
 - :func:`update_extraction_params`:
     Updates extraction parameters based on user inputs and interactions.
 
-- :func:`update_extraction_values`:
-    Computes extraction statistics (total, mean, std dev, and pixel count) for the selected region.
+- :func:`update_drawn_figure_and_extraction_values`:
+    Updates the drawn figure and extraction values based on user inputs and interactions.
 
-- :func:`update_drawn_shapes`:
-    Updates the figure with drawn shapes based on the selected shape and extraction parameters.
+- :func:`update_config`:
+    Updates the configuration settings based on user inputs and interactions.
 
 - :func:`save_path`:
     Prepares the freehand path data for saving when the "Save Path" button is clicked.
@@ -57,6 +57,7 @@ from GONet_Wizard.GONet_dashboard.src.load_save_callbacks import register_json_d
 from GONet_Wizard.GONet_utils.src.extract_app.extract_server import app
 import GONet_Wizard.GONet_utils.src.extract_app.shapes.base as base
 from GONet_Wizard.GONet_utils.src.extract_app.extract_layout import files_path
+import numpy as np
 
 
 @app.callback(
@@ -68,7 +69,7 @@ from GONet_Wizard.GONet_utils.src.extract_app.extract_layout import files_path
     #---------------------
     State("gonet-image", "figure"),
 )
-def update_figure(selected_file, selected_channel, fig):
+def update_figure_heatmap(selected_file, selected_channel, fig):
     """
     Update the displayed image based on the selected file and channel.
 
@@ -364,37 +365,49 @@ def update_extraction_params(center_x, center_y, param1, param2, start_angle, en
 
 
 @app.callback(
+    Output("gonet-image", "figure", allow_duplicate=True),
     Output("stat-total", "children"),
     Output("stat-mean", "children"),
     Output("stat-std", "children"),
     Output("stat-npix", "children"),
     #---------------------
-    Input("extraction-params", "data"),
+    Input("config-done-dummy-div", "children"),
     Input("drawn-path", "data"),
     #---------------------
     State("gonet-image", "figure"),
+    State("extraction-params", "data"),
     prevent_initial_call=True
 )
-def update_extraction_values(extraction_params, path, fig):
+def update_drawn_figure_and_extraction_values(_, path, fig, extraction_params):
     """
     Compute and update extraction statistics for the selected region.
 
-    This callback calculates pixel statistics (total counts, mean, standard deviation,
-    and pixel count) for the region defined by the current extraction parameters and
-    the drawn path. The results are displayed in the corresponding statistic fields.
+    This callback draws the new shape and calculates pixel statistics (total counts,
+    mean, standard deviation, and pixel count) for the region defined by the current
+    extraction parameters and the drawn path. The results are displayed in the
+    corresponding statistic fields.
+
+    The callback can be triggered by changes to the drawn path or updates to the
+    extraction parameters. However, changes to the extraction parameters do not
+    directly trigger this callback. Instead, they first invoke the :func:`.update_config`
+    callback, which updates the `config-done-dummy-div` component. This dummy div then
+    triggers the current callback, ensuring proper sequencing of operations.
 
     Parameters
     ----------
-    extraction_params : :class:`dict`
-        The current extraction parameters stored in the `extraction-params` store.
-        This includes the shape type, center coordinates, dimensions, angles, and
-        the drawn path (if applicable).
+    _ : :class:`str` or :data:`NoneType`
+        The value of the `config-done-dummy-div` component, which indicates when the
+        figure configuration is complete.
     path : :class:`str` or :data:`NoneType`
         The path of the freehand-drawn region, if applicable. If `None`, no freehand
         region is used.
     fig : :class:`dict`
         The current figure object for the `gonet-image` component, which contains
         the image data used for the extraction.
+    extraction_params : :class:`dict`
+        The current extraction parameters stored in the `extraction-params` store.
+        This includes the shape type, center coordinates, dimensions, angles, and
+        the drawn path (if applicable).
 
     Returns
     -------
@@ -413,7 +426,7 @@ def update_extraction_values(extraction_params, path, fig):
       the extraction parameters.
     - The results of the extraction are parsed from a :class:`~GONet_Wizard.GONet_utils.src.extract_app.extractors.extraction_output` class.
 
-    """
+    """ 
 
     extraction_params['path'] = path
     try:
@@ -423,20 +436,27 @@ def update_extraction_values(extraction_params, path, fig):
         output_stat_mean = ""
         output_stat_std = ""
         output_stat_npix = ""
+        if "shapes" in fig["layout"]:
+            del fig["layout"]['shapes']
+        fig["data"][1]['z'] = []
     else:
+        if extraction_params['shape'] != 'freehand':
+            fig["layout"]["shapes"] = shape.draw()
         mask = shape.mask(fig['data'][0]['z'])
+        fig["data"][1]['z'] = np.where(mask, 1, np.nan)
         output = extract_counts_from_region(fig['data'][0]['z'], mask)
         output_stat_total = output.total_counts
         output_stat_mean = output.mean_counts
         output_stat_std = output.std
         output_stat_npix = output.npixels
     
-    return output_stat_total, output_stat_mean, output_stat_std, output_stat_npix
+    return fig, output_stat_total, output_stat_mean, output_stat_std, output_stat_npix
 
 
 @app.callback(
     Output("gonet-image", "figure", allow_duplicate=True),
     Output("gonet-image", "config"),
+    Output("config-done-dummy-div", "children"),
     #---------------------
     Input("extraction-params", "data"),
     #---------------------
@@ -447,14 +467,15 @@ def update_extraction_values(extraction_params, path, fig):
     #---------------------
     prevent_initial_call=True   
 )
-def update_drawn_shapes(extraction_params, fig, config, selected_shape, path):
+def update_config(extraction_params, fig, config, selected_shape, path):
     """
-    Update the figure with drawn shapes based on the selected shape and extraction parameters.
+    Update the configuration settings based on user inputs and interactions.
 
-    This callback updates the `gonet-image` figure to display the shape defined by the
-    current extraction parameters. It adjusts the figure's layout and configuration
-    based on the selected shape type (e.g., circle, rectangle, annulus, freehand).
-    For freehand shapes, the drawn path is attached to the extraction parameters.
+    This callback updates the `gonet-image` component's configuration based on the
+    current extraction parameters, selected shape, and drawn path.
+
+    It outputs also a dummy div `config-done-dummy-div` to trigger the drawing
+    of the updated shape.
 
     Parameters
     ----------
@@ -481,6 +502,7 @@ def update_drawn_shapes(extraction_params, fig, config, selected_shape, path):
         A tuple containing:
         - :class:`dict`: The updated figure object with the new shape.
         - :class:`dict`: The updated configuration object for the `gonet-image` component.
+        - :class:`str`: An empty string to update the `config-done-dummy-div` component
 
     Notes
     -----
@@ -504,15 +526,7 @@ def update_drawn_shapes(extraction_params, fig, config, selected_shape, path):
         config["modeBarButtonsToAdd"] = []
         fig['layout']['dragmode'] = 'zoom'
 
-    try:
-        shape = base.Shape.from_dict(extraction_params)
-        fig["layout"]["shapes"] = shape.draw()
-
-    except base.IncompleteShapeError:
-        if "shapes" in fig["layout"]:
-            del fig["layout"]['shapes']
-
-    return fig, config
+    return fig, config, ''
 
 
 # Registering client-side callback handling the download
@@ -545,9 +559,9 @@ def save_path(_, path):
     _ : :class:`int` or :class:`NoneType`
         Click count of the "Save Path" button (ignored).
 
-    path : :class:`list`
-        The current freehand path data, typically a list with one shape dictionary
-        containing the 'path' key.
+    path : :class:`str` or :data:`NoneType`
+        The path of the freehand-drawn region, if applicable. If `None`, no freehand
+        region is used.
 
     Returns
     -------
@@ -605,11 +619,12 @@ def load_path(contents, extraction_params):
     Input("extract-button", "n_clicks"),
     #---------------------
     State("extraction-params", "data"),
+    State("drawn-path", "data"),
     State("exit-button", "n_clicks"),
     #---------------------
     prevent_initial_call=True
 )
-def extraction_button(_, extraction_params, n):
+def extraction_button(_, extraction_params, path, n):
     """
     Store extraction parameters and programmatically trigger the exit button.
 
@@ -627,6 +642,9 @@ def extraction_button(_, extraction_params, n):
     extraction_params : :class:`dict`
         The extraction parameters retrieved from the ``extraction-params``
         `dcc.Store` component in the Dash layout.
+    path : :class:`str` or :data:`NoneType`
+        The path of the freehand-drawn region, if applicable. If `None`, no freehand
+        region is used.
     n : :class:`int` or :data:`None`
         The current number of clicks on the "Exit" button.
 
@@ -637,6 +655,9 @@ def extraction_button(_, extraction_params, n):
         from its current value (or set to 1 if it was previously ``None``),
         which triggers any callbacks listening to the exit event.
     """
+
+    extraction_params['path'] = path
+
     app.server.config["extraction_params"] = extraction_params
     return 1 if n is None else n+1
 
