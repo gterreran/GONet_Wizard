@@ -274,7 +274,7 @@ class Shape(ABC):
 
         """
         if value is None:
-            raise IncompleteShapeError(f"Parameter '{name}' is not yet defined.")
+            raise IncompleteShapeError(f"ERROR - '{name}' not defined.")
 
     @staticmethod
     def _validate_numeric(value: Union[float, int, str], name: str) -> None:
@@ -304,12 +304,12 @@ class Shape(ABC):
             try:
                 value = float(value)
             except ValueError:
-                raise TypeError(f"Parameter '{name}' must be a number or a string representing a number (got '{value}').")
+                raise TypeError(f"ERROR - '{name}' is not a number.")
 
         if not isinstance(value, (int, float)):
-            raise TypeError(f"Parameter '{name}' must be a number (got {type(value).__name__}).")
+            raise TypeError(f"ERROR - '{name}' is not a number.")
         if not math.isfinite(value):
-            raise ValueError(f"Parameter '{name}' must be finite (got {value}).")
+            raise ValueError(f"ERROR - '{name}' is not finite.")
 
     @staticmethod
     def _validate_positive(value: Union[float, int], name: str) -> None:
@@ -344,8 +344,8 @@ class Shape(ABC):
         """
         Shape._validate_numeric(value, name)
         if float(value) <= 0:
-            raise ValueError(f"Parameter '{name}' must be positive (got {value}).")
-    
+            raise ValueError(f"ERROR - '{name}' <= 0.")
+
 
 def normalize_angle_deg(angle: float) -> float:
     """

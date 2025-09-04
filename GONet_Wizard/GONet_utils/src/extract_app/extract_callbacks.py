@@ -9,11 +9,18 @@ client-side callback for JSON downloads of the drawn region.
 
 **Functions**
 
+- :func:`load_gonet_file`:
+    Loads the GONet file for the selected file.
+
+- :func:`store_binning`:
+    Stores the binning information for the current extraction.
+
 - :func:`update_figure_heatmap`:
-    Updates the displayed image based on the selected file and channel.
+    Update the heatmap figure based on the selected channel and binning option.
 
 - :func:`update_shape_options`:
-    Adjusts visibility and labels of shape-specific input fields based on the selected shape.
+    Updates visibility and labels of shape-specific input fields based on selected shape.
+    Also updates the figure drawing settings based on the shape selected.
 
 - :func:`catch_drawn_path`:
     Captures the path of a freehand-drawn region and updates the figure.
@@ -25,10 +32,7 @@ client-side callback for JSON downloads of the drawn region.
     Updates extraction parameters based on user inputs and interactions.
 
 - :func:`update_drawn_figure_and_extraction_values`:
-    Updates the drawn figure and extraction values based on user inputs and interactions.
-
-- :func:`update_config`:
-    Updates the configuration settings based on user inputs and interactions.
+    Draw the updated shape on the figure and display the extraction values.
 
 - :func:`save_path`:
     Prepares the freehand path data for saving when the "Save Path" button is clicked.
@@ -49,47 +53,125 @@ client-side callback for JSON downloads of the drawn region.
 
 """
 
-import os
+import os, copy
 from dash import Input, Output, State, ctx, no_update
+from dash_extensions.enrich import Serverside
 from GONet_Wizard.GONet_utils.src.gonetfile import GONetFile
-from GONet_Wizard.GONet_utils.src.extractors import extract_counts_from_region
+from GONet_Wizard.GONet_utils.src.extractors import extract_counts_from_region, extraction_output
 from GONet_Wizard.GONet_dashboard.src.load_save_callbacks import register_json_download, load_json
 from GONet_Wizard.GONet_utils.src.extract_app.extract_server import app
 import GONet_Wizard.GONet_utils.src.extract_app.shapes.base as base
 from GONet_Wizard.GONet_utils.src.extract_app.extract_layout import files_path
 import numpy as np
 
-
 @app.callback(
-    Output("gonet-image", "figure"),
-    Output("ready-dummy-div", "children"),
+    Output("gonet_file", "data"),
+    Output("file-loaded", "children"),
     #---------------------
     Input("file-selector", "value"),
-    Input("channel-selector", "value"),
-    #---------------------
-    State("gonet-image", "figure"),
 )
-def update_figure_heatmap(selected_file, selected_channel, fig):
+def load_gonet_file(selected_file):
     """
-    Update the displayed image based on the selected file and channel.
+    Load the GONet file for the selected file.
 
-    This callback updates the `gonet-image` figure to display the image data
-    corresponding to the selected file and channel. The image data is loaded
-    from the specified file, and the selected channel (e.g., "red", "green",
-    "blue") is extracted and displayed in the figure.
-
+    The GONet file is loaded server-side, for faster access.
     This is the only callback in the module without `prevent_initial_call=True`,
     meaning it runs automatically when the app loads. This ensures that the
-    figure is initialized properly and spawns all other necessary initializing
+    file is loaded properly and spawns all other necessary initializing
     callbacks.
 
     Parameters
     ----------
     selected_file : :class:`str`
         The name of the file selected in the file dropdown.
+
+    Returns
+    -------
+    tuple
+        A tuple containing:
+
+        - :class:`Serverside`: The loaded GONet as
+          a :class:`~GONet_Wizard.GONet_utils.src.gonetfile.GONetFile` object.
+        - :class:`str`: An empty string to update the `file-loaded` component,
+          which serves as control for the loading state.
+
+    """
+
+    gof = GONetFile.from_file(os.path.join(files_path,selected_file))
+    return Serverside(gof, key="gonet_file"), ''
+
+
+@app.callback(
+    Output("bin", "data"),
+    #---------------------
+    Input("binning-selector", "value"),
+    #---------------------
+    prevent_initial_call=True
+)
+def store_binning(binning):
+    """
+    Store the selected binning option as a more convenient :class:`int`.
+
+    This callback stores the selected binning option in a `dcc.Store`
+    component. The stored value can be used by other callbacks to adjust
+    image processing based on the user's choice. The ``bin`` `dcc.Store`
+    component is initialized in the layout, so it is available for use
+    since the app starts.
+
+    Parameters
+    ----------
+    binning : :class:`str`
+        The binning option selected in the binning dropdown. Possible values are
+        "1x1", "2x2", and "4x4".
+
+    Returns
+    -------
+    :class:`int`
+        The selected binning option to be stored in the `bin` store.
+
+    """
+    return int(binning[0])
+
+
+@app.callback(
+    Output("gonet-image", "figure"),
+    Output("heatmap-ready-control", "children"),
+    #---------------------
+    Input("file-loaded", "children"),
+    Input("channel-selector", "value"),
+    Input("bin", "data"),
+    #---------------------
+    State("gonet_file", "data"),
+    State("gonet-image", "figure"),
+    #---------------------
+    prevent_initial_call=True
+)
+def update_figure_heatmap(_, selected_channel, bin, gof, fig):
+    """
+    Update the heatmap figure based on the selected channel and binning option.
+
+    This callback updates the `gonet-image` figure to display the image data
+    corresponding to the selected channel and binning option. The image data
+    is loaded using the :class:`~GONet_Wizard.GONet_utils.src.gonetfile.GONetFile`
+    class, which extracts the specified channel from the selected file. When
+    the figure is binned, the axis maintains the original unbinned pixel coordinates.
+    Hovering over the figure will show the original pixel coordinates in the tooltip.
+
+    To ensure the correct sequence of callbacks when the app loads for the first time,
+    this callback waits on the `file-loaded` component to be updated before executing.
+
+    Parameters
+    ----------
+    _ : :class:`str` or :class:`NoneType`
+        Dummy Div triggered by :func:`.update_figure` when the figure is ready (ignored).
     selected_channel : :class:`str`
         The name of the channel selected in the channel dropdown. Possible values
         are "red", "green", and "blue".
+    bin : :class:`int`
+        The binning option selected in the binning dropdown. Possible values are
+        1, 2, and 4.
+    gof : :class:`~GONet_Wizard.GONet_utils.src.gonetfile.GONetFile`
+        The GONet file currently loaded server-side.
     fig : :class:`dict`
         The current figure object for the `gonet-image` component, which is updated
         with the new image data.
@@ -100,52 +182,92 @@ def update_figure_heatmap(selected_file, selected_channel, fig):
         A tuple containing:
 
         - :class:`dict`: The updated figure object with the new image data.
-        - :class:`str`: An empty string to update the `ready-dummy-div` component
+        - :class:`str`: An empty string to update the `heatmap-ready-control` component
           and signal that the figure update is complete.
-
-    Notes
-    -----
-    - The image data is loaded using the :class:`GONetFile` class, which extracts
-      the specified channel from the selected file.
 
     """
 
-    gof = GONetFile.from_file(os.path.join(files_path,selected_file))
-    fig['data'][0]['z'] = gof.get_channel(selected_channel)
-    del gof
+    data = gof.get_channel(selected_channel)
+    # binning the data
+    H, W = data.shape
+    if bin > 1:
+        # --- rebin (block mean) ---
+        # Rebin: (H/bin, bin, W/bin, bin) → mean over inner axes (1,3)
+        data = data.reshape(H // bin, bin, W // bin, bin).mean((1, 3))
+        rows, cols = data.shape
+
+        # Bin centers in original pixel coords
+        x = (bin - 1) / 2 + bin * np.arange(cols)
+        y = (bin - 1) / 2 + bin * np.arange(rows)
+
+        # Customdata with original pixel coverage per bin
+        x0 = (bin * np.arange(cols)).reshape(1, -1)
+        y0 = (bin * np.arange(rows)).reshape(-1, 1)
+        x1 = x0 + (bin - 1)
+        y1 = y0 + (bin - 1)
+        custom = np.stack([x0 + 0*y0, x1 + 0*y0, y0 + 0*x0, y1 + 0*x0], axis=-1)  # (rows, cols, 4)
+
+        # --- Update main heatmap (trace 0) ---
+        fig['data'][0].update({
+            'type': 'heatmap',
+            'x': x,
+            'y': y,
+            'zsmooth': False,
+            'customdata': custom,
+            'hovertemplate': (
+                "center x=%{x:.1f}, y=%{y:.1f}<br>"
+                "covers x=[%{customdata[0]}–%{customdata[1]}], "
+                "y=[%{customdata[2]}–%{customdata[3]}]<br>"
+                "val=%{z}<extra></extra>"
+            ),
+        })
+    else:
+        fig['data'][0].pop('customdata', None)
+        fig['data'][0]['hovertemplate'] = (
+            "center x=%{x:.1f}, y=%{y:.1f}<br>"
+            "val=%{z}<extra></extra>"
+        )
+        fig['data'][0].pop('x', None)
+        fig['data'][0].pop('y', None)
+
+    fig['data'][0]['z'] = data.tolist()
 
     return fig, ''
 
 
 @app.callback(
+    Output("gonet-image", "figure", allow_duplicate=True),
+    Output("gonet-image", "config"),
     Output("shape-options", "style"),
     Output("freehand-options", "style"),
     Output("shape-extra-parameters", "children"),
     Output("shape-parameter1", "placeholder"),
     Output("shape-parameter2", "style"),
     Output("shape-parameter2", "placeholder"),
-    Output("extraction-params", "data"),
+    Output("config-done-dummy-div", "children"),
     #---------------------
-    Input("ready-dummy-div", "children"),
+    Input("heatmap-ready-control", "children"),
     Input("shape-selector", "value"),
     #---------------------
-    State("extraction-params", "data"),
-    #---------------------
+    State("gonet-image", "figure"),
+    State("gonet-image", "config"),
     prevent_initial_call=True
 )
-def update_shape_options(_, selected_shape, current_params):
+def update_shape_options(_, selected_shape, fig, config):
     """
     Update visibility and labels of shape-specific input fields based on selected shape.
+    Also update the figure drawing settings based on the shape selected.
 
     This callback adjusts the visibility of input fields and buttons related to
     shape parameters depending on the user's selection in the shape dropdown.
     It ensures that only relevant inputs are shown for the chosen shape type.
-    Is also updates the ``shape`` key in the `extraction-params` store
-    to reflect the current selection.
+
+    This callback also updates the `gonet-image` component's configuration and dragmode
+    based on whether the selected shape is freehand or not.
 
     To guarantee the correct sequence of callbacks, this callback waits on the
-    :func:`.update_figure` callback to complete before executing, by listening to
-    changes to the `ready-dummy-div` component.
+    :func:`.update_figure_heatmap` callback to complete before executing, by listening to
+    changes to the `heatmap-ready-control` component.
 
     Parameters
     ----------
@@ -155,25 +277,40 @@ def update_shape_options(_, selected_shape, current_params):
     selected_shape : :class:`str`
         The currently selected shape type from the dropdown. Possible values are
         "circle", "rectangle", "annulus", and "freehand".
-    
-    current_params : :class:`dict`
-        The current extraction parameters stored in the `extraction-params` store.
-        This is used to update the state of the parameters based on the selected shape.
 
     Returns
     -------
     tuple
         A tuple containing:
 
+        - :class:`dict` or :data:`dash.no_update`: Updated figure object.
+        - :class:`dict` or :data:`dash.no_update`: Updated figure configuration object.
         - :class:`dict`: CSS style for the shape options container (to show/hide it).
         - :class:`dict`: CSS style for the freehand options container (to show/hide it).
         - :class:`str` or :data:`dash.no_update`: Label text for extra parameters.
         - :class:`str` or :data:`dash.no_update`: Placeholder text for parameter 1 input.
         - :class:`dict` or :data:`dash.no_update`: CSS style for parameter 2 input (to show/hide it).
         - :class:`str` or :data:`dash.no_update`: Placeholder text for parameter 2 input.
-        - :class:`dict`: Updated extraction parameters to be stored in the `extraction-params` store.
+        - :class:`str`: An empty string to update the `config-done-dummy-div` component,
+          which serves as control for the extraction-params component.
 
     """
+
+    # Making a copy of the item we started with
+    figure_in = fig['layout']['dragmode']
+
+    if selected_shape == 'freehand':
+        config["modeBarButtonsToAdd"] = ["drawclosedpath"]
+        fig['layout']['dragmode'] = 'drawclosedpath'
+    else:
+        config["modeBarButtonsToAdd"] = []
+        fig['layout']['dragmode'] = 'zoom'
+
+    # Checking if the dragmode changed. If not,
+    # neither has the config
+    if figure_in == fig['layout']['dragmode']:
+        fig = no_update
+        config = no_update
 
     output_shape_extra_parameters = no_update
     output_shape_parameter1_placeholder = no_update
@@ -202,9 +339,7 @@ def update_shape_options(_, selected_shape, current_params):
         output_shape_parameter2_placeholder = "outer radius"
         output_shape_parameter2_style = {"display": "block", "width": "100%"}
 
-    current_params['shape'] = selected_shape
-
-    return output_shape_options, output_freehand_options, output_shape_extra_parameters, output_shape_parameter1_placeholder, output_shape_parameter2_style, output_shape_parameter2_placeholder, current_params
+    return fig, config, output_shape_options, output_freehand_options, output_shape_extra_parameters, output_shape_parameter1_placeholder, output_shape_parameter2_style, output_shape_parameter2_placeholder, ''
 
 
 @app.callback(
@@ -253,6 +388,7 @@ def catch_drawn_path(relayout_data, reset_button, fig):
 
     if ctx.triggered_id == "freehand-reset-button":
         del fig["layout"]['shapes']
+        fig['data'][1]['z'] = []
         return None, fig
     if 'shapes' in relayout_data:
         if len(fig['layout']['shapes']) > 1:
@@ -300,7 +436,7 @@ def activate_deactivate_freehand_buttons(path):
     - Both buttons are disabled when no path is present.
 
     """
-    
+
     if path is not None:
         output_freehand_reset_button_disabled = False
         output_freehand_save_button_disabled = False
@@ -313,7 +449,12 @@ def activate_deactivate_freehand_buttons(path):
 
 @app.callback(
     Output("extraction-params", "data", allow_duplicate=True),
+    Output("mask", "data"),
+    Output("extracted-values", "data"),
+    Output("error-banner", "children"),
+    Output("error-banner", "style"),
     #---------------------
+    Input("config-done-dummy-div", "children"),
     Input("shape-center-x", "value"),
     Input("shape-center-y", "value"),
     Input("shape-parameter1", "value"),
@@ -321,20 +462,36 @@ def activate_deactivate_freehand_buttons(path):
     Input("shape-sector-start", "value"),
     Input("shape-sector-end", "value"),
     #---------------------
-    State("extraction-params", "data"),
+    State("shape-selector", "value"),
+    State("drawn-path", "data"),
+    State("gonet_file", "data"),
+    State("channel-selector", "value"),
+    State("mask", "data"),
+    State("error-banner", "style"),
     prevent_initial_call=True
 )
-def update_extraction_params(center_x, center_y, param1, param2, start_angle, end_angle, current_params):
+def update_extraction_params(_, center_x, center_y, param1, param2, start_angle, end_angle, selected_shape, path, gof, channel, masked_figure, error_banner_style):
     """
     Update extraction parameters based on user inputs.
 
     This callback updates the `extraction-params` store with the current values
-    of the shape parameters entered by the user. It ensures that the latest
-    values for the shape's center, dimensions, and angles are stored for use
-    during the extraction process.
+    of the shape parameters entered by the user. The updated extraction parameters
+    are then used to generate the mask for the selected shape, which is stored
+    in the `mask` component. Using this mask, the extracted values are computed
+    and stored in the `extracted-values` component.
+
+    This callback also handles any errors that may occur with invalid parameters,
+    by displaying an error message in the `error-banner` component. The error
+    message will be displayed only once all the parameters have been validated,
+    and not for every single parameter input.
 
     Parameters
     ----------
+    _ : :class:`str` or :data:`NoneType`
+        The value of the `config-done-dummy-div` component, which indicates when the
+        figure configuration is complete. This guarantees that the figure's configuration
+        is fully updated before any subsequent extraction gets triggered by the
+        `extraction-params` component.
     center_x : :class:`float` or :data:`NoneType`
         X-coordinate of the shape center (if applicable).
     center_y : :class:`float` or :data:`NoneType`
@@ -347,21 +504,71 @@ def update_extraction_params(center_x, center_y, param1, param2, start_angle, en
         Start angle for sector shapes (in degrees).
     end_angle : :class:`float` or :data:`NoneType`
         End angle for sector shapes (in degrees).
-    current_params : :class:`dict`
-        Current extraction parameters stored in the `extraction-params` store.
+    selected_shape : :class:`str`
+        The currently selected shape type from the dropdown. Possible values are
+        "circle", "rectangle", "annulus", and "freehand".
+    path : :class:`str` or :data:`NoneType`
+        The current freehand path data stored in the `drawn-path` store.
+    gof : :class:`~GONet_Wizard.GONet_utils.src.gonetfile.GONetFile`
+        The GONet file currently loaded server-side.
+    channel : :class:`str`
+        The currently selected channel from the `channel-selector` component.
+    masked_figure : :class:`list`
+        The current masked figure data stored in the `mask` store.
+    error_banner_style : :class:`dict`
+        The current style properties for the error banner.
 
     Returns
     -------
-    :class:`dict`
-        Updated extraction parameters to be stored in the `extraction-params` store.
-
-    Notes
-    -----
-    - The `shape` key in `current_params` remains unchanged.
+    tuple
+        A tuple containing:
+        
+        - :class:`dict` with updated extraction parameters.
+        - :class:`list` with the updated masked figure data.
+        - :class:`Serverside` the :class:`~GONet_Wizard.GONet_utils.src.extract_app.extractors.extraction_output`
+          object with the extracted values.
+        - :class:`str` with any error messages for the banner.
+        - :class:`dict` with the updated visibility style properties for the error banner.
 
     """
 
-    return {'shape': current_params['shape'], 'x0': center_x, 'y0': center_y, 'param1': param1, 'param2': param2, 'start_angle': start_angle, 'end_angle': end_angle}
+    error_banner_children = ''
+    error_banner_style["visibility"] = 'hidden'
+
+    extraction_params = {
+        'shape': selected_shape,
+        'x0': center_x,
+        'y0': center_y,
+        'param1': param1,
+        'param2': param2,
+        'start_angle': start_angle,
+        'end_angle': end_angle,
+        'path': path
+    }
+
+    masked_figure_initial = masked_figure[:]
+
+    data = gof.get_channel(channel)
+
+    try:
+        shape = base.Shape.from_dict(extraction_params)
+    except base.IncompleteShapeError:
+        output = extraction_output(0, 0, 0, 0)
+        masked_figure = []
+    except (ValueError, TypeError) as e:
+        error_banner_style["visibility"] = ["visible"]
+        return no_update, no_update, no_update, str(e), error_banner_style
+    else:
+        mask = shape.mask(data)
+        masked_figure = np.where(mask, 1, np.nan)
+        masked_figure = masked_figure.tolist()
+        output = extract_counts_from_region(data, mask)
+        
+
+    if masked_figure_initial != masked_figure:
+        return extraction_params, masked_figure, Serverside(output, key="extraction_output"), error_banner_children, error_banner_style
+    else:
+        return no_update, no_update, no_update, error_banner_children, error_banner_style
 
 
 @app.callback(
@@ -371,111 +578,20 @@ def update_extraction_params(center_x, center_y, param1, param2, start_angle, en
     Output("stat-std", "children"),
     Output("stat-npix", "children"),
     #---------------------
-    Input("config-done-dummy-div", "children"),
-    Input("drawn-path", "data"),
-    #---------------------
-    State("gonet-image", "figure"),
-    State("extraction-params", "data"),
-    prevent_initial_call=True
-)
-def update_drawn_figure_and_extraction_values(_, path, fig, extraction_params):
-    """
-    Compute and update extraction statistics for the selected region.
-
-    This callback draws the new shape and calculates pixel statistics (total counts,
-    mean, standard deviation, and pixel count) for the region defined by the current
-    extraction parameters and the drawn path. The results are displayed in the
-    corresponding statistic fields.
-
-    The callback can be triggered by changes to the drawn path or updates to the
-    extraction parameters. However, changes to the extraction parameters do not
-    directly trigger this callback. Instead, they first invoke the :func:`.update_config`
-    callback, which updates the `config-done-dummy-div` component. This dummy div then
-    triggers the current callback, ensuring proper sequencing of operations.
-
-    Parameters
-    ----------
-    _ : :class:`str` or :data:`NoneType`
-        The value of the `config-done-dummy-div` component, which indicates when the
-        figure configuration is complete.
-    path : :class:`str` or :data:`NoneType`
-        The path of the freehand-drawn region, if applicable. If `None`, no freehand
-        region is used.
-    fig : :class:`dict`
-        The current figure object for the `gonet-image` component, which contains
-        the image data used for the extraction.
-    extraction_params : :class:`dict`
-        The current extraction parameters stored in the `extraction-params` store.
-        This includes the shape type, center coordinates, dimensions, angles, and
-        the drawn path (if applicable).
-
-    Returns
-    -------
-    tuple
-        A tuple containing:
-        - :class:`float` or :class:`str`: Total pixel counts within the selected region.
-        - :class:`float` or :class:`str`: Mean pixel value within the selected region.
-        - :class:`float` or :class:`str`: Standard deviation of pixel values within the selected region.
-        - :class:`int` or :class:`str`: Number of pixels within the selected region.
-
-    Notes
-    -----
-    - If the extraction parameters are incomplete (e.g., missing shape dimensions),
-      the statistics are not computed, and empty strings are returned.
-    - The :class:`~GONet_Wizard.GONet_utils.src.extract_app.shapes.base.Shape` class is used to generate a mask for the selected region based on
-      the extraction parameters.
-    - The results of the extraction are parsed from a :class:`~GONet_Wizard.GONet_utils.src.extract_app.extractors.extraction_output` class.
-
-    """ 
-
-    extraction_params['path'] = path
-    try:
-        shape = base.Shape.from_dict(extraction_params)
-    except base.IncompleteShapeError:
-        output_stat_total = ""
-        output_stat_mean = ""
-        output_stat_std = ""
-        output_stat_npix = ""
-        if "shapes" in fig["layout"]:
-            del fig["layout"]['shapes']
-        fig["data"][1]['z'] = []
-    else:
-        if extraction_params['shape'] != 'freehand':
-            fig["layout"]["shapes"] = shape.draw()
-        mask = shape.mask(fig['data'][0]['z'])
-        fig["data"][1]['z'] = np.where(mask, 1, np.nan)
-        output = extract_counts_from_region(fig['data'][0]['z'], mask)
-        output_stat_total = output.total_counts
-        output_stat_mean = output.mean_counts
-        output_stat_std = output.std
-        output_stat_npix = output.npixels
-    
-    return fig, output_stat_total, output_stat_mean, output_stat_std, output_stat_npix
-
-
-@app.callback(
-    Output("gonet-image", "figure", allow_duplicate=True),
-    Output("gonet-image", "config"),
-    Output("config-done-dummy-div", "children"),
-    #---------------------
     Input("extraction-params", "data"),
     #---------------------
     State("gonet-image", "figure"),
-    State("gonet-image", "config"),
-    State("shape-selector", "value"),
-    State("drawn-path", "data"),
-    #---------------------
-    prevent_initial_call=True   
+    State("mask", "data"),
+    State("extracted-values", "data"),
+    prevent_initial_call=True
 )
-def update_config(extraction_params, fig, config, selected_shape, path):
+def update_drawn_figure_and_extraction_values(extraction_params, fig, mask, extracted_values):
     """
-    Update the configuration settings based on user inputs and interactions.
+    Draw the updated shape on the figure and display the extraction values.
 
-    This callback updates the `gonet-image` component's configuration based on the
-    current extraction parameters, selected shape, and drawn path.
-
-    It outputs also a dummy div `config-done-dummy-div` to trigger the drawing
-    of the updated shape.
+    This callback draws the new shape and display the pixel statistics (total counts,
+    mean, standard deviation, and pixel count) for the region defined by the current
+    extraction parameters and the drawn path. 
 
     Parameters
     ----------
@@ -484,49 +600,36 @@ def update_config(extraction_params, fig, config, selected_shape, path):
         This includes the shape type, center coordinates, dimensions, angles, and
         the drawn path (if applicable).
     fig : :class:`dict`
-        The current figure object for the `gonet-image` component, which is updated
-        with the new shape.
-    config : :class:`dict`
-        The current configuration object for the `gonet-image` component, which is
-        updated based on the selected shape.
-    selected_shape : :class:`str`
-        The currently selected shape type from the shape selector. Possible values
-        are "circle", "rectangle", "annulus", and "freehand".
-    path : :class:`str` or :data:`NoneType`
-        The path of the freehand-drawn region, if applicable. If `None`, no freehand
-        region is used.
+        The current figure object for the `gonet-image` component, which contains
+        the image data used for the extraction.
+    masked_figure : :class:`list`
+        The current masked figure data stored in the `mask` store.
+    extracted_values : :class:`~GONet_Wizard.GONet_utils.src.extract_app.extractors.extraction_output`
+          object with the extracted values.
+    
 
     Returns
     -------
     tuple
         A tuple containing:
-        - :class:`dict`: The updated figure object with the new shape.
-        - :class:`dict`: The updated configuration object for the `gonet-image` component.
-        - :class:`str`: An empty string to update the `config-done-dummy-div` component
+        - :class:`dict`: The updated figure object for the `gonet-image` component.
+        - :class:`int`: Total pixel counts within the selected region.
+        - :class:`float`: Mean pixel value within the selected region.
+        - :class:`float`: Standard deviation of pixel values within the selected region.
+        - :class:`int`: Number of pixels within the selected region.
 
-    Notes
-    -----
-    - For freehand shapes, the `path` is attached to the `extraction_params` and
-      the figure's drag mode is set to "drawclosedpath".
-    - For other shapes, the :class:`~GONet_Wizard.GONet_utils.src.extract_app.shapes.base.Shape` class is used to generate the shape and update
-      the figure's layout.
-      
-    """
+    """ 
 
-    extraction_params['shape'] = selected_shape
-
-    if selected_shape == 'freehand':
-        config["modeBarButtonsToAdd"] = ["drawclosedpath"]
-        fig['layout']['dragmode'] = 'drawclosedpath'
-        # Attaching path to ``extraction_params`` if we are in free hand
-        # so that we can fetch tha previosly drawn path. However, it
-        # won't be editable anymore.
-        extraction_params['path'] = path
+    try:
+        shape = base.Shape.from_dict(extraction_params)
+    except base.IncompleteShapeError:
+        del fig["layout"]["shapes"]
+        fig["data"][1]['z'] = []
     else:
-        config["modeBarButtonsToAdd"] = []
-        fig['layout']['dragmode'] = 'zoom'
+        fig["layout"]["shapes"] = shape.draw()
+        fig["data"][1]['z'] = mask
 
-    return fig, config, ''
+    return fig, f"{extracted_values.total_counts}", f"{extracted_values.mean_counts:.2f}", f"{extracted_values.std:.2f}", f"{extracted_values.npixels}"
 
 
 # Registering client-side callback handling the download

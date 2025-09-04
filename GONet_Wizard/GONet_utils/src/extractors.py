@@ -86,7 +86,7 @@ class extraction_output:
         Number of pixels within the circular region.
 
     """
-    total_counts: float
+    total_counts: int
     mean_counts: float
     std: float
     npixels: int

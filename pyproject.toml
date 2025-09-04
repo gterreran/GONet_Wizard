@@ -21,6 +21,7 @@ dependencies = [
     "tifffile==2023.7.10",
     "python-dateutil",
     "dash==2.18.2",
+    "dash-extensions",
     "dash_daq",
     "python-dotenv",
     "paramiko",

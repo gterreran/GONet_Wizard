@@ -12,6 +12,7 @@ and trigger actions (Extract / Exit).
 - The file list shows only file names, while the actual path is stored
 - The figure uses a fixed aspect ratio matching the expected data shape
   (height/width = 1520/2028) via ``yaxis_scaleanchor`` / ``yaxis_scaleratio``.
+- The default binning is set to 4, for quick operation with large files.
 - The layout uses a two-column flex container: the graph area on the left
   and a fixed-width sidebar (300px) on the right.
 - The sidebar hosts controls (file, channel, shape selectors), shape-specific
@@ -39,12 +40,13 @@ else:
 
 aspect_ratio = 1520 / 2028
 
+default_bin = 4
+
 # Create a placeholder heatmap figure
 gonet_fig = {
             'data': [{
                 'z': [],
-                'type': 'heatmap',
-                'shapes':{}
+                'type': 'heatmap'
             },
             {
                 'z': [],
@@ -71,10 +73,15 @@ layout = dcc.Loading(
     overlay_style={"visibility":"visible", "filter": "blur(2px)"},
     children=html.Div([
         # Dummy divs.
-        html.Div(id='ready-dummy-div'),
+        html.Div(id='file-loaded'),
+        html.Div(id='heatmap-ready-control'),
         html.Div(id='config-done-dummy-div'),
         html.Div(id='dummy-div'),
         # Stores
+        dcc.Store(id='gonet_file'),
+        dcc.Store(id='bin', data = default_bin),
+        dcc.Store(id='mask', data = []),
+        dcc.Store(id='extracted-values'),
         dcc.Store(id='save-path'),
         dcc.Store(id='drawn-path'),
         dcc.Store(
@@ -109,32 +116,66 @@ layout = dcc.Loading(
         # Sidebar
         html.Div([
             html.Div([
-            html.H4("Select File:"),
-            dcc.Dropdown(
-                id="file-selector",
-                options=data_list,
-                value=file_to_show,
-                style={"width": "100%"}
-            )
-        ], style={"padding": "10px", "borderBottom": "1px solid #ccc"}),
-            # Channel selector
-            html.Div([
-                html.H4("Select Channel:"),
-                dcc.RadioItems(
-                    id="channel-selector",
-                    options=[
-                        {"label": "Red", "value": "red"},
-                        {"label": "Green", "value": "green"},
-                        {"label": "Blue", "value": "blue"},
-                    ],
-                    value="green",
-                    labelStyle={"display": "block", "margin": "4px 0"}
+                html.H4("Select File:", style={"marginTop": "0px", "marginBottom": "5px"}),
+                dcc.Dropdown(
+                    id="file-selector",
+                    options=data_list,
+                    value=file_to_show,
+                    style={"width": "100%"}
                 )
             ], style={"padding": "10px", "borderBottom": "1px solid #ccc"}),
 
+            # Channel and Binning selectors in one row
+            html.Div([
+                # Channel selector (left)
+                html.Div([
+                    html.H4("Select Channel:", style={"marginTop": "0px", "marginBottom": "5px"}),
+                    dcc.RadioItems(
+                        id="channel-selector",
+                        options=[
+                            {"label": "Red", "value": "red"},
+                            {"label": "Green", "value": "green"},
+                            {"label": "Blue", "value": "blue"},
+                        ],
+                        value="green",
+                        labelStyle={"display": "block", "margin": "4px 0"}
+                    )
+                ], style={
+                    "padding": "10px",
+                    "borderBottom": "1px solid #ccc",
+                    "borderRight": "1px solid #ccc",   # <-- Vertical divider
+                    "width": "50%",
+                    "boxSizing": "border-box"
+                }),
+
+                # Binning selector (right)
+                html.Div([
+                    html.H4("Binning:", style={"marginTop": "0px", "marginBottom": "5px"}),
+                    dcc.RadioItems(
+                        id="binning-selector",
+                        options=[
+                            {"label": "1×1", "value": "1x1"},
+                            {"label": "2×2", "value": "2x2"},
+                            {"label": "4×4", "value": "4x4"},
+                        ],
+                        value=f"{default_bin}x{default_bin}",
+                        labelStyle={"display": "block", "margin": "4px 0"}
+                    )
+                ], style={
+                    "padding": "10px",
+                    "borderBottom": "1px solid #ccc",
+                    "width": "50%",
+                    "boxSizing": "border-box"
+                })
+            ], style={
+                "display": "flex",
+                "flexDirection": "row",
+                "gap": "0px"  # prevent extra space between the divider
+            }),
+
             # Shape selector
             html.Div([
-                html.H4("Select Shape:"),
+                html.H4("Select Shape:", style={"marginTop": "0px", "marginBottom": "5px"}),
                 dcc.RadioItems(
                     id="shape-selector",
                     options=[
@@ -144,30 +185,93 @@ layout = dcc.Loading(
                         {"label": "Free Hand", "value": "freehand"},
                     ],
                     value="circle",
-                    labelStyle={"display": "block", "margin": "4px 0"}
+                    labelStyle={
+                        "display": "inline-block",
+                        "margin": "4px 0",
+                        "width": "50%"  # This forces two columns
+                    },
+                    inputStyle={
+                        "margin-right": "6px"
+                    }
                 )
             ], style={"padding": "10px", "borderBottom": "1px solid #ccc"}),
 
             # Shape-specific controls
             html.Div(id="shape-options-container", children=[
                 html.Div([
+                    # Alert
+                    html.Div(id="error-banner", role="alert", **{"aria-live":"polite"},
+                        style={
+                            "minHeight": "32px",          # reserve space even when empty
+                            "lineHeight": "32px",         # vertical centering
+                            "padding": "0 8px",
+                            "borderRadius": "6px",
+                            "backgroundColor": "#B00020", # error red; tweak as you like
+                            "color": "white",
+                            "fontWeight": 500,
+                            "whiteSpace": "pre-wrap",
+                            "overflow": "hidden",
+                            "textOverflow": "ellipsis",
+                            "visibility": "hidden",       # hidden by default (space still reserved)
+                        }
+                    ),
+
+                    # Center
                     html.Label("Center (x, y):"),
-                    dcc.Input(id="shape-center-x", type="number", placeholder="x", debounce=True,
-                            style={"marginRight": "5px", "width": "100%"}),
-                    dcc.Input(id="shape-center-y", type="number", placeholder="y", debounce=True,
-                            style={"width": "100%"}),
-                    html.Br(), html.Br(),
-                    html.Label(id='shape-extra-parameters'),
-                    dcc.Input(id="shape-parameter1", type="number", placeholder="Side 1", debounce=True, style={"width": "100%"}),
-                    dcc.Input(id="shape-parameter2", type="number", placeholder="Side 2", debounce=True, style={"width": "100%"}),
-                    html.Br(), html.Br(),
-                    html.Label("Sector Start Angle (deg):"),
-                    dcc.Input(id="shape-sector-start", type="number", debounce=True,
-                            value=-180, style={"width": "100%"}),
-                    html.Br(), html.Br(),
-                    html.Label("Sector End Angle (deg):"),
-                    dcc.Input(id="shape-sector-end", type="number", debounce=True,
-                            value=180, style={"width": "100%"}),
+                    html.Div([
+                        html.Div(
+                            dcc.Input(id="shape-center-x", type="number", placeholder="x", debounce=True,
+                                    style={"width": "100%"}),
+                            style={"width": "50%", "marginRight": "5px"}
+                        ),
+                        html.Div(
+                            dcc.Input(id="shape-center-y", type="number", placeholder="y", debounce=True,
+                                    style={"width": "100%"}),
+                            style={"width": "50%"}
+                        ),
+                    ], style={"display": "flex", "gap": "5px", "marginBottom": "10px"}),
+
+                    # Extra shape parameters
+                    html.Label("Parameters",id="shape-extra-parameters"),
+                    html.Div([
+                        html.Div(
+                            dcc.Input(
+                                id="shape-parameter1",
+                                type="number",
+                                placeholder="Side 1",
+                                debounce=True,
+                                style={"width": "100%"}
+                            ),
+                            style={"width": "50%", "marginRight": "5px"}
+                        ),
+                        html.Div(
+                            dcc.Input(
+                                id="shape-parameter2",
+                                type="number",
+                                placeholder="Side 2",
+                                debounce=True,
+                                style={"width": "100%"}
+                            ),
+                            id="shape-parameter2-container",
+                            style={"width": "50%"}
+                        )
+                    ], style={"display": "flex", "gap": "5px", "marginBottom": "10px"}),
+
+                    # Angles
+                    html.Label("Angles (deg):"),
+                    html.Div([
+                        html.Div(
+                            dcc.Input(id="shape-sector-start", type="number", debounce=True, value=-180,
+                                    style={"width": "100%"}),
+                            style={"width": "50%", "marginRight": "5px"}
+                        ),
+                        html.Div(
+                            dcc.Input(id="shape-sector-end", type="number", debounce=True, value=180,
+                                    style={"width": "100%"}),
+                            style={"width": "50%"}
+                        ),
+                    ], style={"display": "flex", "gap": "5px", "marginBottom": "10px"})
+
                 ], id="shape-options"),
 
                 html.Div([
@@ -183,11 +287,11 @@ layout = dcc.Loading(
 
             # Extraction stats
             html.Div([
-                html.H4("Extraction values:"),
-                html.Div(["Total: ", html.Span(id="stat-total")]),
-                html.Div(["Mean: ", html.Span(id="stat-mean")]),
-                html.Div(["Std Dev: ", html.Span(id="stat-std")]),
-                html.Div(["N Pixels: ", html.Span(id="stat-npix")]),
+                html.H4("Extraction values:", style={"marginTop": "0px", "marginBottom": "5px"}),
+                html.Div(["Total: ", html.Span(0, id="stat-total")]),
+                html.Div(["Mean: ", html.Span(0, id="stat-mean")]),
+                html.Div(["Std Dev: ", html.Span(0, id="stat-std")]),
+                html.Div(["N Pixels: ", html.Span(0, id="stat-npix")]),
             ], style={"padding": "10px", "flex": 1}),
 
             # Action buttons at the bottom

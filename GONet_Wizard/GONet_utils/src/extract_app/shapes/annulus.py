@@ -96,7 +96,7 @@ class Annulus(base.Shape):
 
         # Ensure outer_radius is greater than inner_radius
         if self.outer_radius <= self.inner_radius:
-            raise ValueError("outer_radius must be greater than inner_radius.")
+            raise ValueError("ERROR - 'outer_radius' <= 'inner_radius'.")
 
     def get_extractor_field(self) -> dict:
         """
@@ -109,6 +109,7 @@ class Annulus(base.Shape):
         -------
         :class:`dict`
             A dictionary with the following keys and their corresponding values:
+
             - `x0`: X-coordinate of the center of the annulus.
             - `y0`: Y-coordinate of the center of the annulus.
             - `inner_radius`: Inner radius of the annulus.
@@ -119,7 +120,7 @@ class Annulus(base.Shape):
         Notes
         -----
         - This method is used to standardize the extraction parameters for use in the
-        extraction pipeline.
+          extraction pipeline.
         
         """
         return {

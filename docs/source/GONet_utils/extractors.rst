@@ -20,7 +20,7 @@ Classes:
    :members:
    :undoc-members:
    :show-inheritance:
-   :exclude-members: USES, PROVIDES
+   :exclude-members: total_counts, mean_counts, std, npixels
 
 .. autoclass:: GONet_Wizard.GONet_utils.src.extractors.Extractor
    :members:
