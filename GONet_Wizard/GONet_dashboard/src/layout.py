@@ -45,6 +45,7 @@ Notes
 from dash import dcc, html
 import dash_daq as daq
 from GONet_Wizard.GONet_dashboard.src import env
+import GONet_Wizard.settings as settings
 
 place_holder_main_plot = {
     "data": [],
@@ -59,7 +60,7 @@ place_holder_main_plot = {
                 "sizex": 1,
                 "sizey": 1,
                 "sizing": "stretch",
-                "source": "assets/Main-plot-placeholder.png",
+                "source": "/assets/img/Main-plot-placeholder.png",
                 "x": 0,
                 "xanchor": "left",
                 "xref": "paper",
@@ -87,7 +88,7 @@ place_holder_GONet = {
                 "sizex": 1,
                 "sizey": 1,
                 "sizing": "stretch",
-                "source": "assets/GONet-placeholder.png",
+                "source": "/assets/img/GONet-placeholder.png",
                 "x": 0,
                 "xanchor": "left",
                 "xref": "paper",
@@ -114,7 +115,7 @@ layout = dcc.Loading(
         html.Div(id='dummy-div'),
         html.Div(id='title-container', children=[
             html.H1("GONet Wizard", className="main-title"),
-            html.Img(id='logo',src=r'assets/logo.png', alt='logo'),
+            html.Img(id='logo', src=r'/assets/img/logo.png', alt='logo'),
         ]),
         html.Div(id='alert-container', className='alert-box', children=[]),
         html.Div(id='top-container',children=[

@@ -4,8 +4,8 @@ Defines the Flask server and `Dash <https://dash.plotly.com/>`_ app instance for
 This module initializes:
 
 - a :class:`flask.Flask` server named ``GONet_dashboard``,
-- a `Dash` app instance that uses this server and loads assets from the local ``assets/`` folder,
-- and the dashboard layout, which is now assigned here at startup.
+- a `Dash` app instance that uses this server and loads assets from the package's static folder,
+- the HTML template for the Dash app.
 
 The `app` object is fully initialized and can be used as a WSGI entry point for deployment tools such as Gunicorn.
 
@@ -16,17 +16,35 @@ These objects are imported by the rest of the dashboard system, including the ma
 
 from flask import Flask
 from dash import Dash
-import os
+import GONet_Wizard.settings as settings
 
 #: Flask server used as the backend for the Dash app.
 server = Flask('GONet_dashboard')
 
-#: Path to the `assets/` directory for Dash (CSS, images, etc.)
-this_dir = os.path.dirname(__file__)
-assets_path = os.path.join(this_dir, 'assets')
-
 #: The Dash app instance.
-app = Dash(server=server, assets_folder=assets_path)
+app = Dash(server=server, assets_folder=settings.STATIC)
 
 from GONet_Wizard.GONet_dashboard.src.layout import layout
 app.layout = layout
+
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <link rel="stylesheet" href="/assets/css/style.css">
+        <script src="/assets/js/launcher.js"></script>
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+'''

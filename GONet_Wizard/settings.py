@@ -21,6 +21,13 @@ camera-side operations.
 
 Constants
 ---------
+**Package paths**
+
+ROOT : :class:`str`
+    Absolute path to the GONet_Wizard/ root directory.
+STATIC : :class:`str`
+    Absolute path to the shared static folder.
+
 **GONet variables**
 
 GONET_USER : :class:`EnvVar`
@@ -77,6 +84,12 @@ class EnvVar:
     def get(self) -> str:
         """Returns the environment variable's value or its default."""
         return os.environ.get(self.name, self.default)
+
+# Absolute path to the GONet_Wizard/ root directory
+ROOT = os.path.abspath(os.path.dirname(__file__))
+
+# Absolute path to the shared static folder
+STATIC = os.path.join(ROOT, "static")
 
 # Gonet variables 
 GONET_USER = EnvVar("GONET_USER", "pi")

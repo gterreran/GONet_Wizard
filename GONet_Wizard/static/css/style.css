@@ -334,3 +334,153 @@ input:focus, select:focus, button:focus {
     color: #004080;
     border: 1px solid #99ccff;
 }
+
+/* ---------------------------------- */
+/* GONet Wizard Launcher Additions */
+/* ---------------------------------- */
+
+header {
+    display: flex;
+    align-items: center;
+    background-color: #1f1f1f;
+    padding: 16px 24px;
+    border-bottom: 1px solid #444;
+}
+
+header img.logo {
+    height: 48px;
+    margin-right: 15px;
+}
+
+header h1 {
+    font-size: 24px;
+    color: var(--accent-color);
+    margin: 0;
+}
+
+footer {
+    margin-top: 40px;
+    padding: 20px 30px;
+    border-top: 1px solid #444;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+main {
+    padding: 20px 30px;
+}
+
+form input,
+form select {
+    background-color: #2a2a2a;
+    color: #f0f0f0;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    width: 100%;
+}
+
+form input:focus,
+form select:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+form button[type="submit"] {
+    background-color: var(--accent-color-transparent);
+    border: 1px solid var(--accent-color);
+    color: var(--accent-color);
+    border-radius: 4px;
+    padding: 8px 14px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+form button[type="submit"]:hover {
+    background-color: var(--accent-color);
+    color: black;
+    cursor: pointer;
+}
+
+pre#output {
+    background-color: #111;
+    color: #0f0;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 13px;
+    margin-top: 20px;
+    white-space: pre-wrap;
+    border-radius: 6px;
+    box-shadow: 0 0 8px #000 inset;
+}
+
+.modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal-content {
+  background: #2a2a2a;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 0 20px var(--accent-color-transparent);
+}
+
+.modal-content button {
+  margin: 10px;
+}
+
+.hidden {
+  display: none;
+}
+
+.command-section {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.command-section fieldset {
+  border: 1px solid var(--accent-color);
+  border-radius: 6px;
+  padding: 20px;
+  background-color: #1e1e1e;
+  box-shadow: 0 0 10px var(--accent-color-transparent);
+}
+
+.command-section legend {
+  font-size: 1.2em;
+  color: var(--accent-color);
+  padding: 0 10px;
+  margin-left: 10px;
+}
+
+.command-section button {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  font-size: 16px;
+  padding: 10px;
+  background-color: #2e2e2e;
+  color: var(--accent-color);
+  border: 1px solid var(--accent-color);
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.command-section button:hover {
+  background-color: var(--accent-color);
+  color: black;
+  cursor: pointer;
+}

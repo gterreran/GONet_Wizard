@@ -24,6 +24,7 @@ Dash frontend to trigger native window actions (such as closing the app).
 """
 
 from GONet_Wizard.GONet_utils.src.extract_app.extract_server import app
+from GONet_Wizard.gui_launcher.api import WebviewAPI
 import threading, webview, logging, json
 
 
@@ -63,20 +64,13 @@ def run_app():
     app.run_server(port=8050, debug=False, use_reloader=False)
 
 
-class GONetAPI:
+class GONetAPI(WebviewAPI):
     """
-    JavaScript API for PyWebview interactions including window control and JSON downloads.
+    JavaScript API for PyWebview interactions inheriting from :class:`~GONet_Wizard.gui_launcher.api.WebviewAPI`.
 
     This object is exposed to JavaScript as `window.pywebview.api`, allowing your
-    Dash frontend to call methods like `download_json()` and `close_window()`.
+    Dash frontend to call methods like `download_json()`.
 
-    Methods
-    -------
-    download_json(data: dict):
-        Prompts the user with a file dialog and saves `data` as a formatted JSON file.
-
-    close_window():
-        Gracefully closes the PyWebview window after a short delay.
     """
 
     def download_json(self, data: dict) -> None:
@@ -94,11 +88,6 @@ class GONetAPI:
         if path:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4)
-    
-
-    def close_window(self) -> None:
-        """Schedule the destruction of the current PyWebview window."""
-        threading.Timer(0.1, lambda: webview.windows[0].destroy()).start()
 
 
 def launch_extraction_gui(data_files):
