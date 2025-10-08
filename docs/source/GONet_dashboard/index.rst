@@ -15,7 +15,6 @@ GONet Dashboard Package
    :hidden:
 
    server
-   wsgi
    app
    env
    layout

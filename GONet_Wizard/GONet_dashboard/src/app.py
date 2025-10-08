@@ -24,6 +24,7 @@ Key responsibilities:
 from GONet_Wizard import settings
 from GONet_Wizard.GONet_dashboard.src.server import app
 import threading, webview, logging
+from GONet_Wizard.gui_launcher.api import WebviewAPI
 
 def run_dashboard():
     """
@@ -117,6 +118,6 @@ def launch_dashboard():
         "http://127.0.0.1:8050",
         width=1250,
         height=700,
-        #js_api=GONetAPI()
+        js_api=WebviewAPI()
     )
     webview.start()

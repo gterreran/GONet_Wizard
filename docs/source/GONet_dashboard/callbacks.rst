@@ -18,4 +18,5 @@ Dash callbacks:
 .. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.load_status
 .. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.update_filter_selection_state
 .. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.add_selection_filter
+.. autofunction:: GONet_Wizard.GONet_dashboard.src.callbacks.exit_app
 

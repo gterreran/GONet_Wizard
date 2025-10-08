@@ -56,6 +56,7 @@ This ensures compatibility with Dash's output constraints and avoids runtime err
 - :func:`load_status` : Load a previously saved dashboard state from a base64-encoded JSON file.
 - :func:`update_filter_selection_state` : Enable or disable the "Add Selection Filter" button based on current selection in the plot.
 - :func:`add_selection_filter` : Create and add a new filter based on the current selection region in the plot.
+- :func:`exit_app` : Exit the entire application when the "Exit" button is clicked.
 
 """
 
@@ -839,3 +840,31 @@ def add_selection_filter(_, filter_div, relayout_data, figure):
     filter_div.append(new_empty_filter)
 
     return filter_div, {}, figure
+
+@app.callback(
+    Output("exit-button", "disabled"),  # dummy output
+    #---------------------
+    Input("exit-button", "n_clicks"),
+    #---------------------
+    prevent_initial_call=True
+)
+def exit_app(_):
+    """
+    Callback to request closing the PyWebView window when the "Exit" button is clicked.
+
+    This callback sends a JavaScript command to the embedded PyWebView browser,
+    which calls the exposed Python API method ``close_window()`` to close the window.
+
+    Parameters
+    ----------
+    _ : :class:`int` or :class:`NoneType`
+        Click count of the "Exit" button (ignored).
+
+    Returns
+    -------
+    :class:`bool`
+        Always returns ``True`` to disable the "Exit" button after it has been clicked.
+    """
+    import webview
+    webview.windows[0].evaluate_js("window.pywebview.api.close_window()")
+    return True

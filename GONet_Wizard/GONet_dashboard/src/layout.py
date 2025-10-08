@@ -176,6 +176,21 @@ layout = dcc.Loading(
                 dcc.Graph(id="gonet-image", figure= place_holder_GONet),
                 html.Table(id="info-table")
             ])
-        ])
+        ]),
+        html.Div([
+            html.Button("Exit", id="exit-button", style={
+                "backgroundColor": "#d9534f",  # Bootstrap red
+                "color": "white",
+                "border": "none",
+                "padding": "10px 20px",
+                "cursor": "pointer",
+                "flex": "1"
+            }),
+        ], style={
+            "display": "flex",
+            "justifyContent": "space-between",
+            "padding": "10px",
+            "borderTop": "1px solid #ccc"
+        })
     ])
 )
