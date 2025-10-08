@@ -10,47 +10,113 @@ Key responsibilities:
 - Assigns data and image paths to the shared `env` module used across the dashboard
 - Imports and registers all callback functions to enable interactivity
 - Ensures that configuration logic is only executed when explicitly called (e.g., at launch)
+- Provides a function to launch the dashboard in a `PyWebview <https://pywebview.flowrl.com/>`_ window
 
-This script is suitable as the WSGI entry point for deployment scenarios (e.g., with Gunicorn),
-since the Dash `app` object is imported and layout is assigned elsewhere (in `server.py`).
+**Functions**
 
-By isolating configuration and callback registration inside the :func:`config_app` function,
-this design avoids triggering I/O or environment prompts during testing or static analysis.
+- :func:`run_dashboard`:
+    Configures and runs the Dash application server.
+- :func:`launch_dashboard`:
+    Public entry point to launch the GONet Dashboard in a PyWebview window.
+
 """
 
-from GONet_Wizard.settings import DashboardConfig
+from GONet_Wizard import settings
+from GONet_Wizard.GONet_dashboard.src.server import app
+import threading, webview, logging
 
-def config_app():
+def run_dashboard():
     """
-    Configure the GONet Dashboard app by performing environment validation,
-    assigning layout paths, and registering interactive callbacks.
+    Configure and run the Dash application server.
 
-    This function should be explicitly called during app startup to avoid
-    environment prompts at import time. It handles the following setup tasks:
+    This function:
 
-    - Loads the dashboard configuration using :class:`DashboardConfig`, which prompts
-      for required environment variables like ``GONET_ROOT`` and optionally ``GONET_ROOT_IMG``.
-    - Populates the shared `env` module with the resolved paths so they can be accessed
-      by plotting, filtering, and I/O logic across the dashboard.
-    - Registers all Dash callback functions by importing :mod:`callbacks`.
-
-    This function is safe to skip during automated testing or CLI-only workflows that
-    do not require the full Dash app stack.
-
-    Constants
-    ---------
-
-    DASHBOARD_DATA_PATH : :class:`pathlib.Path`
-        Loaded from the initialized :class:`GONet_Wizard.settings.DashboardConfig`.
-    GONET_IMAGES_PATH : :class:`pathlib.Path` or :class:`None`
-        Loaded from the initialized :class:`GONet_Wizard.settings.DashboardConfig`.
+    - Toggles logging verbosity based on the debug setting.
+    - Imports and applies the application layout from :mod:`layout`.
+    - Registers all Dash callbacks from :mod:`callbacks`.
+    - Redefines the HTML template to include custom CSS and JavaScript assets.
+    - Starts the Dash server on ``localhost:8050``.
         
     """
-    config = DashboardConfig()
+
+    if not settings.DASHBOARD_DEBUG:
+        # Suppress Flask/Werkzeug/Dash startup logging
+        logging.getLogger('werkzeug').setLevel(logging.ERROR)
+        logging.getLogger("dash.dash").setLevel(logging.ERROR)
+        import flask.cli
+        flask.cli.show_server_banner = lambda *args, **kwargs: None
+
+    from GONet_Wizard.GONet_dashboard.src.layout import layout
+    app.layout = layout
+
+    app.index_string = '''
+    <!DOCTYPE html>
+    <html>
+        <head>
+            {%metas%}
+            <title>{%title%}</title>
+            {%favicon%}
+            {%css%}
+            <link rel="stylesheet" href="/assets/css/style.css">
+            <script src="/assets/js/launcher.js"></script>
+        </head>
+        <body>
+            {%app_entry%}
+            <footer>
+                {%config%}
+                {%scripts%}
+                {%renderer%}
+            </footer>
+        </body>
+    </html>
+    '''
+
+    from GONet_Wizard.GONet_dashboard.src import callbacks
+
+    app.run_server(port=8050, debug=settings.DASHBOARD_DEBUG, use_reloader=False)
+
+
+def launch_dashboard():
+    """
+    Public entry point to launch the GONet Dashboard in a PyWebview window.
+
+    This function:
+
+    - Configures the GONet Dashboard app by performing environment validation,
+    - Spawns a daemon thread running :func:`run_app` to start the Dash server.
+    - Waits briefly to ensure the server is ready.
+    - Creates a PyWebview window pointing to the Dash app URL and passes an
+      instance of :class:`ExitAPI` as the JavaScript API for window control.
+    - Starts the PyWebview event loop.
+
+    Returns
+    -------
+    None
+
+    """
+
+    config = settings.DashboardConfig()
 
     # Optionally store config globally if needed in callbacks
     import GONet_Wizard.GONet_dashboard.src.env as env
     env.DASHBOARD_DATA_PATH = config.dashboard_data_path
     env.GONET_IMAGES_PATH = config.gonet_images_path
 
-    from GONet_Wizard.GONet_dashboard.src import callbacks
+    # Start Dash server in a background thread
+    dash_thread = threading.Thread(target=run_dashboard)
+    dash_thread.daemon = True
+    dash_thread.start()
+
+    # Give Dash a moment to initialize
+    import time
+    time.sleep(1)
+
+    # Create and run the PyWebview window
+    webview.create_window(
+        "GONet Wizard extraction GUI",
+        "http://127.0.0.1:8050",
+        width=1250,
+        height=700,
+        #js_api=GONetAPI()
+    )
+    webview.start()

@@ -49,6 +49,8 @@ GONET_ROOT : :class:`EnvVar`
     Environment variable for the folder containing the json data of extracted GONet data.
 GONET_ROOT_IMG : :class:`EnvVar`
     Environment variable for the folder containing the GONet images to visualize.
+DASHBOARD_DEBUG : :class:`bool`
+    Whether to run the dashboard in debug mode (default: ``False``).
 
 """
 
@@ -103,6 +105,7 @@ LOCAL_OUTPUT_FOLDER = EnvVar("LOCAL_OUTPUT_FOLDER", "./downloaded_files/")
 GONET_ROOT = EnvVar("GONET_ROOT")
 GONET_ROOT_IMG = EnvVar("GONET_ROOT_IMG")
 
+DASHBOARD_DEBUG = False
 
 def require_env_var(envvar: EnvVar, prompt: str = None) -> str:
     """

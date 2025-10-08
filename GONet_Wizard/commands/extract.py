@@ -26,7 +26,6 @@ Functions
 
 import json
 from typing import Union, List
-from GONet_Wizard.GONet_utils.src.extract_app.extract_gui import launch_extraction_gui
 from GONet_Wizard.GONet_utils.src.extractors import extract_all
 from pathlib import Path
 
@@ -248,6 +247,8 @@ def extract_counts_from_GONet(
 
     # this include both shape=='free' and None
     else:
+        # importing the gui only if I need it
+        from GONet_Wizard.GONet_utils.src.extract_app.extract_gui import launch_extraction_gui
         extraction_params = launch_extraction_gui(files)
         if extraction_params:
             shape = extraction_params['shape']
