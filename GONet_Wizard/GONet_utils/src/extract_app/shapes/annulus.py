@@ -16,7 +16,8 @@ decorator, allowing dynamic instantiation based on the `shape` key in extraction
 
 import GONet_Wizard.GONet_utils.src.extract_app.shapes.base as base
 import numpy as np
-from GONet_Wizard.GONet_utils.src.data_spec import DATA_SPEC
+from GONet_Wizard.GONet_utils import DATA_SPEC
+import matplotlib.axes
 
 @base.Shape.register("annulus")
 class Annulus(base.Shape):
@@ -44,6 +45,8 @@ class Annulus(base.Shape):
 
         Parameters
         ----------
+        shape_name : :class:`str`
+            Name of the shape, set to "annulus".
         x0 : :class:`float`
             X-coordinate of the center of the annulus.
         y0 : :class:`float`
@@ -57,6 +60,7 @@ class Annulus(base.Shape):
         end_angle : :class:`float`, optional
             End angle of the annular sector in degrees (default: 180).
         """
+        self.shape_name = "annulus"
         self.x0 = x0
         self.y0 = y0
         self.inner_radius = inner_radius
@@ -110,6 +114,7 @@ class Annulus(base.Shape):
         :class:`dict`
             A dictionary with the following keys and their corresponding values:
 
+            - `shape`: Name of the shape, set to "annulus".
             - `x0`: X-coordinate of the center of the annulus.
             - `y0`: Y-coordinate of the center of the annulus.
             - `inner_radius`: Inner radius of the annulus.
@@ -124,6 +129,7 @@ class Annulus(base.Shape):
         
         """
         return {
+            DATA_SPEC['shape'].key : self.shape_name,
             DATA_SPEC['x0'].key : self.x0,
             DATA_SPEC['y0'].key : self.y0,
             DATA_SPEC['inner_radius'].key : self.inner_radius,
@@ -200,7 +206,85 @@ class Annulus(base.Shape):
         out_shape["path"] = path
 
         return [out_shape]
-    
+
+    def plt_draw(self, ax: matplotlib.axes.Axes, **kwargs: dict) -> None:
+        """
+        Draw the annular sector on a Matplotlib Axes.
+
+        This method adds a visual representation of the annular sector or full annulus
+        to the provided Matplotlib Axes object.
+
+        Parameters
+        ----------
+        ax : :class:`matplotlib.axes.Axes`
+            The Matplotlib Axes object to draw the shape on.
+        **kwargs : :class:`dict`
+            Additional keyword arguments to customize the appearance of the shape.
+
+        Returns
+        -------
+        None
+
+        """
+        import matplotlib.patches as patches
+
+        angle_diff = self.end_angle - self.start_angle
+        if angle_diff == 0 or angle_diff == 360:
+            inner_circle = patches.Circle((self.x0, self.y0), self.inner_radius, fill=False, **kwargs)
+            outer_circle = patches.Circle((self.x0, self.y0), self.outer_radius, fill=False, **kwargs)
+            ax.add_patch(inner_circle)
+            ax.add_patch(outer_circle)
+        else:
+            # Draw 2 circle arcs and 2 lines
+            inner_circle = patches.Arc(
+                (self.x0, self.y0),
+                2*self.inner_radius,
+                2*self.inner_radius,
+                angle=0,
+                theta1=self.start_angle,
+                theta2=self.end_angle,
+                **kwargs
+            )
+            outer_circle = patches.Arc(
+                (self.x0, self.y0),
+                2*self.outer_radius,
+                2*self.outer_radius,
+                angle=0,
+                theta1=self.start_angle,
+                theta2=self.end_angle,
+                **kwargs
+            )
+            ax.add_patch(inner_circle)
+            ax.add_patch(outer_circle)
+            # Lines from inner to outer radius at start and end angles
+            theta_start = np.radians(self.start_angle)
+            theta_end = np.radians(self.end_angle)
+            x_start_inner = self.x0 + self.inner_radius * np.cos(theta_start)
+            y_start_inner = self.y0 + self.inner_radius * np.sin(theta_start)
+            x_start_outer = self.x0 + self.outer_radius * np.cos(theta_start)
+            y_start_outer = self.y0 + self.outer_radius * np.sin(theta_start)
+            x_end_inner = self.x0 + self.inner_radius * np.cos(theta_end)
+            y_end_inner = self.y0 + self.inner_radius * np.sin(theta_end)
+            x_end_outer = self.x0 + self.outer_radius * np.cos(theta_end)
+            y_end_outer = self.y0 + self.outer_radius * np.sin(theta_end)
+            line_start = patches.ConnectionPatch(
+                (x_start_inner, y_start_inner),
+                (x_start_outer, y_start_outer),
+                "data",
+                "data",
+                **kwargs
+            )
+            line_end = patches.ConnectionPatch(
+                (x_end_inner, y_end_inner),
+                (x_end_outer, y_end_outer),
+                "data",
+                "data",
+                **kwargs
+            )
+            ax.add_patch(line_start)
+            ax.add_patch(line_end)
+
+
     def mask(self, data: np.ndarray | list) -> np.ndarray:
         """
         Create a boolean mask selecting pixels inside the annular sector.

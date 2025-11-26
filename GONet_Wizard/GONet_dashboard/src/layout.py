@@ -45,7 +45,6 @@ Notes
 from dash import dcc, html
 import dash_daq as daq
 from GONet_Wizard.GONet_dashboard.src import env
-import GONet_Wizard.settings as settings
 
 place_holder_main_plot = {
     "data": [],
@@ -103,94 +102,119 @@ place_holder_GONet = {
     }
 }
 
-layout = dcc.Loading(
-    id="loading-wrapper",
-    delay_show=150, #ms
-    type="circle", 
-    overlay_style={"visibility":"visible", "filter": "blur(2px)"},
-    children=html.Div([
-        dcc.Store(id='data-json'),
-        dcc.Store(id='active-filters'),
-        dcc.Store(id='status-data'),
-        html.Div(id='dummy-div'),
-        html.Div(id='title-container', children=[
-            html.H1("GONet Wizard", className="main-title"),
-            html.Img(id='logo', src=r'/assets/img/logo.png', alt='logo'),
-        ]),
-        html.Div(id='alert-container', className='alert-box', children=[]),
-        html.Div(id='top-container',children=[
-            html.Div(className='main-plot', children=[
-                    dcc.Graph(
-                        id="main-plot",
-                        figure = place_holder_main_plot,
-                        config={
-                            "modeBarButtonsToRemove": ["toImage","zoomIn2d", "zoomOut2d"],
-                            "modeBarButtonsToAdd": ["select2d", "lasso2d"],
-                            "displaylogo": False
-                        }
-                    ),
-                    html.Div(id='stats-container', children=[
-                        html.Table(id="stats-table", children=[html.Tr([html.Td(),html.Td()]),html.Tr([html.Td(),html.Td()])]),
-                    ]),
-                ],
-                id = 'graph-container'
-            ),
-            html.Div([
-                dcc.Checklist(id="channels", options=[{"label": c, "value": c} for c in env.CHANNELS], value=['green']),
-                html.Div([
-                    "X-axis",
-                    dcc.Dropdown(id="x-axis-dropdown"),
-                ]),
-                html.Div([
-                    "Y-axis",
-                    dcc.Dropdown(id="y-axis-dropdown"),
-                ]),
-                html.Div(id = "export-button-container", children=[
-                    html.Button('Export current data', id='export-data', n_clicks=0),
-                    dcc.Download(id="download-json")
-                ])
-            ],
-            id = 'graph-selector-container'
-            )
-        ]),
-        html.Div(id='bottom-container',children=[
-            html.Div(id='big-filter-container', children=[
-                html.Button('Save status', id='save-status', n_clicks=0),
-                # dcc.Download(id="download-status"),
-                #html.Button('Load status', id='load-status', n_clicks=0),
-                dcc.Upload(id="upload-status",children=html.Button('Load status', n_clicks=0)),
-                #dcc.Upload(id="upload-status"),
-                html.Div(id='filter-container', children = [
-                    html.Button('Filter selection', id='selection-filter', disabled=True, n_clicks=0),
-                    html.Button('Add filter', id='add-filter', n_clicks=0),
-                    html.Div(id = "shower-container", children=[
-                        html.Div(className = 'switch-container', children=
-                            daq.BooleanSwitch(className='switch', id='show-filtered-data-switch', on=True, disabled=True),
+def layout(show_images_preview: bool, all_columns: list) -> dcc.Loading:
+    """
+    Construct the full Dash app layout.
+
+    Parameters
+    ----------
+    show_images_preview : bool
+        Whether to include the GONet image preview panel.
+    all_columns : list
+        List of all available columns for dropdown selections.
+    
+    Returns
+    -------
+    layout : dict
+        The complete layout tree for the Dash app.
+    
+    """
+
+    if show_images_preview:
+        gonet_display_style = {"display": "block"}
+    else:
+        gonet_display_style = {"display": "none"}
+
+    layout = dcc.Loading(
+        id="loading-wrapper",
+        delay_show=150, #ms
+        type="circle", 
+        overlay_style={"visibility":"visible", "filter": "blur(2px)"},
+        children=html.Div([
+            dcc.Store(id='data-json'),
+            dcc.Store(id='active-filters', data=[]),
+            dcc.Store(id='status-data'),
+            html.Div(id='dummy-div'),
+            html.Div(id='title-container', children=[
+                html.H1("GONet Wizard", className="main-title"),
+                html.Img(id='logo', src=r'/assets/img/logo/logo_1024.png', alt='logo'),
+            ]),
+            html.Div(id='alert-container', className='alert-box', children=[]),
+            html.Div(id='top-container',children=[
+                html.Div(className='main-plot', children=[
+                        dcc.Graph(
+                            id="main-plot",
+                            figure = place_holder_main_plot,
+                            config={
+                                "modeBarButtonsToRemove": ["toImage","zoomIn2d", "zoomOut2d"],
+                                "modeBarButtonsToAdd": ["select2d", "lasso2d"],
+                                "displaylogo": False
+                            }
                         ),
-                        html.Div(className='switch-label', children="Show filtered data", id='show-filtered-data-label'),
+                        html.Div(id='stats-container', children=[
+                            html.Table(id="stats-table", children=[html.Tr([html.Td(),html.Td()]),html.Tr([html.Td(),html.Td()])]),
+                        ]),
+                    ],
+                    id = 'graph-container'
+                ),
+                html.Div([
+                    dcc.Checklist(id="channels", options=[{"label": c, "value": c} for c in env.CHANNELS], value=['green']),
+                    html.Div([
+                        "X-axis",
+                        dcc.Dropdown(id="x-axis-dropdown", options=all_columns),
                     ]),
-                    html.Div(id='custom-filter-container', children=[])
+                    html.Div([
+                        "Y-axis",
+                        dcc.Dropdown(id="y-axis-dropdown", options=all_columns),
+                    ]),
+                    html.Div(id = "export-button-container", children=[
+                        html.Button('Export current data', id='export-data', n_clicks=0),
+                        dcc.Download(id="download-json")
+                    ])
+                ],
+                id = 'graph-selector-container'
+                )
+            ]),
+            html.Div(id='bottom-container',children=[
+                html.Div(id='big-filter-container', children=[
+                    html.Button('Save status', id='save-status', n_clicks=0),
+                    # dcc.Download(id="download-status"),
+                    #html.Button('Load status', id='load-status', n_clicks=0),
+                    dcc.Upload(id="upload-status",children=html.Button('Load status', n_clicks=0)),
+                    #dcc.Upload(id="upload-status"),
+                    html.Div(id='filter-container', children = [
+                        html.Button('Filter selection', id='selection-filter', disabled=True, n_clicks=0),
+                        html.Button('Add filter', id='add-filter', n_clicks=0),
+                        html.Div(id = "shower-container", children=[
+                            html.Div(className = 'switch-container', children=
+                                daq.BooleanSwitch(className='switch', id='show-filtered-data-switch', on=True, disabled=True),
+                            ),
+                            html.Div(className='switch-label', children="Show filtered data", id='show-filtered-data-label'),
+                        ]),
+                        html.Div(id='custom-filter-container', children=[])
+                    ])
+                ]),
+                html.Div(id='gonet-image-container',children = [
+                    dcc.Graph(id="gonet-image", figure= place_holder_GONet, style=gonet_display_style),
+                    html.Table(id="info-table")
                 ])
             ]),
-            html.Div(id='gonet-image-container',children=[
-                dcc.Graph(id="gonet-image", figure= place_holder_GONet),
-                html.Table(id="info-table")
-            ])
-        ]),
-        html.Div([
-            html.Button("Exit", id="exit-button", style={
-                "backgroundColor": "#d9534f",  # Bootstrap red
-                "color": "white",
-                "border": "none",
-                "padding": "10px 20px",
-                "cursor": "pointer",
-                "flex": "1"
-            }),
-        ], style={
-            "display": "flex",
-            "justifyContent": "space-between",
-            "padding": "10px",
-            "borderTop": "1px solid #ccc"
-        })
-    ])
-)
+            html.Div([
+                html.Button("Exit", id="exit-button", style={
+                    "backgroundColor": "#d9534f",  # Bootstrap red
+                    "color": "white",
+                    "border": "none",
+                    "padding": "10px 20px",
+                    "cursor": "pointer",
+                    "flex": "1"
+                }),
+            ], style={
+                "display": "flex",
+                "justifyContent": "space-between",
+                "padding": "10px",
+                "borderTop": "1px solid #ccc"
+            })
+        ])
+    )
+
+    return layout

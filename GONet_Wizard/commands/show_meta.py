@@ -1,8 +1,18 @@
 """
+GONet Metadata Display Command
+===============================
+
 Display Metadata from GONet Files.
 
 This script provides a simple command-line tool to extract and display
-metadata from one or more GONet file paths.
+metadata from one or more GONet file paths. The command is declared via
+the :data:`COMMAND` constant, which specifies the argument structure used by
+the centralized parser builder.
+
+**Constants**
+
+- :data:`COMMAND` : :class:`~GONet_Wizard.commands.cli_core.CommandSpec` object
+  for the `show_meta` command.
 
 **Functions**
 
@@ -10,9 +20,23 @@ metadata from one or more GONet file paths.
 
 """
 
-from GONet_Wizard.GONet_utils.src.gonetfile import GONetFile
+from GONet_Wizard.GONet_utils import GONetFile
 from typing import Union, List
-import pprint, os
+import pprint, os, argparse
+from GONet_Wizard.commands.cli_core import ExpandFilenames, CommandSpec, filter_by_ext
+
+COMMAND = CommandSpec(
+    name="show_meta",
+    help="Print metadata from one or more GONet files.",
+    args=[
+        {
+            "flags": ["filenames"],
+            "nargs": "+",
+            "action": ExpandFilenames,
+            "help": "GONet file(s) to inspect [.jpg, .tiff]. `*` wildcards and comma-separated lists are supported."
+        }
+    ]
+)
 
 
 def show_metadata(files: Union[str, List[str]]) -> None:
@@ -56,3 +80,22 @@ def show_metadata(files: Union[str, List[str]]) -> None:
         except Exception as e:
             print(f"   ⚠️ Error reading metadata: {e}")
 
+
+def cli_handler(args: argparse.Namespace) -> None:
+    """
+    CLI handler for the `show_meta` command.
+
+    Parameters
+    ----------
+    args : :class:`argparse.Namespace`
+        Parsed command-line arguments.
+    
+    Returns
+    -------
+    None
+    
+    """
+    files = filter_by_ext(args.filenames, [".jpg", ".tiff"])
+    show_metadata(
+        files=files,
+    )

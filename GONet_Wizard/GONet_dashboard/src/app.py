@@ -21,12 +21,13 @@ Key responsibilities:
 
 """
 
-from GONet_Wizard import settings
 from GONet_Wizard.GONet_dashboard.src.server import app
 import threading, webview, logging
 from GONet_Wizard.gui_launcher.api import WebviewAPI
+from typing import List
+from GONet_Wizard.GONet_dashboard.src.hood.loaders import load_data
 
-def run_dashboard():
+def run_dashboard(all_columns: List[dict], debug: bool) -> None:
     """
     Configure and run the Dash application server.
 
@@ -37,10 +38,25 @@ def run_dashboard():
     - Registers all Dash callbacks from :mod:`callbacks`.
     - Redefines the HTML template to include custom CSS and JavaScript assets.
     - Starts the Dash server on ``localhost:8050``.
-        
+    
+    Parameters
+    ----------
+    json_files : :class:`list` of :class:`str`
+        List of paths to JSON files to load data from.
+    show_images_preview : :class:`bool`
+        Whether to show image previews in the dashboard.
+    images_path : :class:`list` of :class:`str`
+        List of paths to directories containing images.
+    debug : :class:`bool`
+        Whether to run the server in debug mode.
+
+    Returns
+    -------
+    None
+
     """
 
-    if not settings.DASHBOARD_DEBUG:
+    if not debug:
         # Suppress Flask/Werkzeug/Dash startup logging
         logging.getLogger('werkzeug').setLevel(logging.ERROR)
         logging.getLogger("dash.dash").setLevel(logging.ERROR)
@@ -48,7 +64,7 @@ def run_dashboard():
         flask.cli.show_server_banner = lambda *args, **kwargs: None
 
     from GONet_Wizard.GONet_dashboard.src.layout import layout
-    app.layout = layout
+    app.layout = layout(app.server.config["show_images_preview"], all_columns)
 
     app.index_string = '''
     <!DOCTYPE html>
@@ -56,7 +72,7 @@ def run_dashboard():
         <head>
             {%metas%}
             <title>{%title%}</title>
-            {%favicon%}
+            <link rel="icon" href="/img/logo/favicon.ico" type="image/x-icon">
             {%css%}
             <link rel="stylesheet" href="/assets/css/style.css">
             <script src="/assets/js/launcher.js"></script>
@@ -72,23 +88,37 @@ def run_dashboard():
     </html>
     '''
 
-    from GONet_Wizard.GONet_dashboard.src import callbacks
+    from GONet_Wizard.GONet_dashboard.src import callbacks # noqa: F401
 
-    app.run_server(port=8050, debug=settings.DASHBOARD_DEBUG, use_reloader=False)
+    app.run_server(port=8050, debug=debug, use_reloader=False)
 
 
-def launch_dashboard():
+def launch_dashboard(input_files: List[str], show_images_preview: bool, images_path: List[str], debug: bool) -> None:
     """
     Public entry point to launch the GONet Dashboard in a PyWebview window.
 
     This function:
 
-    - Configures the GONet Dashboard app by performing environment validation,
-    - Spawns a daemon thread running :func:`run_app` to start the Dash server.
+    - Loads data from the specified JSON files
+    - Stores loaded data and configuration in the Dash app server config. Note: we
+      cannot store parameters needed by the layout because of import order constraints,
+      so we pass these via kwargs to :func:`run_dashboard`.
+    - Spawns a daemon thread running :func:`run_dashboard` to start the Dash server.
     - Waits briefly to ensure the server is ready.
     - Creates a PyWebview window pointing to the Dash app URL and passes an
       instance of :class:`ExitAPI` as the JavaScript API for window control.
     - Starts the PyWebview event loop.
+
+    Parameters
+    ----------
+    input_files : :class:`list` of :class:`str`
+        List of paths to input files to load data from.
+    show_images_preview : :class:`bool`
+        Whether to show image previews in the dashboard.
+    images_path : :class:`list` of :class:`str`
+        List of paths to directories containing images.
+    debug : :class:`bool`
+        Whether to run the server in debug mode.
 
     Returns
     -------
@@ -96,16 +126,25 @@ def launch_dashboard():
 
     """
 
-    config = settings.DashboardConfig()
+    # Load data and store in app config for access in callbacks
+    data, base_columns, channel_columns = load_data(input_files)
+    app.server.config["data"] = data
+    app.server.config["base_columns"] = base_columns
+    app.server.config["channel_columns"] = channel_columns
+    app.server.config["show_images_preview"] = show_images_preview
+    app.server.config["images_path"] = images_path
 
-    # Optionally store config globally if needed in callbacks
-    import GONet_Wizard.GONet_dashboard.src.env as env
-    env.DASHBOARD_DATA_PATH = config.dashboard_data_path
-    env.GONET_IMAGES_PATH = config.gonet_images_path
+    all_columns = [{"label": l, "value": l} for l in base_columns + channel_columns]
 
     # Start Dash server in a background thread
-    dash_thread = threading.Thread(target=run_dashboard)
-    dash_thread.daemon = True
+    dash_thread = threading.Thread(
+    target=run_dashboard,
+    kwargs={
+        "all_columns": all_columns,
+        "debug": debug
+    },
+    daemon=True,
+)
     dash_thread.start()
 
     # Give Dash a moment to initialize

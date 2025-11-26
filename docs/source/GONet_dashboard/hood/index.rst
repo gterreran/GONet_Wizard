@@ -1,5 +1,5 @@
-hood
-====
+Hood Package
+============
 
 .. automodule:: GONet_Wizard.GONet_dashboard.src.hood
    :members:
@@ -7,8 +7,7 @@ hood
    :show-inheritance:
 
 .. toctree::
-   :maxdepth: 3
    :hidden:
 
-   load_data
    plot
+   loaders/index

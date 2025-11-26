@@ -4,7 +4,7 @@ from GONet_Wizard.GONet_utils import GONetFile
 import tifffile
 from PIL import Image
 from astropy.io import fits
-from GONet_Wizard.GONet_utils.src.gonetfile import scale_uint12_to_16bit_range
+from GONet_Wizard.GONet_utils.src.gonet.io_utils import scale_uint12_to_16bit_range
 
 @pytest.fixture
 def dolus_gonetfile(tmp_path) -> GONetFile:
@@ -107,10 +107,10 @@ def test_write_to_fits(dolus_gonetfile, tmp_path):
     with fits.open(fits_path) as hdul:
         assert len(hdul) == 4, "FITS should have 1 primary + 3 image HDUs."
 
-        red_hdu, green_hdu, blue_hdu = hdul[1], hdul[2], hdul[3]
+        blue_hdu, green_hdu, red_hdu = hdul[1], hdul[2], hdul[3]
 
         # Check channel and extension names
-        for hdu, name in zip([red_hdu, green_hdu, blue_hdu], ['RED', 'GREEN', 'BLUE']):
+        for hdu, name in zip([blue_hdu, green_hdu, red_hdu], ['BLUE', 'GREEN', 'RED']):
             assert hdu.header.get("EXTNAME") == name
             assert hdu.header.get("CHANNEL") == name
 
@@ -121,9 +121,9 @@ def test_write_to_fits(dolus_gonetfile, tmp_path):
         assert "IMGWIDTH" in red_header
 
         # Compare data arrays
-        np.testing.assert_array_almost_equal(red_hdu.data, dolus_gonetfile.red)
-        np.testing.assert_array_almost_equal(green_hdu.data, dolus_gonetfile.green)
         np.testing.assert_array_almost_equal(blue_hdu.data, dolus_gonetfile.blue)
+        np.testing.assert_array_almost_equal(green_hdu.data, dolus_gonetfile.green)
+        np.testing.assert_array_almost_equal(red_hdu.data, dolus_gonetfile.red)
 
 
 @pytest.mark.parametrize("invalid_input", [-1, 4096, 9999, np.array([-5, 100]), np.array([0, 2048, 5000])])
@@ -136,9 +136,9 @@ def gonetfile_missing_wb():
     """GONetFile with missing 'WB' key in 'JPEG' metadata."""
     return GONetFile(
         filename="dummy.jpg",
-        red=np.ones((10, 10)),
-        green=np.ones((10, 10)),
         blue=np.ones((10, 10)),
+        green=np.ones((10, 10)),
+        red=np.ones((10, 10)),
         meta={"JPEG": {}},  # No 'WB'
         filetype=None
     )
@@ -149,9 +149,9 @@ def gonetfile_invalid_wb_1():
     """GONetFile with non-numeric 'WB' value in 'JPEG' metadata."""
     return GONetFile(
         filename="dummy.jpg",
-        red=np.ones((10, 10)),
-        green=np.ones((10, 10)),
         blue=np.ones((10, 10)),
+        green=np.ones((10, 10)),
+        red=np.ones((10, 10)),
         meta={"JPEG": {"WB": "not-a-list"}},
         filetype=None
     )
@@ -161,9 +161,9 @@ def gonetfile_invalid_wb_2():
     """GONetFile with non-numeric 'WB' value in 'JPEG' metadata."""
     return GONetFile(
         filename="dummy.jpg",
-        red=np.ones((10, 10)),
-        green=np.ones((10, 10)),
         blue=np.ones((10, 10)),
+        green=np.ones((10, 10)),
+        red=np.ones((10, 10)),
         meta={"JPEG": {"WB": ['1.1','1.2']}},
         filetype=None
     )
@@ -173,9 +173,9 @@ def gonetfile_invalid_wb_3():
     """GONetFile with non-numeric 'WB' value in 'JPEG' metadata."""
     return GONetFile(
         filename="dummy.jpg",
-        red=np.ones((10, 10)),
-        green=np.ones((10, 10)),
         blue=np.ones((10, 10)),
+        green=np.ones((10, 10)),
+        red=np.ones((10, 10)),
         meta={"JPEG": {"WB": [1.1,'1.2']}},
         filetype=None
     )
@@ -204,9 +204,9 @@ def test_write_to_fits_with_no_metadata(tmp_path):
     """
     gnf = GONetFile(
         filename="dummy.tiff",
-        red=np.zeros((5, 5), dtype=np.uint16),
-        green=np.zeros((5, 5), dtype=np.uint16),
         blue=np.zeros((5, 5), dtype=np.uint16),
+        green=np.zeros((5, 5), dtype=np.uint16),
+        red=np.zeros((5, 5), dtype=np.uint16),
         meta=None,  # <- the key condition
         filetype=None
     )

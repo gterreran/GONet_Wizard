@@ -1,0 +1,1 @@
+.. automodule:: GONet_Wizard.GONet_utils.src.extractors.extraction_values

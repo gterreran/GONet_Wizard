@@ -1,13 +1,12 @@
-import pytest, os, sys
+import pytest, sys
 from unittest.mock import patch, MagicMock
-from GONet_Wizard.commands.connect import ssh_connect
+from GONet_Wizard.commands.connect_commands.ssh_utils import ssh_connect
 from GONet_Wizard.settings import GONetConfig
 
-import GONet_Wizard.commands.snap as snap
-from GONet_Wizard.commands import terminate
+import GONet_Wizard.commands.connect_commands.snap as snap
+from GONet_Wizard.commands.connect_commands import terminate
 
 from GONet_Wizard.settings import require_env_var
-from GONet_Wizard.settings import warn_env_var_missing
 from GONet_Wizard.settings import EnvVar
 
 def test_ssh_connect_success():
@@ -17,8 +16,8 @@ def test_ssh_connect_success():
     def fake_remote_op(ssh):
         return ssh.do_something()
 
-    with patch("GONet_Wizard.commands.connect.paramiko.SSHClient", return_value=mock_ssh):
-        with patch("GONet_Wizard.commands.connect.GONetConfig") as mock_config:
+    with patch("GONet_Wizard.commands.connect_commands.ssh_utils.paramiko.SSHClient", return_value=mock_ssh):
+        with patch("GONet_Wizard.commands.connect_commands.ssh_utils.GONetConfig") as mock_config:
             mock_config.return_value.gonet_user = "user"
             mock_config.return_value.gonet_password = "pass"
             mock_ssh.exec_command.return_value = (None, MagicMock(), None)
@@ -35,7 +34,7 @@ def test_ssh_connect_failure(monkeypatch):
     monkeypatch.setenv("GONET_USER", "pi")
     monkeypatch.setenv("GONET_PASSWORD", "whatever")
 
-    with patch("GONet_Wizard.commands.connect.paramiko.SSHClient") as mock_ssh_class:
+    with patch("GONet_Wizard.commands.connect_commands.ssh_utils.paramiko.SSHClient") as mock_ssh_class:
         mock_ssh = MagicMock()
         mock_ssh.connect.side_effect = Exception("fail!")
         mock_ssh_class.return_value = mock_ssh
@@ -73,27 +72,6 @@ def test_require_env_var_returns_env(monkeypatch):
 @pytest.fixture(autouse=True)
 def simulate_dash_reloader(monkeypatch):
     monkeypatch.setenv("WERKZEUG_RUN_MAIN", "true")
-
-
-def test_warn_env_var_returns_if_present(monkeypatch):
-    monkeypatch.setenv("OPTIONAL_VAR", "yes")
-    assert warn_env_var_missing(EnvVar("OPTIONAL_VAR")) == "yes"
-
-
-def test_warn_env_var_sets_value(monkeypatch):
-    monkeypatch.delenv("OPTIONAL_VAR", raising=False)
-    with patch("builtins.input", side_effect=["y", "new_path"]):
-        result = warn_env_var_missing(EnvVar("OPTIONAL_VAR"))
-    assert result == "new_path"
-    assert os.environ["OPTIONAL_VAR"] == "new_path"
-
-
-def test_warn_env_var_skips(monkeypatch):
-    monkeypatch.delenv("OPTIONAL_VAR", raising=False)
-    with patch("builtins.input", return_value="n"):
-        result = warn_env_var_missing(EnvVar("OPTIONAL_VAR"))
-    assert result is None
-
 
 @pytest.fixture
 def fake_ssh():
@@ -165,7 +143,7 @@ def test_snap_runs_full_flow(fake_ssh, tmp_path):
          patch.object(snap, "upload_if_different") as mock_upload, \
          patch.object(snap, "run_remote_script_with_live_output") as mock_run, \
          patch.object(snap, "SCPClient") as mock_scp, \
-         patch("GONet_Wizard.commands.snap.GONetConfig") as MockConfig:
+         patch("GONet_Wizard.commands.connect_commands.snap.GONetConfig") as MockConfig:
 
         config = MockConfig.return_value
         config.gonet4_path = "/home/pi/gonet4.py"
@@ -184,7 +162,7 @@ def test_snapshot_download_failure(fake_ssh, tmp_path):
     with patch.object(snap, "list_remote_files", side_effect=[{"a.jpg"}, {"a.jpg", "b.jpg"}]), \
          patch.object(snap, "upload_if_different"), \
          patch.object(snap, "run_remote_script_with_live_output"), \
-         patch("GONet_Wizard.commands.snap.GONetConfig") as MockConfig, \
+         patch("GONet_Wizard.commands.connect_commands.snap.GONetConfig") as MockConfig, \
          patch.object(snap, "SCPClient") as mock_scp:
 
         # Simulate error when .get is called
@@ -202,7 +180,7 @@ def test_snapshot_download_failure(fake_ssh, tmp_path):
 def test_snapshot_missing_config_file(fake_ssh):
     with patch.object(snap, "list_remote_files", side_effect=[set(), set()]), \
          patch.object(snap, "run_remote_script_with_live_output"), \
-         patch("GONet_Wizard.commands.snap.GONetConfig") as MockConfig, \
+         patch("GONet_Wizard.commands.connect_commands.snap.GONetConfig") as MockConfig, \
          patch.object(snap, "upload_if_different") as mock_upload:
 
         mock_upload.side_effect = FileNotFoundError("No such file: 'missing.cfg'")
@@ -219,7 +197,7 @@ def test_snapshot_missing_config_file(fake_ssh):
 def test_snapshot_script_crash(fake_ssh):
     with patch.object(snap, "list_remote_files", side_effect=[{"old.jpg"}, {"old.jpg"}]), \
          patch.object(snap, "upload_if_different"), \
-         patch("GONet_Wizard.commands.snap.GONetConfig") as MockConfig, \
+         patch("GONet_Wizard.commands.connect_commands.snap.GONetConfig") as MockConfig, \
          patch.object(snap, "run_remote_script_with_live_output") as mock_run:
 
         mock_run.side_effect = RuntimeError("Script crashed")
@@ -241,7 +219,7 @@ def test_snap_no_config_and_no_new_files(fake_ssh, tmp_path):
     """
     with patch.object(snap, "list_remote_files", side_effect=[{"only.jpg"}, {"only.jpg"}]), \
          patch.object(snap, "run_remote_script_with_live_output"), \
-         patch("GONet_Wizard.commands.snap.GONetConfig") as MockConfig:
+         patch("GONet_Wizard.commands.connect_commands.snap.GONetConfig") as MockConfig:
 
         config = MockConfig.return_value
         config.gonet4_path = "/home/pi/gonet4.py"
@@ -293,19 +271,22 @@ def test_terminate_imaging_warns_on_error(fake_ssh, capsys):
 from GONet_Wizard.__main__ import main
 
 def test_cli_dispatch_terminate(monkeypatch):
-    with patch("GONet_Wizard.__main__.commands.terminate_imaging") as mock_terminate:
-        mock_terminate.return_value = None
+    # Simulate CLI invocation
+    monkeypatch.setattr(sys, "argv", ["GONet_Wizard", "connect", "1.2.3.4", "terminate_imaging"])
 
-        monkeypatch.setattr(sys, "argv", ["GONet_Wizard", "connect", "1.2.3.4", "terminate_imaging"])
+    # Patch the function that cli_handler actually calls
+    with patch("GONet_Wizard.commands.connect_commands.terminate.terminate_imaging") as mock_terminate:
+        mock_terminate.return_value = None
         main()
-        mock_terminate.assert_called_once_with("1.2.3.4")
+
+    mock_terminate.assert_called_once_with("1.2.3.4")
 
 
 def test_cli_dispatch_snap(monkeypatch, tmp_path):
     config_file = tmp_path / "fake_config.cfg"
     config_file.write_text("dummy config")
 
-    with patch("GONet_Wizard.__main__.commands.take_snapshot") as mock_snap:
+    with patch("GONet_Wizard.__main__._cli.commands.connect_commands.snap.take_snapshot") as mock_snap:
         mock_snap.return_value = None
 
         monkeypatch.setattr(sys, "argv", ["GONet_Wizard", "connect", "1.2.3.4", "snap", str(config_file)])

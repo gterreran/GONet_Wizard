@@ -270,7 +270,49 @@ layout = dcc.Loading(
                                     style={"width": "100%"}),
                             style={"width": "50%"}
                         ),
-                    ], style={"display": "flex", "gap": "5px", "marginBottom": "10px"})
+                    ], style={"display": "flex", "gap": "5px", "marginBottom": "10px"}),
+
+                    html.Div(id = "fov-buttons-container", children=
+                        [
+                            html.Button(
+                                "Detect FOV",
+                                id="btn-detect-fov",
+                                n_clicks=0,
+                                title="Automatically detect the field of view",
+                                **{"aria-label": "Detect field of view"},
+                                style={
+                                    "padding": "8px 14px",
+                                    "borderRadius": "8px",
+                                    "border": "1px solid #ccc",
+                                    "cursor": "pointer",
+                                    "fontWeight": 600,
+                                },
+                            ),
+                            html.Button(
+                                "Advanced FOV",
+                                id="btn-advanced-fov",
+                                n_clicks=0,
+                                title="Open advanced FOV options",
+                                **{"aria-label": "Advanced field of view"},
+                                style={
+                                    "padding": "8px 14px",
+                                    "borderRadius": "8px",
+                                    "border": "1px solid #ccc",
+                                    "cursor": "pointer",
+                                    "fontWeight": 600,
+                                    "marginLeft": "8px",
+                                },
+                            ),
+                        ],
+                        style={
+                            "display": "flex",
+                            "justifyContent": "flex-end",
+                            "paddingTop": "8px",
+                            "paddingBottom": "8px",
+                            "bottom": 0,
+                            "background": "white",
+                        },
+                    ),
 
                 ], id="shape-options"),
 

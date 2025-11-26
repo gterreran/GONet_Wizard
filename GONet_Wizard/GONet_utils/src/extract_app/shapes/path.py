@@ -21,7 +21,8 @@ import GONet_Wizard.GONet_utils.src.extract_app.shapes.base as base
 from matplotlib.path import Path as MatplotlibPath
 import numpy as np
 import re
-from GONet_Wizard.GONet_utils.src.data_spec import DATA_SPEC
+from GONet_Wizard.GONet_utils import DATA_SPEC
+import matplotlib.axes
 
 @base.Shape.register('path','freehand', 'rectangle')
 class Path(base.Shape):
@@ -39,15 +40,18 @@ class Path(base.Shape):
     A rectangle shape will be Path shape, instantiated using the :func:`from_rectangle` class method.
 
     """
-    def __init__(self, path_str: str):
+    def __init__(self, shape_name, path_str: str):
         """
         Initialize a Path object from an SVG path string.
 
         Parameters
         ----------
+        shape_name : :class:`str`
+            Name of the shape, e.g., "path", or "rectangle".
         path_str : :class:`str`
             SVG path string defining the shape.
         """
+        self.shape_name = shape_name
         self.path_str = path_str
         self.validate()
 
@@ -84,8 +88,10 @@ class Path(base.Shape):
         Returns
         -------
         :class:`dict`
-            A dictionary with the following key and its corresponding value:
-            - `path`: The SVG path string defining the shape.
+            A dictionary with the following structure:
+            - `shape` (:class:`str`): The shape name (e.g., "path", "rectangle").
+            - `path` (:class:`str`): The SVG path string defining the shape (if applicable).
+            - For rectangles, additional keys such as `x0`, `y0`, `side1`, `side2`, `start_angle`, and `end_angle`.
 
         Notes
         -----
@@ -93,14 +99,30 @@ class Path(base.Shape):
           extraction pipeline.
 
         """
-        return {
-            DATA_SPEC['path'].key: self.path_str
-        }
+        out_dict = {DATA_SPEC['shape'].key: self.shape_name}
+
+        if self.shape_name == "path":
+            out_dict[DATA_SPEC['path'].key] = self.path_str
+        elif self.shape_name == "rectangle":
+            out_dict[DATA_SPEC['x0'].key] = self._x0
+            out_dict[DATA_SPEC['y0'].key] = self._y0
+            out_dict[DATA_SPEC['side1'].key] = self._side1
+            out_dict[DATA_SPEC['side2'].key] = self._side2
+            out_dict[DATA_SPEC['start_angle'].key] = self._start_angle
+            out_dict[DATA_SPEC['end_angle'].key] = self._end_angle
+
+        return out_dict
 
     @classmethod
     def from_rectangle(cls, x0: float, y0: float, side1: float, side2: float, start_angle: float = -180, end_angle: float = 180) -> "Path":
         """
         Generate an SVG path for a rectangular sector.
+
+        A few hidden attributes are added to the returned object for completeness:
+
+        - `_x0`, `_y0`: Center coordinates.
+        - `_side1`, `_side2`: Side lengths.
+        - `_start_angle`, `_end_angle`: Start and end angles in degrees.        
 
         Parameters
         ----------
@@ -201,8 +223,16 @@ class Path(base.Shape):
 
             path += f"L {end_x},{end_y} Z"
 
-        return cls(path)
-    
+        out_cls = cls("rectangle", path)
+
+        # For completeness, store rectangle parameters
+        out_cls._x0 = x0
+        out_cls._y0 = y0
+        out_cls._side1 = side1
+        out_cls._side2 = side2
+        out_cls._start_angle = start_angle
+        out_cls._end_angle = end_angle
+        return out_cls
 
     def draw(self) -> list[dict]:
         """
@@ -215,6 +245,7 @@ class Path(base.Shape):
         -------
         :class:`list` of :class:`dict`
             A list containing a single Plotly shape dictionary with the following properties:
+
             - `type`: Set to "path".
             - `path`: The SVG path string defining the shape.
 
@@ -225,6 +256,32 @@ class Path(base.Shape):
         out_shape["path"] = self.path_str
 
         return [out_shape]
+
+    def plt_draw(self, ax: matplotlib.axes.Axes, **kwargs: dict) -> None:
+        """
+        Draw the path on a Matplotlib Axes.
+
+        This method renders the path defined by the SVG path string onto the provided
+        Matplotlib Axes object.
+
+        Parameters
+        ----------
+        ax : :class:`matplotlib.axes.Axes`
+            The Matplotlib Axes object to draw the shape on.
+        **kwargs : :class:`dict`
+            Additional keyword arguments to customize the appearance of the shape.
+
+        Returns
+        -------
+        None
+
+        """
+        import matplotlib.patches
+        coords = re.findall(r"[ML]\s*([\d\.]+),([\d\.]+)", self.path_str)
+        poly = np.array([[float(x), float(y)] for x, y in coords])
+
+        patch = matplotlib.patches.Polygon(poly, closed=True, fill=False, **kwargs)
+        ax.add_patch(patch)
 
     def mask(self, data: np.ndarray | list) -> np.ndarray:
         """
@@ -275,6 +332,7 @@ class Path(base.Shape):
         ----------
         data : :class:`dict`
             A dictionary containing the following keys:
+            
             - `shape` (:class:`str`): The type of shape (e.g., "path", "freehand", "rectangle").
             - `path` (:class:`str`, optional): The SVG path string defining the shape (required for "path" or "freehand").
             - `x0` (:class:`float`, optional): X-coordinate of the center (required for "rectangle").
@@ -300,5 +358,5 @@ class Path(base.Shape):
     
         if data['shape'] == 'rectangle':
             return cls.from_rectangle(data['x0'], data['y0'], data['param1'], data['param2'], data['start_angle'], data['end_angle'])
-        
-        return cls(data['path'])
+
+        return cls("path", data['path'])

@@ -9,7 +9,7 @@ response to user input.
 
 **Submodules**
 
-- :mod:`.load_data` : Load and preprocess multi-epoch GONet observation data from JSON files.
+- :mod:`.json_loader` : Functions for loading and preprocessing GONet sky monitoring data from JSON files.
 - :mod:`.plot` : Plot utilities for interactive visualization of GONet sky monitoring data.
 
 """

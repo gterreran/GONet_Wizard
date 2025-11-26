@@ -1,25 +1,77 @@
 """
-Plotting Utilities for GONet File Visualization.
+GONet File Visualization Command
+================================
 
-This module provides functions to visualize GONet image files,
-optionally saving figures and selecting specific RGB channels to display.
-The main function :func:`show` is meant to be used as a command-line tool.
+This module implements the ``show`` command of the GONet Wizard CLI and provides
+utilities for plotting GONet image files. It exposes both **core plotting logic**
+(:func:`show_gonet_files`) and the **CLI-facing entry point** (:func:`cli_handler`).
+
+The command is declared via the :data:`COMMAND` constant, which specifies the
+argument structure used by the centralized parser builder. When invoked from the
+CLI, the parser dispatches directly to :func:`cli_handler`, which translates the
+parsed :class:`argparse.Namespace` into a call to the reusable plotting function.
+
+**Constants**
+
+- :data:`COMMAND` : :class:`~GONet_Wizard.commands.cli_core.CommandSpec` object
+  for the `show` command.
 
 **Functions**
 
-- :func:`create_efficient_subplots` : Create optimized subplot grids for multiple channels.
-- :func:`save_figure` : Save matplotlib figures to disk with auto-incremented filenames.
-- :func:`auto_vmin_vmax` : Automatically scale image intensity using robust percentiles.
-- :func:`show` : Main interface to plot GONet files and optionally save the output.
-
+- :func:`.create_efficient_subplots` : Create optimized subplot grids for multiple channels.
+- :func:`.save_figure` : Save matplotlib figures to disk with auto-incremented filenames.
+- :func:`.auto_vmin_vmax` : Automatically scale image intensity using robust percentiles.
+- :func:`.show` : Main interface to plot GONet files and optionally save the output.
+- :func:`.cli_handler` : CLI handler for the `show` command.
 """
 
-from GONet_Wizard.GONet_utils.src.gonetfile import GONetFile
+
+from GONet_Wizard.GONet_utils import GONetFile
 import matplotlib.pyplot as plt
-import math, os
+import math, os, argparse
 import numpy as np
 from typing import Union, List
+from GONet_Wizard.commands.cli_core import ExpandFilenames, CommandSpec, filter_by_ext
+from typing import Union, List
+import numpy as np
+import matplotlib.pyplot as plt
 
+COMMAND = CommandSpec(
+    name="show",
+    help="Plot the content of one or more GONet files.",
+    args= [
+    {
+        "flags": ["filenames"],
+        "nargs": "+",
+        "action": ExpandFilenames,
+        "help": (
+            "GONet file(s) to plot [.jpg, .tiff]. "
+            "`*` wildcards and comma-separated lists are supported."
+        ),
+    },
+    {
+        "flags": ["--save"],
+        "help": "Save output as a PDF.",
+    },
+    {
+        "flags": ["--red"],
+        "action": "store_true",
+        "default": False,
+        "help": "Plot only the red channel.",
+    },
+    {
+        "flags": ["--green"],
+        "action": "store_true",
+        "default": False,
+        "help": "Plot only the green channel.",
+    },
+    {
+        "flags": ["--blue"],
+        "action": "store_true",
+        "default": False,
+        "help": "Plot only the blue channel.",
+    },]
+)
 
 def create_efficient_subplots(N: int, figsize: tuple = (10, 6)) -> tuple:
     """
@@ -146,7 +198,7 @@ def show_gonet_files(files: Union[str, List[str]], save: bool = False, red: bool
     -----
     - If none of the color channel flags (`red`, `green`, `blue`) are set, all channels will be shown.
     - Subplot titles include camera model and timestamp when available in metadata.
-    - Output intensity is automatically scaled using robust percentiles (0.5–99.5%).
+    - Output intensity is automatically scaled using robust percentiles (0.5-99.5%).
     - The saved figure will be named according to `save` with automatic suffixes to avoid overwrites.
     """
 
@@ -162,7 +214,11 @@ def show_gonet_files(files: Union[str, List[str]], save: bool = False, red: bool
     i_plot = 0
 
     for gof in files:
-        go = GONetFile.from_file(gof)
+        try:
+            go = GONetFile.from_file(gof)
+        except Exception as e:
+            print(f"⚠️ Error reading file {gof}: {e}")
+            continue
 
         if go.meta and 'hostname' in go.meta:
             camera = go.meta['hostname']
@@ -190,5 +246,27 @@ def show_gonet_files(files: Union[str, List[str]], save: bool = False, red: bool
     plt.close('all')
 
 
+def cli_handler(args: argparse.Namespace) -> None:
+    """
+    CLI handler for the `show` command.
+
+    Parameters
+    ----------
+    args : :class:`argparse.Namespace`
+        Parsed command-line arguments.
+
+    Returns
+    -------
+    None
+
+    """
+    files = filter_by_ext(args.filenames, [".jpg", ".tiff"])
+    show_gonet_files(
+        files=files,
+        save=args.save,
+        red=args.red,
+        green=args.green,
+        blue=args.blue,
+    )
 
     

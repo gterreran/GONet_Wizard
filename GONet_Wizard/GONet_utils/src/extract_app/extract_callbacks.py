@@ -34,6 +34,9 @@ client-side callback for JSON downloads of the drawn region.
 - :func:`update_drawn_figure_and_extraction_values`:
     Draw the updated shape on the figure and display the extraction values.
 
+- :func:`simple_fov_detection`:
+    Detects the field of view (FOV) in the image and updates shape center coordinates.
+
 - :func:`save_path`:
     Prepares the freehand path data for saving when the "Save Path" button is clicked.
 
@@ -53,11 +56,12 @@ client-side callback for JSON downloads of the drawn region.
 
 """
 
-import os, copy
+import os
 from dash import Input, Output, State, ctx, no_update
 from dash_extensions.enrich import Serverside
-from GONet_Wizard.GONet_utils.src.gonetfile import GONetFile
-from GONet_Wizard.GONet_utils.src.extractors import extract_counts_from_region, extraction_output
+from GONet_Wizard.GONet_utils import GONetFile
+from GONet_Wizard.GONet_utils.src.extractors.extraction_values import extract_counts_from_region
+from GONet_Wizard.GONet_utils.src.extractors.core import extraction_output
 from GONet_Wizard.GONet_dashboard.src.load_save_callbacks import register_json_download, load_json
 from GONet_Wizard.GONet_utils.src.extract_app.extract_server import app
 import GONet_Wizard.GONet_utils.src.extract_app.shapes.base as base
@@ -240,11 +244,12 @@ def update_figure_heatmap(_, selected_channel, bin, gof, fig):
     Output("gonet-image", "config"),
     Output("shape-options", "style"),
     Output("freehand-options", "style"),
+    Output("fov-buttons-container", "style"),
     Output("shape-extra-parameters", "children"),
     Output("shape-parameter1", "placeholder"),
     Output("shape-parameter2", "style"),
     Output("shape-parameter2", "placeholder"),
-    Output("config-done-dummy-div", "children"),
+    Output("config-done-dummy-div", "children", allow_duplicate=True),
     #---------------------
     Input("heatmap-ready-control", "children"),
     Input("shape-selector", "value"),
@@ -287,6 +292,7 @@ def update_shape_options(_, selected_shape, fig, config):
         - :class:`dict` or :data:`dash.no_update`: Updated figure configuration object.
         - :class:`dict`: CSS style for the shape options container (to show/hide it).
         - :class:`dict`: CSS style for the freehand options container (to show/hide it).
+        - :class:`dict`: CSS style for the FOV buttons container (to show/hide it).
         - :class:`str` or :data:`dash.no_update`: Label text for extra parameters.
         - :class:`str` or :data:`dash.no_update`: Placeholder text for parameter 1 input.
         - :class:`dict` or :data:`dash.no_update`: CSS style for parameter 2 input (to show/hide it).
@@ -323,6 +329,11 @@ def update_shape_options(_, selected_shape, fig, config):
     else:
         output_shape_options = {"display": "block"}
         output_freehand_options = {"display": "none"}
+
+    if selected_shape == "circle":
+        output_fov_buttons_container = {"display": "block"}
+    else:
+        output_fov_buttons_container = {"display": "none"}
     
     if selected_shape == "circle":
         output_shape_extra_parameters = "Radius:"
@@ -339,7 +350,7 @@ def update_shape_options(_, selected_shape, fig, config):
         output_shape_parameter2_placeholder = "outer radius"
         output_shape_parameter2_style = {"display": "block", "width": "100%"}
 
-    return fig, config, output_shape_options, output_freehand_options, output_shape_extra_parameters, output_shape_parameter1_placeholder, output_shape_parameter2_style, output_shape_parameter2_placeholder, ''
+    return fig, config, output_shape_options, output_freehand_options, output_fov_buttons_container, output_shape_extra_parameters, output_shape_parameter1_placeholder, output_shape_parameter2_style, output_shape_parameter2_placeholder, ''
 
 
 @app.callback(
@@ -583,6 +594,7 @@ def update_extraction_params(_, center_x, center_y, param1, param2, start_angle,
     State("gonet-image", "figure"),
     State("mask", "data"),
     State("extracted-values", "data"),
+    #---------------------
     prevent_initial_call=True
 )
 def update_drawn_figure_and_extraction_values(extraction_params, fig, mask, extracted_values):
@@ -632,6 +644,98 @@ def update_drawn_figure_and_extraction_values(extraction_params, fig, mask, extr
     return fig, f"{extracted_values.total_counts}", f"{extracted_values.mean_counts:.2f}", f"{extracted_values.std:.2f}", f"{extracted_values.npixels}"
 
 
+@app.callback(
+    Output("shape-center-x", "value"),
+    Output("shape-center-y", "value"),
+    Output("shape-parameter1", "value"),
+    Output("shape-sector-start", "value"),
+    Output("shape-sector-end", "value"),
+    Output("error-banner", "children", allow_duplicate=True),
+    Output("error-banner", "style", allow_duplicate=True),
+    #---------------------
+    Input("btn-detect-fov", "n_clicks"),
+    #---------------------
+    State("gonet_file", "data"),
+    State("error-banner", "style"),
+    #---------------------
+    prevent_initial_call=True
+)
+def simple_fov_detection(_, gof, error_banner_style):
+    """
+    Detect the field of view (FOV) in the image and update shape center coordinates.
+
+    This callback is triggered when the "Detect FOV" button is clicked. It uses
+    the :mod:`~GONet_Wizard.GONet_utils.src.extract_app.extras.fov` module
+    to automatically detect the center of the field of view of the green channel
+    image (the one with the lowest noise).
+    The detected center coordinates are then used to update the `shape-center-x`, `shape-center-y`,
+    `shape-parameter1` (radius), `shape-sector-start` (-180), and `shape-sector-end` (180)
+    input fields.
+
+    Note that the noise estimation for FOV detection is based on a simple non-illuminated
+    strip in the image. For more complex images, the advanced FOV detection method
+    should be used instead.
+
+    Parameters
+    ----------
+    _ : :class:`int` or :data:`NoneType`
+        Click count of the "Detect FOV" button (ignored).
+    gof : :class:`~GONet_Wizard.GONet_utils.src.gonetfile.GONetFile`
+        The GONet file currently loaded server-side.
+
+    Returns
+    -------
+    tuple
+        A tuple containing:
+        - :class:`float`: Detected X-coordinate of the FOV center.
+        - :class:`float`: Detected Y-coordinate of the FOV center.
+        - :class:`float`: Detected radius of the FOV.
+        - :class:`float`: Detected sector start angle (set to -180).
+        - :class:`float`: Detected sector end angle (set to 180).
+        - :class:`str`: Any error messages for the banner (empty if no errors).
+        - :class:`dict`: Style properties for the error banner (visibility set to 'hidden').
+
+    """
+    from GONet_Wizard.GONet_utils.src.extract_app.extras.fov import detect_fov
+
+    error_banner_children = ''
+    error_banner_style["visibility"] = 'hidden'
+
+    img = gof.green
+    H, W = img.shape
+
+    # The "quick" FOV detection uses a simple non-illuminated strip to estimate the noise.
+    # For more quirky images, a more robust approach is needed, and the advanced FOV detection
+    # should be used instead.
+    
+    bg_mask = np.zeros((H, W), dtype=bool)
+    bg_mask[:, 10:20] = True
+
+
+    try:
+        results = detect_fov(
+            image=img,
+            bg_mask=bg_mask,
+            q=1e-3,
+            tail="high",
+            max_iter=5,
+            verbose=False,
+            return_debug=False,
+            clip_sigma=3.0,
+        )
+    except Exception as e:
+        # Safe fallback: leave current values unchanged (Dash will ignore None)
+        error_banner_children = 'FOV detection failed'
+        error_banner_style["visibility"] = 'visible'
+        return None, None, None, -180.0, 180.0, error_banner_children, error_banner_style
+
+    xc = results["x0"]
+    yc = results["y0"]
+    r = results["radius"]
+
+    return float(xc), float(yc), float(r), -180.0, 180.0, error_banner_children, error_banner_style
+
+
 # Registering client-side callback handling the download
 register_json_download(
     app,
@@ -676,16 +780,14 @@ def save_path(_, path):
 
 
 @app.callback(
-    Output("extraction-params", "data", allow_duplicate=True),
+    Output("config-done-dummy-div", "children", allow_duplicate=True),
     Output("drawn-path", "data", allow_duplicate=True),
     #---------------------
     Input("upload-path", 'contents'),
     #---------------------
-    State("extraction-params", "data"),
-    #---------------------
     prevent_initial_call=True
 )
-def load_path(contents, extraction_params):
+def load_path(contents):
     """
     Load a previously saved freehand path from uploaded JSON content.
 
@@ -700,20 +802,19 @@ def load_path(contents, extraction_params):
         Base64-encoded contents of the uploaded JSON file, as returned by
         Dash's `dcc.Upload` component. The file must contain valid JSON data
         representing the freehand path.
-    extraction_params : :class:`dict`
-        The current extraction parameters stored in the `extraction-params` store.
-        This is updated to include the loaded path.
 
     Returns
     -------
     tuple
         A tuple containing:
+        
         - :class:`dict`: Updated extraction parameters with the loaded path.
-        - :class:`dict`: Parsed JSON content representing the freehand path data.
+        - :class:`str`: An empty string to update the `config-done-dummy-div` component,
+          which serves as control for the extraction-params component.
 
     """
 
-    return extraction_params, load_json(contents)
+    return '', load_json(contents)
 
 
 @app.callback(

@@ -484,3 +484,40 @@ pre#output {
   color: black;
   cursor: pointer;
 }
+
+.remove-filter-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;           
+}
+
+.remove-filter-button {
+    background-color: #2e2e2e;         
+    border: 1px solid #aa2222;         
+    color: #ff4d4d;                    
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.remove-filter-button:hover {
+    background-color: #3e1f1f;
+    color: #ff0000;
+}
+
+.remove-filter-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.remove-filter-icon {
+    width: 18px;
+    height: 18px;
+    display: block;
+    fill: currentColor;
+    pointer-events: none;
+}

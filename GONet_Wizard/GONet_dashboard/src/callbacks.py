@@ -44,7 +44,6 @@ This ensures compatibility with Dash's output constraints and avoids runtime err
 
 **Functions**
 
-- :func:`load` : Load available data from the configured ROOT directory and prepare dropdown options.
 - :func:`update_main_plot` : Update the main plot based on the selected axes, filters, and other plot parameters.
 - :func:`add_filter` : Add a new empty filter block to the filter container in the UI.
 - :func:`add_or_filter` : Add an additional (OR-based) condition to an existing filter block.
@@ -60,70 +59,17 @@ This ensures compatibility with Dash's output constraints and avoids runtime err
 
 """
 
-import json, base64
-import numpy as np
+import json
 
-from dash import no_update, ctx, html, clientside_callback
+from dash import no_update, ctx, html
+from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State, ALL, MATCH
 
 from GONet_Wizard.GONet_dashboard.src.server import app
 from GONet_Wizard.GONet_dashboard.src import env
 from GONet_Wizard.GONet_dashboard.src import utils
-from GONet_Wizard.GONet_dashboard.src.hood import load_data
 from GONet_Wizard.GONet_dashboard.src.hood import plot
 from GONet_Wizard.GONet_dashboard.src.load_save_callbacks import register_json_download, load_json
-
-
-@utils.gonet_callback(
-    Output('data-json', 'data'),
-    Output("x-axis-dropdown",'options'),
-    Output("y-axis-dropdown",'options'),
-    #---------------------
-    Input("top-container",'children'),
-    #---------------------
-    prevent_initial_call='initial_duplicate'
-)
-def load(_):
-    """
-    Dash callback to initialize the dashboard data store and dropdown options.
-
-    This function is triggered once when the layout is rendered. It delegates the
-    actual data-loading logic to :func:`load_data.load_data_from_json`, which scans the directory
-    specified by the ``GONET_ROOT`` environment variable, loads GONet JSON files,
-    and returns a flat dictionary of observations along with axis selection options.
-
-    The callback is wrapped in :func:`handle_errors` to display any exceptions in the
-    alert container and halt further callback execution if a failure occurs.
-
-    Parameters
-    ----------
-    _ : Any
-        Dummy input triggered by layout initialization; unused.
-
-    Returns
-    -------
-    data : dict
-        Flattened dictionary of GONet metadata and per-channel measurements,
-        to be stored in a hidden dcc.Store component.
-
-    options_x : list of dict
-        Dropdown options for selecting the x-axis quantity.
-
-    options_y : list of dict
-        Dropdown options for selecting the y-axis quantity.
-
-    """
-
-
-    all_data = load_data.load_data_from_json(env)
-
-    labels_dropdown = [
-        {"label": l, "value": l}
-        for l in env.LABELS['gen'] + env.LABELS['fit']
-        if l != 'filename'
-    ]
-
-    return all_data, labels_dropdown, labels_dropdown
 
 
 @utils.gonet_callback(
@@ -142,11 +88,10 @@ def load(_):
     State("main-plot",'figure'),
     State("gonet-image",'figure'),
     State("info-table",'children'),
-    State("data-json",'data'),
     #---------------------
     prevent_initial_call=True
 )
-def update_main_plot(x_label, y_label, active_filters, channels, show_filtered_points, clickdata, fig, gonet_fig, info_table, all_data):
+def update_main_plot(x_label, y_label, active_filters, channels, show_filtered_points, clickdata, fig, gonet_fig, info_table):
     """
     Update the main plot, statistics table, image preview, and info panel in response to user interaction.
 
@@ -212,17 +157,17 @@ def update_main_plot(x_label, y_label, active_filters, channels, show_filtered_p
     :class:`list`
         Updated rows of the data point information table.
     """
-    
+
     if x_label is None or y_label is None:
         # If axes are not yet selected, abort update
         return no_update, no_update, no_update, no_update
 
     if ctx.triggered_id in ['x-axis-dropdown', 'y-axis-dropdown']:
         # Axes changed → build a new figure from scratch
-        fig = plot.FigureWrapper.build(x_label, y_label, channels, all_data)
+        fig = plot.FigureWrapper.build(x_label, y_label, channels, show_filtered_points, app.server.config["data"])
     else:
         # Rehydrate the figure to retain state (filtered points, big point, etc.)
-        fig = plot.FigureWrapper.from_fig(fig, all_data)
+        fig = plot.FigureWrapper.from_fig(fig, app.server.config["data"])
 
     # Apply filters to the dataset
     fig.update_filters(active_filters)
@@ -253,10 +198,13 @@ def update_main_plot(x_label, y_label, active_filters, channels, show_filtered_p
         info_dictionary = fig.get_data_point_info()
         info_table = [html.Tr([html.Td(el), html.Td(info_dictionary[el])]) for el in info_dictionary]
 
-        # Attempt to render the corresponding image
-        gonet_fig = fig.gonet_image(clickdata)
-        if gonet_fig is None:
+        if not app.server.config.get("show_images_preview"):
             gonet_fig = no_update
+        else:
+            # Attempt to render the corresponding image
+            gonet_fig = fig.gonet_image(clickdata)
+            if gonet_fig is None:
+                gonet_fig = no_update
 
     return fig.to_dict(), formatted_stats_table, gonet_fig, info_table
             
@@ -330,6 +278,45 @@ def add_or_filter(_, id, labels):
     new_filter = utils.new_empty_second_filter(idx, labels)
 
     return new_filter
+
+@utils.gonet_callback(
+    Output("custom-filter-container", "children", allow_duplicate=True),
+    # ---------------------
+    Input({"type": "remove-filter", "index": ALL}, "n_clicks"),
+    # ---------------------
+    State("custom-filter-container", "children"),
+    State({"type": "remove-filter", "index": ALL}, "id"),
+    # ---------------------
+    prevent_initial_call=True,
+)
+def remove_filter(n_clicks, filter_children, remove_ids):
+    """
+    Remove an entire filter block when its trash button is clicked.
+    """
+    
+    # Which input triggered this callback?
+    target_index = ctx.triggered_id.get("index")
+
+    # Find the position of this button in the remove_ids list
+    btn_pos = None
+    for i, rid in enumerate(remove_ids):
+        if rid.get("index") == target_index:
+            btn_pos = i
+            break
+
+    # Only act if this button has actually been clicked
+    # (on creation, n_clicks is 0)
+    if not n_clicks[btn_pos] or n_clicks[btn_pos] <= 0:
+        return no_update
+
+    # Build new children list without the removed filter
+    new_children = [
+        child
+        for child in filter_children
+        if child.get("props", {}).get("id", {}).get("index") != target_index
+    ]
+
+    return new_children
 
 
 @app.callback(
@@ -501,11 +488,10 @@ def update_filters(_, switches, ops, values, selections, second_ops, second_valu
     Input("export-data", 'n_clicks'),
     #---------------------
     State("main-plot",'figure'),
-    State("data-json",'data'),
     #---------------------
     prevent_initial_call=True
 )
-def export_data(_, fig, data):#, channels):
+def export_data(_, fig):#, channels):
     """
     Export filtered data from the plot to a downloadable JSON file.
 
@@ -534,37 +520,61 @@ def export_data(_, fig, data):#, channels):
 
     """
 
+    df = app.server.config["data"]  # pandas DataFrame
     json_out = []
 
-    # The indexes will be the same for all the channels
-    # So I take the indexes from only one of them
-    idx_list = [img['idx'] for img in fig['data'] if not img['filtered'] and not img['big_point']][0]
+    # Take the epoch_idx list from one of the traces (same logic as before)
+    idx_list = [img['epoch_idx'] for img in fig['data']
+                if not img.get('filtered') and not img.get('big_point')][0]
 
-    # Converting the list into a numpy array only once here so that I can
-    # use np.where later multiple times
-    data_idx = np.array(data['idx'])
-    data_channel = np.array(data['channel'])
+    # Pre-pull columns we’ll need
+    has_col = df.columns.__contains__
+    base_labels = (['filename'] + env.LABELS['gen'])
+    # skip the epoch key if it’s in gen labels
+    base_labels = [lbl for lbl in base_labels if lbl != 'epoch_idx' and has_col(lbl)]
+
+    fit_labels = [lbl for lbl in env.LABELS['fit'] if has_col(lbl)]
 
     for i in idx_list:
-        out_dict = {}
-        # `data` will have 3 entries with the same idx (one per channel)
-        # so `matching_idx` will be a list of 3 elements.
-        # Taking just the first to fetch the labels unrelated to the channel
-        matching_idx = np.argwhere(data_idx == i)[0][0]
+        # all rows for this epoch (typically 3: red/green/blue)
+        block = df.loc[df['epoch_idx'] == i]
 
-        for label in ['filename'] + env.LABELS['gen']:
-            if label == 'idx': continue
-            out_dict[label] = data[label][matching_idx]
-        
-        for c in env.CHANNELS:
-            out_dict[c]={}
-            matching_idx_and_channel = np.argwhere((data_idx == i) & (data_channel==c))[0][0]
-            for label in env.LABELS['fit']:
-                out_dict[c][label] = data[label][matching_idx_and_channel]
+        if block.empty:
+            # nothing for this epoch; skip
+            continue
+
+        # take any row (channel-agnostic fields)
+        base_row = block.iloc[0]
+
+        out_dict = {}
+        for lbl in base_labels:
+            val = base_row[lbl]
+            # make JSON-serializable (e.g., Timestamp -> isoformat)
+            if hasattr(val, "isoformat"):
+                val = val.isoformat()
+            out_dict[lbl] = val
+
+        # add per-channel sub-dicts
+        for ch in env.CHANNELS:
+            ch_rows = block.loc[block['channel'] == ch]
+            if ch_rows.empty:
+                # channel missing for this epoch: put Nones
+                out_dict[ch] = {lbl: None for lbl in fit_labels}
+            else:
+                r = ch_rows.iloc[0]
+                ch_dict = {}
+                for lbl in fit_labels:
+                    v = r[lbl]
+                    if hasattr(v, "isoformat"):
+                        v = v.isoformat()
+                    ch_dict[lbl] = v
+                out_dict[ch] = ch_dict
 
         json_out.append(out_dict)
 
-    return dict(content=json.dumps(json_out, indent=4), filename="filtered_data.json")
+    # default=str handles any leftover non-JSON types (e.g., Path, Timestamp)
+    return dict(content=json.dumps(json_out, indent=4, default=str),
+                filename="filtered_data.json")
 
 register_json_download(
     app,
@@ -746,13 +756,12 @@ def load_status(contents, filter_div, labels):
 
 @utils.gonet_callback(
     Output('selection-filter', 'disabled'),
+    #---------------------
     Input('main-plot', 'relayoutData'),
-    State('main-plot', 'figure'),
-    State("data-json",'data'),
     #---------------------
     prevent_initial_call=True
 )
-def update_filter_selection_state(relayout_data, fig, all_data):
+def update_filter_selection_state(relayout_data):
     """
     Enable or disable the "Add Selection Filter" button based on current selection in the plot.
 

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from GONet_Wizard.GONet_utils import GONetFile
-from GONet_Wizard.GONet_utils.src.gonetfile import FileType
+from GONet_Wizard.GONet_utils.src.gonet.filetypes import FileType
 @pytest.fixture
 def fake_gonetfile() -> GONetFile:
     """Create a small fake GONetFile for scalar operations."""

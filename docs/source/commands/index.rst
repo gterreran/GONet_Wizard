@@ -9,10 +9,9 @@ commands
 .. toctree::
    :hidden:
 
+   cli_core
    run_dashboard
    show
    show_meta
    extract
    connect
-   snap
-   terminate

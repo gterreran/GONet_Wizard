@@ -77,7 +77,6 @@ from dateutil import tz
 import astropy.units as u
 
 CHANNELS = ['red', 'green', 'blue']
-CHANNEL_COLORS = ['green/blue', 'red/green', 'red/blue']
 
 BG_COLOR = 'rgb(42, 42, 42)'
 TEXT_COLOR = 'rgb(240, 240, 240)'
@@ -122,8 +121,6 @@ DEFAULT_FILTER_VALUES = {
     'moon_illumination': 0.2,
     'condition_code': 2,
 }
-
-LABELS = {'gen':[], 'fit':[]}
 
 OP = {
     '<': operator.lt ,

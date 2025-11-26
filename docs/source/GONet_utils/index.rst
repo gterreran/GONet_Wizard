@@ -14,8 +14,8 @@ GONet Utils Package
 .. toctree::
    :hidden:
 
-   gonetfile
+   gonet/index
    raw_data
-   extractors
+   extractors/index
    data_spec
    extract_app/index

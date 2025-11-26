@@ -31,6 +31,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from typing import Optional, Union
 import math
+import matplotlib.axes
 
 
 plotly_shape = {
@@ -144,6 +145,32 @@ class Shape(ABC):
         Notes
         -----
         - This method is used for visualization or integration with external tools (e.g., Plotly).
+
+        """
+        pass
+
+    @abstractmethod
+    def plt_draw(self, ax: matplotlib.axes.Axes, **kwargs: dict) -> None:
+        """
+        Draw the shape on a Matplotlib Axes.
+
+        This method should be implemented by subclasses to render the shape on the
+        provided Matplotlib Axes object.
+
+        Parameters
+        ----------
+        ax : :class:`matplotlib.axes.Axes`
+            The Matplotlib Axes object on which to draw the shape.
+        **kwargs : :class:`dict`
+            Additional keyword arguments to customize the appearance of the shape.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        - This method is used for visualization within Matplotlib plots.
 
         """
         pass

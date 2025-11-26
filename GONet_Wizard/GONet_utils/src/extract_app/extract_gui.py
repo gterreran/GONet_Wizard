@@ -139,6 +139,7 @@ def launch_extraction_gui(data_files):
         height=700,
         js_api=GONetAPI()
     )
+
     webview.start()
 
     if "extraction_params" in app.server.config:

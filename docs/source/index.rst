@@ -33,6 +33,7 @@ Each module is documented in its own section below.
    GONet_dashboard/index
    GONet_utils/index
    commands/index
+   branding
    _version
    Changelog <https://github.com/gterreran/GONet_Wizard/blob/master/CHANGELOG.md>
 

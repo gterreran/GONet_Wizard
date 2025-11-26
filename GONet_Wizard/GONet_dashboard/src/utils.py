@@ -1,21 +1,17 @@
 """
 GONet Wizard Utility Functions.
 
-This module provides reusable functions for plotting, filtering, statistical analysis,
-and layout generation within the GONet Wizard dashboard application. These functions
-support the construction of `Dash <https://dash.plotly.com/>`_ figures, dynamic filter UI elements, and filter logic
-used in the callback system.
+This module provides utility functions and constants for the GONet Wizard dashboard application.
+It includes debugging decorators, a custom Dash callback decorator with enhanced error handling,
+date/time parsing utilities, and functions to create dynamic filter UI components.
 
 `Dash <https://dash.plotly.com/>`_ components from `dash` and `dash_daq` are used to construct UI elements dynamically.
 
 **Functions**
 
-- :func:`debug` : debugging. 
-- :func:`sort_figure` : Reorders the traces in a Plotly figure based on filtering and highlight status.
-- :func:`get_labels` : Extracts the axis label text from a Plotly figure layout.
-- :func:`plot_scatter` : Update a Plotly figure by adding scatter traces for selected and filtered data.
-- :func:`plot_big_points` : Highlight a selected point in the scatter plot by adding enlarged "big point" markers.
-- :func:`get_stats` : Compute summary statistics (mean and standard deviation) for plotted x and y values.
+- :func:`debug_print` : Decorator that logs when a Dash callback is triggered, including the triggering component ID and source line.
+- :func:`gonet_callback` : Custom Dash callback decorator that extends the original callback with automatic alert handling, debug logging, and error state protection.
+- :func:`parse_date_time` : Parses and converts a date/time value based on the provided label. 
 - :func:`new_empty_filter` : Create a `Dash <https://dash.plotly.com/>`_ component representing an empty primary filter block.
 - :func:`new_empty_second_filter` : Create a `Dash <https://dash.plotly.com/>`_ component block representing a secondary (OR) filter.
 - :func:`new_selection_filter` : Create a `Dash <https://dash.plotly.com/>`_ component for a selection-based filter using manually selected points.
@@ -334,6 +330,21 @@ def new_empty_filter(idx: int, labels: list) -> html.Div:
                         n_clicks=0
                     )
                 ]
+            ),
+            html.Div(
+                className="remove-filter-container",
+                id={"type": "remove-filter-container", "index": index},
+                children=[
+                    html.Button(
+                        id={"type": "remove-filter", "index": index},
+                        className="remove-filter-button",
+                        n_clicks=0,
+                        children=html.Img(
+                            src="/assets/img/icons/trash.svg",
+                            className="remove-filter-icon"
+                        )
+                    )
+                ]
             )
         ]
     )
@@ -391,15 +402,57 @@ def new_selection_filter(idx: int, selected_indexes: list) -> html.Div:
         A :dashdoc:`Dash Div <dash-html-components/div>` component containing the selection-based filter UI.
     """
 
-    new_filter = html.Div(className="custom-filter-container", id = {"type":'custom-filter-container', "index":idx}, children=[
-                html.Div(className="first-filter-container", id = {"type":'first-filter-container', "index":idx}, children=[
-                    html.Div(className = 'switch-container', id = {"type":'filter-switch-container', "index":idx}, children=
-                        daq.BooleanSwitch(className='switch', id={"type":'filter-switch', "index":idx, "uuid": str(uuid.uuid4())}, on=False),
+    new_filter = html.Div(
+        className="custom-filter-container",
+        id = {"type":'custom-filter-container', "index":idx},
+        children=[
+            html.Div(
+                className="first-filter-container",
+                id = {"type":'first-filter-container',"index":idx},
+                children=[
+                    html.Div(
+                        className = 'switch-container',
+                        id = {"type":'filter-switch-container', "index":idx},
+                        children = daq.BooleanSwitch(
+                            className='switch',
+                            id={"type":'filter-switch', "index":idx, "uuid": str(uuid.uuid4())},
+                            on=False
+                        ),
                     ),
-                    dcc.Dropdown(className="custom-filter-dropdown", id={"type":'filter-dropdown', "index":idx}, options=[f'Selection {idx}'], value=f'Selection {idx}'),
-                    dcc.Store(id={"type":'filter-selection-data', "index": idx}, data = selected_indexes),
-                    dcc.Dropdown(className="custom-filter-operator", id={"type":'filter-operator', "index":idx}, options=['in', 'out'], value = 'in'),
-                ])
-            ])
+                    dcc.Dropdown(
+                        className="custom-filter-dropdown",
+                        id={"type":'filter-dropdown', "index":idx},
+                        options=[f'Selection {idx}'],
+                        value=f'Selection {idx}'
+                    ),
+                    dcc.Store(
+                        id={"type":'filter-selection-data', "index": idx},
+                        data = selected_indexes
+                    ),
+                    dcc.Dropdown(
+                        className="custom-filter-operator",
+                        id={"type":'filter-operator', "index":idx},
+                        options=['in', 'out'],
+                        value = 'in'
+                    ),
+                ]
+            ),
+            html.Div(
+                className="remove-filter-container",
+                id={"type": "remove-filter-container", "index": idx},
+                children=[
+                    html.Button(
+                        id={"type": "remove-filter", "index": idx},
+                        className="remove-filter-button",
+                        n_clicks=0,
+                        children=html.Img(
+                            src="/assets/img/icons/trash.svg",
+                            className="remove-filter-icon"
+                        )
+                    )
+                ]
+            )
+        ]
+    )
 
     return new_filter

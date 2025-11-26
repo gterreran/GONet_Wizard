@@ -25,7 +25,7 @@ Notes
 
 import yaml
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any
 
 class Field:
     """
@@ -41,12 +41,31 @@ class Field:
         String representation of the unit (for display only).
     aliases : list of str
         List of legacy or alternate field names.
+    plottable : bool
+        Whether this field should be available for plotting.
+    field_type : str
+        Type of field, either 'env' (environment) or 'chn' (channel).
+    extras : dict
+        Additional metadata for loading or processing the field.
+        
     """
-    def __init__(self, key: str, label: str, unit: str, aliases: List[str] = []):
+    def __init__(
+        self,
+        key: str,
+        label: str,
+        unit: str,
+        aliases: List[str] = [],
+        plottable: bool = True,
+        field_type: str = "env",
+        **extras: Any,
+    ):
         self.key = key
         self.aliases = aliases or []
         self.label = label
         self.unit = unit
+        self.plottable = plottable
+        self.field_type = field_type  # 'env' or 'chn'
+        self.load: Dict[str, Any] = extras.get("load", {}) or {}
 
 # Path to YAML file relative to this script
 DATA_SPEC_PATH = Path(__file__).parent / "data_spec.yaml"

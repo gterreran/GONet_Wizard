@@ -12,6 +12,16 @@ The module validates user-provided parameters for the selected shape and ensures
 that the extraction process is performed correctly. Results are saved to a JSON
 file, with automatic handling of file overwrites.
 
+The command is declared via the :data:`COMMAND` constant, which specifies the
+argument structure used by the centralized parser builder. When invoked from the
+CLI, the parser dispatches directly to :func:`cli_handler`, which translates the
+parsed :class:`argparse.Namespace` into a call to the reusable plotting function.
+
+Constants
+---------
+- :data:`COMMAND` : :class:`~GONet_Wizard.commands.cli_core.CommandSpec` object
+  for the `extract` command.
+
 Functions
 ---------
 :func:`validate_output_file`
@@ -24,12 +34,100 @@ Functions
 
 """
 
-import json
+import json, warnings, argparse
 from typing import Union, List
 from GONet_Wizard.GONet_utils.src.extractors import extract_all
 from pathlib import Path
+from GONet_Wizard.commands.cli_core import ExpandFilenames, CommandSpec, filter_by_ext
 
-def validate_output_file(output: str) -> str:
+COMMAND = CommandSpec(
+    name="extract",
+    help="Extract counts from a region one or more GONet files.",
+    args=[
+        {
+            "flags": ["filenames"],
+            "nargs": "+",
+            "action": ExpandFilenames,
+            "help": (
+                "GONet file(s) to extract [.jpg, .tiff]. "
+                "`*` wildcards and comma-separated lists are supported."
+            ),
+        },
+        {
+            "flags": ["--red"],
+            "action": "store_true",
+            "default": False,
+            "help": "Extract only the red channel.",
+        },
+        {
+            "flags": ["--green"],
+            "action": "store_true",
+            "default": False,
+            "help": "Extract only the green channel.",
+        },
+        {
+            "flags": ["--blue"],
+            "action": "store_true",
+            "default": False,
+            "help": "Extract only the blue channel.",
+        },
+        {
+            "flags": ["--shape"],
+            "choices": ["circle", "rectangle", "annulus", "interactive"],
+            "help": (
+                "Shape of the extraction region.  If shape is 'interactive', "
+                "or no shape is parsed, the user will select the region interactively."
+            ),
+        },
+        {
+            "flags": ["--center"],
+            "help": (
+                "Center of the region in pixels, as 2 comma-separated values: x,y. "
+                "Example: 1000,800"
+            ),
+        },
+        {
+            "flags": ["--radius"],
+            "help": "Radius in pixels (required if shape is circle).",
+        },
+        {
+            "flags": ["--sides"],
+            "help": (
+                "Sides in pixels, as 2 comma-separated values: x,y. width,height "
+                "(required if shape is rectangle). Example: 300,400"
+            ),
+        },
+        {
+            "flags": ["--inner_radius"],
+            "help": "Inner radius in pixels. (required if shape is annulus).",
+        },
+        {
+            "flags": ["--outer_radius"],
+            "help": "Outer radius in pixels (required if shape is annulus).",
+        },
+        {
+            "flags": ["--angles"],
+            "help": (
+                "Angles in degrees, as 2 comma-separated values: start_angle,end_angle "
+                "(optional). 0 degrees is along the +x axis, and angles increase counter-clockwise. "
+            ),
+        },
+        {
+            "flags": ["--output"],
+            "help": (
+                "Output file name. Default name is 'extraction_shape.json'. If files already exists, it will not be overwritten, but a new file will be created with sequential number added to it."
+            ),
+        },
+        {
+            "flags": ["--output_type"],
+            "choices": ["json", "csv"],
+            "help": "Output file type. Options are 'json' (default) or 'csv'.",
+        },
+    ],
+)
+
+
+def validate_output_file(output: str, output_type: str) -> str:
     """
     Validate the output file path and ensure it does not overwrite an existing file.
 
@@ -39,6 +137,8 @@ def validate_output_file(output: str) -> str:
     ----------
     output : :class:`str`
         Path to the output file.
+    output_type : :class:`str`
+        Type of the output file, either "json" or "csv".
 
     Returns
     -------
@@ -50,8 +150,28 @@ def validate_output_file(output: str) -> str:
     ValueError
         If the output file path is invalid.
     """
-    if not output.endswith(".json"):
-        raise ValueError("Output file must be a JSON file.")
+    
+    # Check output is a valid filename with correct extension
+    if '.' not in output:
+        if output_type is None:
+            warnings.warn(
+                "The wanted extension for the output file is not specified. Defaulting to 'json'.",
+                RuntimeWarning,
+            )
+            output = f'{output}.json'
+        else:
+            output = f'{output}.{output_type}'
+    else:
+        ext = output.split('.')[-1].lower()
+        if ext not in ['json', 'csv']:
+            raise ValueError(f"Output file must have .json or .csv extension. Provided: {ext}")
+        if output_type is not None and ext != output_type:
+            warnings.warn(
+                f"Output file extension '{ext}' does not match specified output_type '{output_type}'. Ignoring output_type and using the extension in the provided output file ({ext}).",
+                RuntimeWarning,
+            )
+
+        output_type = ext
 
     output_path = Path(output)
     if output_path.exists():
@@ -69,7 +189,7 @@ def validate_output_file(output: str) -> str:
                 return str(new_filename)
             index += 1
 
-    return output
+    return output, output_type
 
 def comma_separated_pair(value, name):
     """
@@ -117,7 +237,8 @@ def extract_counts_from_GONet(
         inner_radius: float = None,
         outer_radius: float = None,
         angles: str = None,
-        output: str = None
+        output: str = None,
+        output_type: str = None,
     ) -> None:
     """
     Extract pixel counts from one or more GONet image files.
@@ -173,6 +294,9 @@ def extract_counts_from_GONet(
     output : :class:`str`, optional
         Name of the output JSON file.
 
+    output_type : :class:`str`, optional
+        Type of the output file, either "json" or "csv". Defaults to "json
+
     Returns
     -------
     None
@@ -189,6 +313,14 @@ def extract_counts_from_GONet(
 
     """
 
+    # Validate output
+    if output is None:
+        if output_type is None:
+            output_type = "json"
+        output = f"extraction_{shape}.{output_type}"
+
+    output, output_type = validate_output_file(output, output_type)
+
     # Check if files is a single string
     if isinstance(files, str):
         # Check if it's a comma-separated list
@@ -197,17 +329,17 @@ def extract_counts_from_GONet(
         else:
             files = [files]
 
-    # If all extensions are false, we will extract all of them
+    # If all channels are false, we will extract all of them
     if not any([red, green, blue]):
-        extensions = ["red", "green", "blue"]
+        channels = ["red", "green", "blue"]
     else:
-        extensions = []
+        channels = []
         if red:
-            extensions.append("red")
+            channels.append("red")
         if green:
-            extensions.append("green")
+            channels.append("green")
         if blue:
-            extensions.append("blue")
+            channels.append("blue")
 
     extraction_params = {
         'shape': shape,
@@ -258,15 +390,35 @@ def extract_counts_from_GONet(
         return
 
     print(f"Extracting {shape}")
-    print(f"Channels - {', '.join(extensions)}")
-    out_dict = extract_all(files, extensions, extraction_params)
-
-    if output is None:
-        output = f"extraction_{shape}.json"
-
-    output = validate_output_file(output)
+    print(f"Channels - {', '.join(channels)}")
+    out_epoch_list = extract_all(files, channels, extraction_params)
     
-
-    with open(output, "w") as f:
-        json.dump(out_dict, f, indent=4)
+    if output_type == "csv":
+        import pandas as pd
+        df = pd.json_normalize(out_epoch_list, sep="_")
+        df.to_csv(output, index=False)
         print(f"Results saved to {output}")
+
+    else:
+        with open(output, "w") as f:
+            json.dump(out_epoch_list, f, indent=4)
+            print(f"Results saved to {output}")
+
+
+def cli_handler(args: argparse.Namespace) -> None:
+    files = filter_by_ext(args.filenames, [".jpg", ".tiff"])
+    extract_counts_from_GONet(
+        files=files,
+        red=args.red,
+        green=args.green,
+        blue=args.blue,
+        shape=args.shape,
+        center=args.center,
+        radius=float(args.radius) if args.radius is not None else None,
+        sides=args.sides,
+        inner_radius=float(args.inner_radius) if args.inner_radius is not None else None,
+        outer_radius=float(args.outer_radius) if args.outer_radius is not None else None,
+        angles=args.angles,
+        output=args.output,
+        output_type=args.output_type,
+    )
