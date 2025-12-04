@@ -26,6 +26,7 @@ dependencies = [
   "paramiko",
   "scp",
   "astropy",
+  "scipy",
   "pywebview",
   "astroplan",
   "meteostat",
