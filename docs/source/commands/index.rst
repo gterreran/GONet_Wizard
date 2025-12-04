@@ -13,5 +13,6 @@ commands
    run_dashboard
    show
    show_meta
+   build_full_array
    extract
    connect

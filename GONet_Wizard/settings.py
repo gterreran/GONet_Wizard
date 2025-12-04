@@ -50,7 +50,6 @@ DASHBOARD_DEBUG : :class:`bool`
 """
 
 import os
-from pathlib import Path
 from dataclasses import dataclass
 from dotenv import load_dotenv
 from typing import Optional

@@ -45,6 +45,7 @@ class GONetFileRaw(GONetFile):
     """
 
     CHANNELS = ['blue', 'green1', 'green2', 'red']
+    COLORS = {'blue': 'b', 'green1':'forestgreen', 'green2':'lime', 'red': 'r'}
 
     def __init__(
         self,

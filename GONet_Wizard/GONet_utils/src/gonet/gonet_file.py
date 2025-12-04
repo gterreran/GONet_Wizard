@@ -65,9 +65,12 @@ class GONetFile:
     ----------
     CHANNELS : list
         A list of channel names for the GONet file (e.g., ['blue', 'green', 'red']).
+    COLORS : dict
+        A mapping of channel names to their corresponding color codes (e.g., {'blue': 'b', 'green': 'g', 'red': 'r'}).
     """
 
     CHANNELS = ['blue', 'green', 'red']
+    COLORS = {'blue': 'b', 'green': 'g', 'red': 'r'}
 
     def __init__(
         self,

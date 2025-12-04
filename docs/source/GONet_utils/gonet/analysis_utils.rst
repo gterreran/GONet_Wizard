@@ -12,3 +12,10 @@ dark_correction Module
    :members:
    :undoc-members:
    :show-inheritance:
+
+full_array Module
+-------------------
+.. automodule:: GONet_Wizard.GONet_utils.src.gonet.analysis_utils.full_array
+   :members:
+   :undoc-members:
+   :show-inheritance:

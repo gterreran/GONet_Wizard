@@ -1,0 +1,1 @@
+.. automodule:: GONet_Wizard.commands.build_full_array
