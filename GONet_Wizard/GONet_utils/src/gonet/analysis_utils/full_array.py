@@ -44,6 +44,7 @@ import numpy as np
 from scipy.stats import gaussian_kde
 
 from GONet_Wizard.GONet_utils import GONetFileRaw
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -238,9 +239,9 @@ def _combine_channels_weighted(
 
 
 def build_full_array(
-    gonet_file: str,
+    gonet_file: Path,
     show: bool = False,
-    outfile: Optional[str] = None,
+    outfile: Optional[Path] = None,
     verbose: bool = False,
     channel_weights: Optional[Dict[str, float]] = None,
 ) -> None:
@@ -249,11 +250,11 @@ def build_full_array(
 
     Parameters
     ----------
-    gonet_file : :class:`str`
+    gonet_file : :class:`Path`
         Path to the input GONet RAW ``.jpg`` file.
     show : :class:`bool`, optional
         If ``True``, show diagnostic histograms and the combined image.
-    outfile : :class:`str`, optional
+    outfile : :class:`Path`, optional
         Output file name for the compressed ``.npz`` file. If ``None``,
         a default name based on ``gonet_file`` is used.
     verbose : :class:`bool`, optional
@@ -272,7 +273,7 @@ def build_full_array(
     ValueError
         If the input file is not a GONet RAW ``.jpg`` file.
     """
-    if not gonet_file.lower().endswith(".jpg"):
+    if gonet_file.suffix.lower() != ".jpg":
         raise ValueError("Input file must be a GONet RAW .jpg file.")
 
     # If logger has no handlers, configure it minimally
@@ -378,8 +379,7 @@ def build_full_array(
         plt.show()
 
     if outfile is None:
-        base = os.path.splitext(os.path.basename(gonet_file))[0]
-        outfile = f"{base}_full_array.npz"
+        outfile = Path(f"{gonet_file.stem}_full_array.npz")
 
     np.savez_compressed(outfile, image=combined_image)
     logger.info("Saved full-array GONet image to %s.", outfile)

@@ -21,6 +21,7 @@ import os
 import argparse, warnings
 from GONet_Wizard.commands.cli_core import ExpandFilenames, CommandSpec, filter_by_ext
 from GONet_Wizard.GONet_utils.src.gonet.analysis_utils.full_array import build_full_array
+from pathlib import Path
 
 COMMAND = CommandSpec(
     name="build_full_array",
@@ -92,28 +93,29 @@ def cli_handler(args: argparse.Namespace) -> None:
     files = filter_by_ext(args.input, [".jpg"])
     # If more than one file, outfile will be used as a suffix basename
 
-    if args.outfile is None:
+    out = args.outfile
+    if out is None:
         outfiles = [None] * len(files)
     else:
-        if '.' in args.outfile:
-            base, ext = args.outfile.rsplit('.', 1)
-            args.outfile = base
-            if ext != 'npz':
+        if isinstance(out, str):
+            out = Path(out)
+        if out.suffix != '':
+            if out.suffix != '.npz':
                 warnings.warn(
-                    f"Output extension '{ext}' will be ignored. Using '.npz' instead.",
+                    f"Output extension '{out.suffix}' will be ignored. Using '.npz' instead.",
                     UserWarning
                 )
+            out = out.stem
         if len(files) == 1:
-            outfiles = [f"{args.outfile}.npz"]
+            outfiles = [f"{out}.npz"]
         else:
             warnings.warn(
-                f"Multiple input files detected; appending {args.outfile} as a suffix to each output file.",
+                f"Multiple input files detected; appending \"_{out}.npz\" as a suffix to each output file.",
                 UserWarning
             )
             outfiles = []
             for f in files:
-                infile_base = os.path.splitext(os.path.basename(f))[0]
-                outfiles.append(f"{infile_base}_{args.outfile}.npz")
+                outfiles.append(Path(f"{f.stem}_{out}.npz"))
                 
     for i, f in enumerate(files):
         build_full_array(

@@ -31,6 +31,7 @@ Functions
 import argparse, os, glob
 from typing import List, Sequence, Iterable, Any
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -97,12 +98,11 @@ class ExpandFilenames(argparse.Action):
       - directories (non-recursive expansion)
       - wildcard patterns (e.g. ``*.tiff``)
       - comma-separated lists of the above
-    
     """
     def __call__(self, parser, namespace, values, option_string=None):
         """
         Expand input tokens into a flat list of file paths.
-        
+
         Parameters
         ----------
         parser : :class:`argparse.ArgumentParser`
@@ -113,7 +113,7 @@ class ExpandFilenames(argparse.Action):
             The input tokens to expand.
         option_string : :class:`str`, optional
             The option string used (if any).
-        
+
         Returns
         -------
         None
@@ -128,9 +128,11 @@ class ExpandFilenames(argparse.Action):
             files = expand_inputs(values)
         except FileNotFoundError as e:
             parser.error(str(e))
+        # store a list[Path] in the namespace
         setattr(namespace, self.dest, files)
 
-def expand_inputs(tokens):
+
+def expand_inputs(tokens: Sequence[str]) -> List[Path]:
     """
     Expand input tokens into a flat list of file paths.
 
@@ -143,82 +145,96 @@ def expand_inputs(tokens):
           - directories (non-recursive expansion)
           - wildcard patterns (e.g. ``*.tiff``)
           - comma-separated lists of the above
-    
+
     Returns
     -------
-    :class:`list` of :class:`str`
-        A flat list of expanded file paths.
-    
+    :class:`list` of :class:`pathlib.Path`
+        A flat list of expanded file paths as :class:`pathlib.Path` objects.
+
     Raises
     ------
     :class:`FileNotFoundError`
         If any input token does not match files.
 
     """
-    out, seen = [], set()
+    out: List[Path] = []
+    seen: set[Path] = set()
 
-    def add_file(p):
+    def add_file(p: Path) -> None:
+        # Normalize slightly (expanduser) before dedupe; you could also add .resolve()
+        p = p.expanduser()
         if p not in seen:
-            out.append(p); seen.add(p)
+            out.append(p)
+            seen.add(p)
 
     for item in tokens:
+        # allow comma-separated lists within a single token
         for part in str(item).split(','):
             part = part.strip()
             if not part:
                 continue
 
-            if os.path.isfile(part):
-                add_file(part)
+            p = Path(os.path.expanduser(part))
+
+            # direct file
+            if p.is_file():
+                add_file(p)
                 continue
 
-            if os.path.isdir(part):
-                for name in os.listdir(part):       # non-recursive
-                    p = os.path.join(part, name)
-                    if os.path.isfile(p):
-                        add_file(p)
+            # non-recursive directory listing
+            if p.is_dir():
+                for child in p.iterdir():
+                    if child.is_file():
+                        add_file(child)
                 continue
 
-            matches = [m for m in glob.glob(part) if os.path.isfile(m)]
+            # wildcard / glob pattern
+            # use expanduser so "~/data/*.fits" works
+            matches = [
+                Path(m) for m in glob.glob(os.path.expanduser(part))
+                if os.path.isfile(m)
+            ]
             if matches:
                 for m in matches:
                     add_file(m)
             else:
-                # you can parser.error here instead if you prefer hard fail
                 raise FileNotFoundError(f"No files matched: {part!r}")
-            
+
     return out
 
 
-def filter_by_ext(paths: Sequence[str], exts: Iterable[str]) -> List[str]:
+def filter_by_ext(paths: Sequence[Path], exts: Iterable[str]) -> List[Path]:
     """
     Filter a list of file paths by extension.
 
     Parameters
     ----------
-    paths : :class:`list` of :class:`str`
+    paths : :class:`list` of :class:`pathlib.Path`
         List of file paths to filter.
     exts : :class:`list` of :class:`str`
         List of allowed file extensions (with or without leading dot).
-        Example: ['.tiff', '.tif', '.json']
-    
+        Example: ``['.tiff', '.tif', '.json']``
+
     Returns
     -------
-    :class:`list` of :class:`str`
+    :class:`list` of :class:`pathlib.Path`
         Filtered list of file paths that match the allowed extensions.
 
     Raises
     ------
     :class:`.ExtensionFilterError`
-        If `require_non_empty` is True and no files match the allowed extensions.
+        If no files match the allowed extensions.
 
     """
     # normalize to lowercase with leading dot
     norm = {e.lower() if e.startswith('.') else f".{e.lower()}" for e in exts}
 
-    filtered = [p for p in paths if os.path.splitext(p)[1].lower() in norm]
+    filtered: List[Path] = [p for p in paths if p.suffix.lower() in norm]
 
     if not filtered:
-        raise ExtensionFilterError(f"No files matched required extension(s): {sorted(norm)}")
+        raise ExtensionFilterError(
+            f"No files matched required extension(s): {sorted(norm)}"
+        )
 
     return filtered
 

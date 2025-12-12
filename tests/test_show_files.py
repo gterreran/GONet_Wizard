@@ -55,7 +55,7 @@ def test_show_metadata_handles_parsing_error(tmp_path, monkeypatch, capsys):
     # Monkeypatch from_file to raise an exception
     monkeypatch.setattr(GONetFile, "from_file", lambda _: (_ for _ in ()).throw(ValueError("simulated failure")))
 
-    files = filter_by_ext([str(file)], [".jpg", ".tiff"])
+    files = filter_by_ext([file], [".jpg", ".tiff"])
     commands.show.show_gonet_files(files)
 
     captured = capsys.readouterr()
