@@ -16,3 +16,4 @@ commands
    build_full_array
    extract
    connect
+   gui

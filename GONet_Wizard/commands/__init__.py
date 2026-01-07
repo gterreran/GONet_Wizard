@@ -67,11 +67,11 @@ Constants
 """
 
 
-from GONet_Wizard.commands import show, show_meta, extract, run_dashboard, connect, build_full_array
+from GONet_Wizard.commands import show, show_meta, extract, run_dashboard, connect, build_full_array, gui
 from GONet_Wizard.commands import connect_commands
 from .cli_core import ParserSpec
 
-COMMANDS = (show, show_meta, extract, run_dashboard, connect, build_full_array)
+COMMANDS = (show, show_meta, extract, run_dashboard, connect, build_full_array, gui)
 
 PARSER = ParserSpec(
     dest="command",
