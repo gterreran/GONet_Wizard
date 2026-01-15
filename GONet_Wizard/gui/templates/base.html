@@ -16,7 +16,7 @@
 
   {% block footer %}
     <footer>
-      <button onclick="showExitModal()">Exit</button>
+      <button onclick="GONet.modals.showExitModal()">Exit</button>
       {% if request.path != '/' %}
         <button onclick="location.href='/'">Back to Main Menu</button>
       {% endif %}
@@ -26,12 +26,16 @@
     <div id="exit-modal" class="modal hidden">
       <div class="modal-content">
         <p>Are you sure you want to exit GONet Wizard?</p>
-        <button onclick="closeExitModal()">Cancel</button>
+        <button onclick="GONet.modals.closeExitModal()">Cancel</button>
         <button onclick="pywebview.api.close_window()">Exit</button>
       </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/launcher.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/cache.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/browse.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/forms.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modals.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core.js') }}"></script>
   {% endblock %}
 </body>
 </html>

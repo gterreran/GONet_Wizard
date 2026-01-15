@@ -1,3 +1,5 @@
+# GONet_Wizard/gui/__init__.py
+
 """
 HTML Form-Based GUI for the GONet Wizard CLI
 ============================================

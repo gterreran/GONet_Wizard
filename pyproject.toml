@@ -8,8 +8,8 @@ dynamic = ["version"]
 description = "Tools and methods to handle GONet data."
 readme = { file = "README.rst", content-type = "text/x-rst" }
 requires-python = ">=3.10"
-license = "MIT"                           # SPDX expression (string)
-license-files = ["LICENSE*"]   # include your license files
+license = "MIT"
+license-files = ["LICENSE*"]
 
 authors = [{ name = "Giacomo Terreran", email = "gterreran@adlerplanetarium.org" }]
 
@@ -29,8 +29,8 @@ dependencies = [
   "scipy",
   "pywebview",
   "astroplan",
-  "meteostat",
-  "tqdm"  # <-- you had 'tdqm' (typo)
+  "meteostat==1.7.6",
+  "tqdm"
 ]
 
 [project.optional-dependencies]
