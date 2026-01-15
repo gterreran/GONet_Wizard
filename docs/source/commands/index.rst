@@ -1,6 +1,3 @@
-commands
-========
-
 .. automodule:: GONet_Wizard.commands
    :members:
    :undoc-members:
@@ -17,3 +14,7 @@ commands
    extract
    connect
    gui
+   specs
+   parser_builder
+   inputs
+   ui_bridge

@@ -1,71 +1,89 @@
 """
-Command Definitions for the GONet Wizard CLI
-============================================
+Command Definitions for the GONet Wizard CLI and GUI
+====================================================
 
-This package defines all command-line commands available in the GONet Wizard
-interface. Each command is implemented in a dedicated module (e.g. ``show``,
-``show_meta``, ``extract``), and each exposes a :class:`~GONet_Wizard.commands.cli_core.CommandSpec`
-object describing its CLI signature.
+This package is the declarative registry for all *user-invoked* entry points in
+GONet Wizard, supporting both traditional command-line execution and GUI-backed
+workflows (PyWebview + a unified local UI server).
 
-The package also declares a top-level :class:`~GONet_Wizard.commands.cli_core.ParserSpec`
-named :data:`PARSER`, which the centralized parser builder uses to construct the
-entire command hierarchy dynamically. This design ensures that:
+Each command is implemented in a dedicated module (e.g. :mod:`.show`,
+:mod:`.show_meta`, :mod:`.run_dashboard`) and exposes a
+:data:`COMMAND` object of type :class:`~GONet_Wizard.commands.specs.CommandSpec`
+describing its CLI signature. At runtime, the parser infrastructure wires these
+specs into an :class:`argparse.ArgumentParser` tree and dispatches to a handler.
 
-1. **Command registration is fully declarative.**
-   All commands are discovered through :data:`COMMANDS` and the nested structure
-   defined in :data:`PARSER`, rather than through hand-written argparse logic.
-2. **Subcommand groups (nested parsers) are modular.**
-   The ``connect`` command is implemented as a group of subcommands housed in the
-   ``connect_commands`` subpackage. Its parser specification is referenced inside
-   :data:`PARSER` under the ``subparsers`` key, allowing deeper CLI trees to be
-   built automatically.
-3. **Individual command modules remain simple and self-contained.**
-   A command module only defines:
+Beyond the CLI, commands can optionally return structured UI results (preview
+publishes, window-open requests, or both). This enables a single command
+implementation to work in:
 
-       - a :class:`CommandSpec` describing its arguments
-       - a handler function (usually ``cli_handler(args)``)
-       - any reusable logic specific to that command
-       
-   The parser builder takes care of wiring these into the global CLI.
+- **terminal-only mode** (print/side effects only), and/or
+- **GUI mode** (open windows and publish HTML previews via the unified UI server)
 
-Structure
----------
+Infrastructure Overview
+-----------------------
 
-Top-level commands are listed in :data:`COMMANDS`, which includes:
+The command system is split into focused modules that together provide a
+declarative, extensible command tree with optional UI presentation:
 
-    - :mod:`GONet_Wizard.commands.show`
-    - :mod:`GONet_Wizard.commands.show_meta`
-    - :mod:`GONet_Wizard.commands.extract`
-    - :mod:`GONet_Wizard.commands.run_dashboard`
-    - :mod:`GONet_Wizard.commands.connect`
+- :mod:`GONet_Wizard.commands.specs`
+  Defines the declarative models :class:`~GONet_Wizard.commands.specs.CommandSpec`
+  and :class:`~GONet_Wizard.commands.specs.ParserSpec`.
 
-Nested commands for ``connect`` are defined in:
+- :mod:`GONet_Wizard.commands.inputs`
+  Provides CLI input normalization utilities such as :class:`.ExpandFilenames`,
+  :func:`.expand_inputs`, and :func:`.filter_by_ext`.
 
-    - :mod:`GONet_Wizard.commands.connect_commands`
+- :mod:`GONet_Wizard.commands.parser_builder`
+  Constructs the full parser hierarchy from :data:`PARSER` and command specs via
+  :func:`~GONet_Wizard.commands.parser_builder.build_subparser`.
 
-The :data:`PARSER` object describes the root parser level and delegates the
-``connect`` subparser group to the ``connect_commands`` package.
+- :mod:`GONet_Wizard.commands.ui_bridge`
+  Defines the UI result protocol (:class:`~GONet_Wizard.commands.ui_bridge.PublishRequest`,
+  :class:`~GONet_Wizard.commands.ui_bridge.WindowRequest`) and wrappers that
+  normalize and realize handler return values, enabling commands to publish
+  previews and request managed windows.
 
-Integration
------------
+- :mod:`GONet_Wizard.commands.cli_core`
+  A compatibility shim that re-exports the public API from the modules above to
+  avoid churn in legacy imports.
 
-The GONet Wizard CLI driver (``GONet_Wizard.cli``) calls the centralized parser
-builder, passing this package to construct the full command tree. At runtime,
-each parsed command resolves to a ``handler(args)`` function attached via
-``set_defaults`` during registration.
+Declarative Command Tree
+------------------------
 
-In summary, this package serves as the declarative registry for the entire
-GONet Wizard command-line interface, keeping the CLI structure modular,
-maintainable, and easy to extend.
+This package declares the root :data:`PARSER` object (a
+:class:`~GONet_Wizard.commands.specs.ParserSpec`) describing the top-level CLI
+group. The centralized parser builder consumes :data:`PARSER` to build the
+complete command hierarchy dynamically.
+
+Top-level commands are collected in :data:`COMMANDS`. Nested command groups are
+registered as subparser packages (e.g., the ``connect`` group delegates to the
+:mod:`GONet_Wizard.commands.connect_commands` subpackage via :data:`PARSER`).
+
+Available Commands
+------------------
+
+:mod:`GONet_Wizard.commands.show`
+    Visualize one or more GONet files and channels using Plotly.
+:mod:`GONet_Wizard.commands.show_meta`
+    Extract and display GONet file metadata as text or HTML.
+:mod:`GONet_Wizard.commands.extract`
+    Extract pixel counts from GONet files using configurable ROI shapes.
+:mod:`GONet_Wizard.commands.run_dashboard`
+    Launch the interactive Dash-based GONet Wizard dashboard in a managed window.
+:mod:`GONet_Wizard.commands.connect`
+    Command group for connecting to a GONet device (subcommands in :mod:`.connect_commands`).
+:mod:`GONet_Wizard.commands.build_full_array`
+    Build or process full-array products from GONet inputs.
+:mod:`GONet_Wizard.commands.gui`
+    Launch the unified GUI launcher window.
 
 Constants
 ---------
-:data:`COMMANDS` : :class:`tuple` of command modules
-    Top-level commands available in the GONet Wizard CLI.
-:data:`PARSER` : :class:`~GONet_Wizard.commands.cli_core.ParserSpec`
-    Parser specification for the GONet Wizard CLI.
+:data:`COMMANDS` : :class:`tuple`
+    Tuple of top-level command modules registered under the root parser.
+:data:`PARSER` : :class:`~GONet_Wizard.commands.specs.ParserSpec`
+    Root parser specification defining the command hierarchy for the CLI/GUI.
 """
-
 
 from GONet_Wizard.commands import show, show_meta, extract, run_dashboard, connect, build_full_array, gui
 from GONet_Wizard.commands import connect_commands

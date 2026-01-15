@@ -1,24 +1,33 @@
+# GONet_Wizard/cli.py
+
 """
 Entry Point for the GONet Wizard Command-Line Interface
 =======================================================
 
-This module contains the top-level driver for the GONet Wizard CLI. It defines
-the :func:`.main` function used both by the ``python -m GONet_Wizard`` entry
-point and by the installed console script (as configured in ``pyproject.toml``).
+This module provides the top-level driver for the GONet Wizard CLI. It defines
+:func:`.main`, which is used both by ``python -m GONet_Wizard`` and by the
+installed console script (as configured in ``pyproject.toml``).
 
 Rather than manually constructing a static argparse command tree, this module
-delegates parser construction to the centralized, declarative system in
-:mod:`GONet_Wizard.commands.cli_core`. The entire CLI structure—including
-top-level commands, their arguments, and any nested subcommands—is defined in
-the :mod:`GONet_Wizard.commands` package via :class:`~GONet_Wizard.commands.cli_core.ParserSpec` and
-:class:`~GONet_Wizard.commands.cli_core.CommandSpec` objects.
+delegates parser construction to the declarative command registry in
+:mod:`GONet_Wizard.commands` and the centralized parser builder in
+:mod:`GONet_Wizard.commands.parser_builder` (re-exported via
+:mod:`GONet_Wizard.commands.cli_core`). The full CLI hierarchy—including
+top-level commands, their arguments, and any nested subcommands—is declared via
+:class:`~GONet_Wizard.commands.specs.ParserSpec` and
+:class:`~GONet_Wizard.commands.specs.CommandSpec` objects.
+
+In addition to classic terminal execution, command handlers may return UI
+results (published previews and/or window-open requests). Global flags such as
+``--ui-port`` and ``--debug-webview`` configure the unified UI runtime used to
+render HTML output and manage desktop windows.
 
 Workflow
 --------
 
 1. A root :class:`argparse.ArgumentParser` is created with version support.
-2. The full CLI hierarchy is dynamically constructed by calling  
-   :func:`GONet_Wizard.commands.cli_core.build_subparser`, which walks the
+2. The full CLI hierarchy is dynamically constructed by calling
+   :func:`~GONet_Wizard.commands.parser_builder.build_subparser`, which walks the
    command specification tree declared in :mod:`GONet_Wizard.commands`.
 3. Command-line arguments are parsed into an :class:`argparse.Namespace`.
 4. If a command handler has been attached (via ``set_defaults(handler=...)``),
@@ -33,21 +42,23 @@ function behaves like a standard command-line program and parses
 Branding
 --------
 
-Before creating the parser, :func:`patch_webview_start` is invoked to ensure
-that GUI windows (e.g., for dashboard launch commands) use the GONet Wizard
-branding and icons at application startup.
+At import time, :func:`GONet_Wizard._branding.patch_webview_start` is invoked to
+ensure consistent desktop window branding (icons, titles, startup behavior)
+across all pywebview-backed UI entry points.
 
 Available Commands
 ------------------
 
-- :class:`~GONet_Wizard.commands.show` — Plot GONet GONet files by channel
-- :class:`~GONet_Wizard.commands.show_meta` — Print metadata of files
-- :class:`~GONet_Wizard.commands.extract` — Extract counts from GONet image files
-- :class:`dashboard <GONet_Wizard.commands.run_dashboard>` — Launch the interactive dashboard
-- :class:`~GONet_Wizard.commands.connect` — Connect to a remote GONet camera via SSH
+- ``show`` (:mod:`GONet_Wizard.commands.show`) — Visualize GONet files by channel using Plotly.
+- ``show_meta`` (:mod:`GONet_Wizard.commands.show_meta`) — Display file metadata as text or HTML.
+- ``extract`` (:mod:`GONet_Wizard.commands.extract`) — Extract counts from GONet image files.
+- ``dashboard`` (:mod:`GONet_Wizard.commands.run_dashboard`) — Launch the interactive dashboard.
+- ``gui`` (:mod:`GONet_Wizard.commands.gui`) — Open the unified GUI launcher window.
+- ``build_full_array`` (:mod:`GONet_Wizard.commands.build_full_array`) — Build/process full-array products.
+- ``connect`` (:mod:`GONet_Wizard.commands.connect`) — Connect to a remote GONet camera via SSH.
 
-  - :class:`~GONet_Wizard.commands.connect_commands.snap` — Trigger remote snapshot
-  - :class:`~GONet_Wizard.commands.connect_commands.terminate_imaging` — Kill imaging processes remotely
+  - ``snap`` (:mod:`GONet_Wizard.commands.connect_commands.snap`) — Trigger remote snapshot capture.
+  - ``terminate_imaging`` (:mod:`GONet_Wizard.commands.connect_commands.terminate_imaging`) — Stop remote imaging processes.
 
 """
 
@@ -96,6 +107,19 @@ def main(argv=None) -> None:
         version=f"GONet Wizard {__version__}",
     )
 
+    parser.add_argument(
+        "--ui-port",
+        type=int,
+        default=5050,
+        help="Port for the unified local UI server (preview and GUI pages).",
+    )
+    
+    parser.add_argument(
+        "--debug-webview",
+        action="store_true",
+        default=False,
+        help="Enable pywebview debug mode.",
+    )
     parser = cli_core.build_subparser(parser, commands)
     args = parser.parse_args(argv)
 

@@ -1,137 +1,349 @@
+# GONet_Wizard/commands/show.py
+
 """
 GONet File Visualization Command
 ================================
 
-This module implements the ``show`` command of the GONet Wizard CLI and provides
-utilities for plotting GONet image files. It exposes both **core plotting logic**
-(:func:`show_gonet_files`) and the **CLI-facing entry point** (:func:`cli_handler`).
+This module implements the ``show`` CLI command, which visualizes one or more
+GONet image files using Plotly in a multi-panel grid. Panels may represent
+different input files, different Bayer color channels, or both, depending on
+CLI flags.
 
-The command is declared via the :data:`COMMAND` constant, which specifies the
-argument structure used by the centralized parser builder. When invoked from the
-CLI, the parser dispatches directly to :func:`cli_handler`, which translates the
-parsed :class:`argparse.Namespace` into a call to the reusable plotting function.
+The plotting backend uses :class:`plotly.graph_objects.Heatmap` within a
+:func:`plotly.subplots.make_subplots` layout to provide reliable rendering in
+grid layouts. Axes are configured to lock pixel aspect ratio and synchronize
+zoom/pan across all panels.
 
-**Constants**
+The command is declared via :data:`COMMAND` and dispatched through
+:func:`cli_handler`, which returns a standalone HTML document string suitable
+for centralized UI preview. Optional PDF export is supported via Plotly static
+image export (Kaleido).
 
-- :data:`COMMAND` : :class:`~GONet_Wizard.commands.cli_core.CommandSpec` object
-  for the `show` command.
+Constants
+---------
+:class:`COMMAND`
+    :class:`~GONet_Wizard.commands.specs.CommandSpec` defining the ``show`` command.
 
-**Functions**
+Functions
+---------
+:func:`auto_vmin_vmax`
+    Compute percentile-based display bounds for image intensity.
+:func:`build_show_figure`
+    Build the Plotly figure for the requested files and channels.
+:func:`save_figure_plotly`
+    Save a Plotly figure to PDF while avoiding overwriting existing files.
+:func:`cli_handler`
+    CLI entry point for ``show`` that returns a previewable HTML document.
 
-- :func:`.create_efficient_subplots` : Create optimized subplot grids for multiple channels.
-- :func:`.save_figure` : Save matplotlib figures to disk with auto-incremented filenames.
-- :func:`.auto_vmin_vmax` : Automatically scale image intensity using robust percentiles.
-- :func:`.show` : Main interface to plot GONet files and optionally save the output.
-- :func:`.cli_handler` : CLI handler for the `show` command.
 """
 
+from __future__ import annotations
+
+import argparse
+import math
+import os
+from pathlib import Path
+from typing import Optional, Sequence, Union
+
+import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from GONet_Wizard.GONet_utils import GONetFile
-import matplotlib.pyplot as plt
-import math, os, argparse
-import numpy as np
-from typing import Union, List
 from GONet_Wizard.commands.cli_core import ExpandFilenames, CommandSpec, filter_by_ext
-from typing import Union, List
-import numpy as np
-import matplotlib.pyplot as plt
+
 
 COMMAND = CommandSpec(
     name="show",
     help="Plot the content of one or more GONet files.",
-    args= [
-    {
-        "flags": ["filenames"],
-        "nargs": "+",
-        "action": ExpandFilenames,
-        "help": (
-            "GONet file(s) to plot [.jpg, .tiff]. "
-            "`*` wildcards and comma-separated lists are supported."
-        ),
-    },
-    {
-        "flags": ["--save"],
-        "help": "Save output as a PDF.",
-    },
-    {
-        "flags": ["--red"],
-        "action": "store_true",
-        "default": False,
-        "help": "Plot only the red channel.",
-    },
-    {
-        "flags": ["--green"],
-        "action": "store_true",
-        "default": False,
-        "help": "Plot only the green channel.",
-    },
-    {
-        "flags": ["--blue"],
-        "action": "store_true",
-        "default": False,
-        "help": "Plot only the blue channel.",
-    },]
+    args=[
+        {
+            "flags": ["filenames"],
+            "nargs": "+",
+            "action": ExpandFilenames,
+            "help": (
+                "GONet file(s) to plot [.jpg, .tiff]. "
+                "`*` wildcards and comma-separated lists are supported."
+            ),
+        },
+        {
+            "flags": ["--save"],
+            "help": "Save output as a PDF.",
+        },
+        {
+            "flags": ["--blue"],
+            "action": "store_true",
+            "default": False,
+            "help": "Plot only the blue channel.",
+        },
+        {
+            "flags": ["--green"],
+            "action": "store_true",
+            "default": False,
+            "help": "Plot only the green channel.",
+        },
+        {
+            "flags": ["--red"],
+            "action": "store_true",
+            "default": False,
+            "help": "Plot only the red channel.",
+        },
+    ],
 )
 
-def create_efficient_subplots(N: int, figsize: tuple = (10, 6)) -> tuple:
-    """
-    Create a compact grid of subplots for displaying multiple images.
 
-    Automatically chooses the number of rows and columns based on the number of
-    plots required. Removes any unused axes to avoid blank spaces.
+def auto_vmin_vmax(
+    data: np.ndarray,
+    lower_percentile: float = 0.5,
+    upper_percentile: float = 99.5,
+) -> tuple[float, float]:
+    """
+    Compute intensity bounds for image display using percentiles.
 
     Parameters
     ----------
-    N : :class:`int`
-        The number of subplots needed.
-    figsize : :class:`tuple`, optional
-        Size of the entire figure in inches (width, height).
+    data : :class:`numpy.ndarray`
+        Image array to analyze. Non-finite values are ignored.
+    lower_percentile : :class:`float`, optional
+        Lower percentile bound used to compute ``vmin``. Defaults to ``0.5``.
+    upper_percentile : :class:`float`, optional
+        Upper percentile bound used to compute ``vmax``. Defaults to ``99.5``.
 
     Returns
     -------
-    :class:`tuple`
-        A tuple of `(fig, axes)` where:
-        - `fig` is the matplotlib Figure
-        - `axes` is a list of Axes objects (length N)
+    :class:`tuple` of :class:`float`
+        ``(vmin, vmax)`` bounds suitable for Plotly heatmap scaling.
+
+    Raises
+    ------
+    ValueError
+        If ``lower_percentile`` or ``upper_percentile`` is outside ``[0, 100]``.
     """
-    if N <= 0:
-        raise ValueError("N must be at least 1 to create subplots.")
+    finite = data[np.isfinite(data)]
+    if finite.size == 0:
+        return 0.0, 1.0
 
-    rows = int(math.sqrt(N))
-    cols = math.ceil(N / rows)
+    vmin = float(np.percentile(finite, lower_percentile))
+    vmax = float(np.percentile(finite, upper_percentile))
 
-    fig, axes = plt.subplots(rows, cols, figsize=figsize)
+    if not np.isfinite(vmin) or not np.isfinite(vmax) or vmax <= vmin:
+        vmin = float(np.min(finite))
+        vmax = float(np.max(finite))
+        if vmax <= vmin:
+            vmax = vmin + 1.0
 
-    if N == 1:
-        axes = [axes]
+    return vmin, vmax
+
+
+def _grid_shape(n: int) -> tuple[int, int]:
+    """
+    Choose a compact ``(rows, cols)`` grid for ``n`` panels.
+
+    Parameters
+    ----------
+    n : :class:`int`
+        Number of panels.
+
+    Returns
+    -------
+    :class:`tuple` of :class:`int`
+        Grid shape ``(rows, cols)``.
+
+    Raises
+    ------
+    ValueError
+        If ``n`` is less than ``1``.
+    """
+    if n <= 0:
+        raise ValueError("n must be >= 1")
+    rows = int(math.sqrt(n))
+    cols = int(math.ceil(n / rows))
+    return rows, cols
+
+
+def build_show_figure(
+    files: Sequence[Union[str, Path]],
+    *,
+    blue: bool = False,
+    green: bool = False,
+    red: bool = False,
+    lower_percentile: float = 0.5,
+    upper_percentile: float = 99.5,
+) -> go.Figure:
+    """
+    Build a Plotly figure showing one or more GONet files and selected channels.
+
+    Files are expanded into one panel per requested channel. If no channel flags
+    are provided, all channels in :data:`GONet_Wizard.GONet_utils.GONetFile.CHANNELS`
+    are shown for each file.
+
+    Parameters
+    ----------
+    files : :class:`~collections.abc.Sequence` of :class:`str` or :class:`pathlib.Path`
+        Input files to visualize.
+    blue : :class:`bool`, optional
+        If ``True``, include the blue channel. Defaults to ``False``.
+    green : :class:`bool`, optional
+        If ``True``, include the green channel. Defaults to ``False``.
+    red : :class:`bool`, optional
+        If ``True``, include the red channel. Defaults to ``False``.
+    lower_percentile : :class:`float`, optional
+        Lower percentile bound for display scaling. Defaults to ``0.5``.
+    upper_percentile : :class:`float`, optional
+        Upper percentile bound for display scaling. Defaults to ``99.5``.
+
+    Returns
+    -------
+    :class:`plotly.graph_objects.Figure`
+        Plotly figure with one heatmap panel per (file, channel) pair.
+
+    Raises
+    ------
+    ValueError
+        If no panels can be constructed (no files or no channels selected).
+    """
+    requested = {
+        "blue": blue,
+        "green": green,
+        "red": red,
+    }
+
+    # If no channel flags set, show all
+    if not any(requested.values()):
+        channels = list(GONetFile.CHANNELS)
     else:
-        axes = axes.flatten()
+        channels = [c for c in GONetFile.CHANNELS if requested.get(c, False)]
 
-    for i in range(N, len(axes)):
-        fig.delaxes(axes[i])
+    panels: list[tuple[Path, str]] = []
+    for f in files:
+        p = Path(f)
+        for c in channels:
+            panels.append((p, c))
 
-    return fig, axes[:N]
+    if not panels:
+        raise ValueError("No panels to plot (no files or channels selected).")
+
+    rows, cols = _grid_shape(len(panels))
+
+    subplot_titles: list[str] = []
+    panel_data: list[np.ndarray] = []
+    panel_vmin_vmax: list[tuple[float, float]] = []
+
+    for fpath, c in panels:
+        try:
+            gof = GONetFile.from_file(str(fpath))
+            data = np.asarray(gof.get_channel(c))
+        except Exception as e:
+            subplot_titles.append(f"{fpath.name} — {c}<br>⚠️ {e}")
+            data = np.zeros((10, 10), dtype=np.float32)
+            vmin, vmax = 0.0, 1.0
+            panel_data.append(data)
+            panel_vmin_vmax.append((vmin, vmax))
+            continue
+
+        camera = (gof.meta or {}).get("hostname", "")
+        date = (gof.meta or {}).get("DateTime", "")
+
+        vmin, vmax = auto_vmin_vmax(
+            data,
+            lower_percentile=lower_percentile,
+            upper_percentile=upper_percentile,
+        )
+
+        subplot_titles.append(f"{camera} — {c}<br>{date}")
+        panel_data.append(data.astype(np.float32, copy=False))
+        panel_vmin_vmax.append((vmin, vmax))
+
+    fig = make_subplots(rows=rows, cols=cols, subplot_titles=subplot_titles)
+
+    for i, (data, (vmin, vmax)) in enumerate(zip(panel_data, panel_vmin_vmax)):
+        r = (i // cols) + 1
+        c = (i % cols) + 1
+
+        fig.add_trace(
+            go.Heatmap(
+                z=data,
+                colorscale="Gray",
+                zmin=vmin,
+                zmax=vmax,
+                showscale=False,
+                hovertemplate="x=%{x}<br>y=%{y}<br>value=%{z}<extra></extra>",
+            ),
+            row=r,
+            col=c,
+        )
+
+        fig.update_xaxes(
+            showticklabels=False,
+            ticks="",
+            showgrid=False,
+            zeroline=False,
+            row=r,
+            col=c,
+        )
+        fig.update_yaxes(
+            showticklabels=False,
+            ticks="",
+            showgrid=False,
+            zeroline=False,
+            autorange="reversed",
+            row=r,
+            col=c,
+        )
+
+    # --- Lock pixel aspect ratio and sync zoom/pan across panels ---
+    n = len(panels)
+    for idx in range(1, n + 1):
+        xa = f"xaxis{'' if idx == 1 else idx}"
+        ya = f"yaxis{'' if idx == 1 else idx}"
+
+        # Sync ranges across all panels
+        fig.layout[xa].update(matches="x")
+        fig.layout[ya].update(matches="y")
+
+        # Lock aspect ratio: y anchored to its matching x
+        xref = f"x{'' if idx == 1 else idx}"
+        fig.layout[ya].update(scaleanchor=xref, scaleratio=1)
+
+        # Prevent stretching to fill domain
+        fig.layout[xa].update(constrain="domain")
+        fig.layout[ya].update(constrain="domain")
+
+    fig.update_layout(
+        margin=dict(l=20, r=20, t=60, b=20),
+        template="plotly_dark",
+        height=max(600, 280 * rows),
+        autosize=True,
+    )
+
+    return fig
 
 
-def save_figure(fig: plt.Figure, save_path: str) -> None:
+def save_figure_plotly(fig: go.Figure, save_path: str) -> str:
     """
-    Save a matplotlib figure to a PDF file, avoiding overwrites.
-
-    If a file with the same name already exists, appends a counter to the filename.
+    Save a Plotly figure to PDF, avoiding overwrites.
 
     Parameters
     ----------
-    fig : :class:`matplotlib.figure.Figure`
-        The figure to be saved.
+    fig : :class:`plotly.graph_objects.Figure`
+        Figure to export.
     save_path : :class:`str`
-        The target filename (with or without `.pdf` extension).
+        Output file path. If it does not end with ``.pdf``, the extension is
+        appended. If the path already exists, an index suffix is added.
 
     Returns
     -------
-    None
+    :class:`str`
+        The final path written to disk.
+
+    Raises
+    ------
+    RuntimeError
+        If Plotly static export fails (commonly due to a missing Kaleido
+        installation).
     """
-    if not save_path.lower().endswith('.pdf'):
-        save_path += '.pdf'
+    if not save_path.lower().endswith(".pdf"):
+        save_path += ".pdf"
 
     base, ext = os.path.splitext(save_path)
     counter = 1
@@ -141,132 +353,60 @@ def save_figure(fig: plt.Figure, save_path: str) -> None:
         final_path = f"{base}_{counter}{ext}"
         counter += 1
 
-    fig.savefig(final_path, bbox_inches='tight')
-    print(f"✅ Figure saved to {final_path}")
+    try:
+        fig.write_image(final_path)  # requires kaleido
+    except Exception as e:
+        raise RuntimeError(
+            "Failed to write PDF. Plotly static export requires 'kaleido'. "
+            "Try: pip install -U kaleido"
+        ) from e
+
+    return final_path
 
 
-def auto_vmin_vmax(data: np.ndarray, lower_percentile: float = 0.5, upper_percentile: float = 99.5) -> tuple:
+def cli_handler(args: argparse.Namespace) -> Optional[str]:
     """
-    Compute intensity bounds for image display using percentiles.
+    CLI handler for the ``show`` command.
 
-    Parameters
-    ----------
-    data : :class:`numpy.ndarray`
-        The image data array.
-    lower_percentile : :class:`float`, optional
-        The lower percentile for clipping (default is 0.5).
-    upper_percentile : :class:`float`, optional
-        The upper percentile for clipping (default is 99.5).
-
-    Returns
-    -------
-    :class:`tuple`
-        A tuple `(vmin, vmax)` suitable for image display scaling.
-    """
-    vmin = np.percentile(data, lower_percentile)
-    vmax = np.percentile(data, upper_percentile)
-    return vmin, vmax
-
-def show_gonet_files(files: Union[str, List[str]], save: bool = False, red: bool = False, green: bool = False, blue: bool = False) -> None:
-    """
-    Display one or more GONet image files with optional channel filtering and saving.
-
-    This function loads and visualizes GONet files using matplotlib. By default, 
-    all RGB channels are displayed unless specific channels are enabled via flags. 
-    Images are arranged in a compact grid. If `save` is specified, the resulting figure 
-    is saved to a PDF file with automatic filename disambiguation.
-
-    Parameters
-    ----------
-    files : :class:`str` or :class:`list` of :class:`str`
-        A single file path or a list of paths to GONet files to display.
-    save : :class:`bool`, optional
-        If provided, saves the resulting figure to a `.pdf` file (default is False).
-        The filename or path can be passed as the value of `save`.
-    red : :class:`bool`, optional
-        Whether to include the red channel for visualization.
-    green : :class:`bool`, optional
-        Whether to include the green channel for visualization.
-    blue : :class:`bool`, optional
-        Whether to include the blue channel for visualization.
-
-    Returns
-    -------
-    None
-
-    Notes
-    -----
-    - If none of the color channel flags (`red`, `green`, `blue`) are set, all channels will be shown.
-    - Subplot titles include camera model and timestamp when available in metadata.
-    - Output intensity is automatically scaled using robust percentiles (0.5-99.5%).
-    - The saved figure will be named according to `save` with automatic suffixes to avoid overwrites.
-    """
-
-    # If all extensions are false, we will plot all them
-    if not any(extensions := [red, green, blue]):
-        extensions =  [not el for el in extensions]
-
-    n_of_extensions = np.sum(extensions)
-
-    Tot = len(files) * n_of_extensions#number_of_subplots
-    fig, ax = create_efficient_subplots(Tot)
-
-    i_plot = 0
-
-    for gof in files:
-        try:
-            go = GONetFile.from_file(gof)
-        except Exception as e:
-            print(f"⚠️ Error reading file {gof}: {e}")
-            continue
-
-        if go.meta and 'hostname' in go.meta:
-            camera = go.meta['hostname']
-        else:
-            camera = ''
-        if go.meta and 'DateTime' in go.meta:
-            date = go.meta['DateTime']
-        else:
-            date = ''
-        
-        for c,val in zip(GONetFile.CHANNELS, extensions):
-            if val:
-                ax[i_plot].set_title(f'{camera} - {c}\n{date}')
-                z1,z2 = auto_vmin_vmax(go.get_channel(c))
-                ax[i_plot].imshow(go.get_channel(c), vmin=z1, vmax=z2)
-                i_plot+=1
-
-    plt.tight_layout()
-
-    if save:
-        save_figure(fig, save)
-
-
-    plt.show()
-    plt.close('all')
-
-
-def cli_handler(args: argparse.Namespace) -> None:
-    """
-    CLI handler for the `show` command.
+    This handler filters the provided inputs to supported file types, builds the
+    Plotly figure, optionally exports it to PDF, and returns a standalone HTML
+    document string for centralized UI preview.
 
     Parameters
     ----------
     args : :class:`argparse.Namespace`
-        Parsed command-line arguments.
+        Parsed command-line arguments. Expected to provide ``filenames`` and
+        channel selection flags (``blue``, ``green``, ``red``), and optionally
+        ``save``.
 
     Returns
     -------
-    None
+    :class:`str` or None
+        Standalone HTML document string for UI preview. Returns ``None`` only if
+        an unrecoverable error prevents figure construction.
 
+    Raises
+    ------
+    :class:`.ExtensionFilterError`
+        If none of the provided paths match the supported extensions.
+    RuntimeError
+        If ``--save`` is requested and PDF export fails.
     """
     files = filter_by_ext(args.filenames, [".jpg", ".tiff"])
-    show_gonet_files(
-        files=files,
-        save=args.save,
-        red=args.red,
-        green=args.green,
+
+    fig = build_show_figure(
+        files,
         blue=args.blue,
+        green=args.green,
+        red=args.red,
     )
 
-    
+    if args.save:
+        out = save_figure_plotly(fig, args.save)
+        print(f"✅ Figure saved to {out}")
+
+    return fig.to_html(
+        full_html=True,
+        include_plotlyjs="inline",
+        config={"displaylogo": False, "responsive": True},
+    )

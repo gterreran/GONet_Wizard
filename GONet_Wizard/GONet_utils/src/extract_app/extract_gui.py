@@ -1,151 +1,129 @@
-"""
-Entry point for launching the GONet extraction GUI as a standalone desktop
-window using `PyWebview <https://pywebview.flowrl.com/>`_ .
-
-This module wraps the Dash-based extraction app in a lightweight desktop
-environment. It suppresses standard Flask, Werkzeug, and Dash startup banners
-to keep the launch sequence clean, and exposes a JavaScript API to allow the
-Dash frontend to trigger native window actions (such as closing the app).
-
-**Classes**
-
-- :class:`GONetAPI`:
-    A JavaScript API exposed to the PyWebview window
-
-**Functions**
-
-- :func:`run_app`:
-    Initializes the Dash layout, registers callbacks, suppresses startup
-    banners/logs, and starts the server on a background thread.
-- :func:`launch_extraction_gui`:
-    Public entry point that spawns the Dash server thread, waits for it to
-    start, then creates and runs a PyWebview window displaying the GUI.
+# GONet_Wizard/GONet_utils/src/extract_app/extract_gui.py
 
 """
+GONet Extraction GUI Entrypoint
+===============================
+
+This module defines the Dash application entry point for the GONet extraction
+GUI. The extraction GUI provides an interactive interface for defining regions
+of interest and extracting pixel counts from GONet image files.
+
+As with the main dashboard, this GUI is no longer launched as a standalone Dash
+application. Instead, it is integrated into the centralized Dash orchestration
+layer provided by :mod:`GONet_Wizard.ui.dash_runner`. This allows the extraction
+GUI to be:
+
+- Launched from both CLI and HTML-based GUI contexts
+- Reused across multiple invocations without restarting the server
+- Embedded consistently within the unified Flask + pywebview UI runtime
+
+This module is responsible only for *describing* how the extraction Dash app
+should be configured and launched. All lifecycle management is delegated to
+the shared Dash runner.
+
+Functions
+---------
+:func:`ensure_dashboard_running`
+    Public entry point used by CLI and GUI commands to launch (or reuse) the
+    extraction GUI Dash server.
+"""
+
+from __future__ import annotations
+
+from typing import List
 
 from GONet_Wizard.GONet_utils.src.extract_app.extract_server import app
-from GONet_Wizard.gui_launcher.api import WebviewAPI
-import threading, webview, logging, json
+from GONet_Wizard.ui.dash_runner import DashLaunchSpec, ensure_dash_running
 
-
-def run_app():
+def _configure_extract_gui(data_files: List[str]) -> None:
     """
-    Configure the Dash application, suppress startup banners, and run the server.
+    Populate the Dash server configuration for the extraction GUI.
 
-    This function:
-
-    - Raises the log level of the ``werkzeug`` and ``dash.dash`` loggers to
-      suppress request logs and Dash's startup banner.
-    - Monkey-patches :func:`flask.cli.show_server_banner` to suppress Flask's
-      CLI banner lines.
-    - Imports and applies the application layout from
-      :mod:`extract_layout`.
-    - Registers all Dash callbacks from :mod:`extract_callbacks`.
-    - Starts the Dash server on ``localhost:8050`` with reloading disabled.
-
-    Notes
-    -----
-    This function is intended to be run in a background thread to allow the
-    main thread to remain responsive for PyWebview's event loop.
-    """
-    # Suppress Flask/Werkzeug/Dash startup logging
-    logging.getLogger('werkzeug').setLevel(logging.ERROR)
-    logging.getLogger("dash.dash").setLevel(logging.ERROR)
-    import flask.cli
-    flask.cli.show_server_banner = lambda *args, **kwargs: None
-
-    # Set up the app layout and callbacks
-    from GONet_Wizard.GONet_utils.src.extract_app.extract_layout import layout
-    app.layout = layout
-
-    from GONet_Wizard.GONet_utils.src.extract_app import extract_callbacks
-
-    # Start the Dash server (blocking call until thread exit)
-    app.run_server(port=8050, debug=False, use_reloader=False)
-
-
-class GONetAPI(WebviewAPI):
-    """
-    JavaScript API for PyWebview interactions inheriting from :class:`~GONet_Wizard.gui_launcher.api.WebviewAPI`.
-
-    This object is exposed to JavaScript as `window.pywebview.api`, allowing your
-    Dash frontend to call methods like `download_json()`.
-
-    """
-
-    def download_json(self, data: dict) -> None:
-        """Save the given data dictionary as a JSON file using a save dialog."""
-        window = webview.windows[0]
-
-        if not hasattr(window, 'create_file_dialog'):
-            print("File dialog not supported in current backend.")
-            return
-
-        path = window.create_file_dialog(
-            webview.SAVE_DIALOG,
-            file_types=('JSON files (*.json)', 'All files (*.*)')
-        )
-        if path:
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4)
-
-
-def launch_extraction_gui(data_files):
-    """
-    Launch the extraction GUI in a standalone PyWebview window.
-
-    This function:
-
-    - Stores ``data_files`` in the Flask server config so the Dash app can
-      access them when rendering the layout.
-    - Spawns a daemon thread running :func:`run_app` to start the Dash server.
-    - Waits briefly to ensure the server is ready.
-    - Creates a PyWebview window pointing to the Dash app URL and passes an
-      instance of :class:`ExitAPI` as the JavaScript API for window control.
-    - Starts the PyWebview event loop, which blocks until the window is closed.
-    - After the GUI closes, checks whether ``extraction_params`` were stored
-      in the server config during the session. If present, returns them so
-      the caller can proceed with the extraction outside of the GUI.
+    The list of data files is stored in ``app.server.config`` so it is accessible
+    to layout construction and callback logic without repeated parsing.
 
     Parameters
     ----------
     data_files : :class:`list` of :class:`str`
-        List of data file paths to be made available to the GUI.
+        Paths to GONet image files to be used for extraction.
 
     Returns
     -------
-    :class:`dict` or :data:`None`
-        The extraction parameters stored in
-        ``app.server.config["extraction_params"]`` during the GUI session,
-        or ``None`` if no parameters were set by the user.
+    None
     """
-    # Make data_files available to the Dash server
-    app.server.config["data_files"] = data_files
+    app.server.config.update(data_files=data_files)
 
-    # Start Dash server in a background thread
-    dash_thread = threading.Thread(target=run_app)
-    dash_thread.daemon = True
-    dash_thread.start()
 
-    # Give Dash a moment to initialize
-    import time
-    time.sleep(1)
+def _layout(_app):
+    """
+    Return the Dash layout for the extraction GUI.
 
-    # Create and run the PyWebview window
-    webview.create_window(
-        "GONet Wizard extraction GUI",
-        "http://127.0.0.1:8050",
-        width=1250,
-        height=700,
-        js_api=GONetAPI()
+    The layout is imported lazily to avoid unnecessary imports at module load
+    time and to keep initialization lightweight.
+
+    Parameters
+    ----------
+    _app : :class:`dash.Dash`
+        The Dash application instance.
+
+    Returns
+    -------
+    object
+        A Dash-compatible layout component tree.
+    """
+    from GONet_Wizard.GONet_utils.src.extract_app.extract_layout import layout
+    return layout
+
+
+def _register_callbacks() -> None:
+    """
+    Register all Dash callbacks for the extraction GUI.
+
+    Callback registration is performed via import side effects. Importing the
+    callbacks module is sufficient to attach all required interactions to the
+    Dash application.
+
+    Returns
+    -------
+    None
+    """
+    from GONet_Wizard.GONet_utils.src.extract_app import extract_callbacks  # noqa: F401
+
+
+def ensure_dashboard_running(
+    data_files: List[str],
+    debug: bool,
+    port: int = 8050,
+) -> str:
+    """
+    Ensure the extraction GUI Dash server is running and return its URL.
+
+    This function is safe to call repeatedly. If a server instance for the
+    extraction GUI is already running on the given ``port``, it is reused.
+    Otherwise, a new Dash server is started in a background thread using the
+    centralized Dash runner.
+
+    Parameters
+    ----------
+    data_files : :class:`list` of :class:`str`
+        Paths to GONet image files to be used for extraction.
+    debug : :class:`bool`
+        Whether to run Dash in debug mode.
+    port : :class:`int`, optional
+        Localhost port to bind the Dash server to.
+
+    Returns
+    -------
+    :class:`str`
+        The local URL of the extraction GUI
+        (e.g. ``"http://127.0.0.1:8050"``).
+    """
+    spec = DashLaunchSpec(
+        app=app,
+        app_key="extract-gui",
+        configure=lambda _app: _configure_extract_gui(data_files),
+        layout=_layout,
+        register_callbacks=_register_callbacks,
     )
 
-    webview.start()
-
-    if "extraction_params" in app.server.config:
-        # Return the extraction parameters if they were set in the GUI
-        # This allows the caller to access them after the GUI is closed
-        return app.server.config["extraction_params"]
-    else:
-        # If no parameters were set, return None
-        return None
+    return ensure_dash_running(spec, debug=debug, port=port)

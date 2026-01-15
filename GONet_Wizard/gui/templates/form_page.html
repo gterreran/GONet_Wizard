@@ -3,10 +3,10 @@
 {% block content %}
   <h2 style="margin-top: 0;">{{ command_name|replace('_', ' ')|title }}</h2>
 
-  <form id="args-form" onsubmit="submitForm(event)">
+  <form id="args-form" data-cache-prefix="cmd:{{ command_name }}" onsubmit="submitForm(event)">
     {% include form_template %}
     <input type="hidden" name="command" value="{{ command_name }}">
   </form>
 
-  <pre id="output"></pre>
+  <div id="output"></div>
 {% endblock %}

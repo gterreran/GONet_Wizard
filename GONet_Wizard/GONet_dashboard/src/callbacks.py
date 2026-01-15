@@ -874,6 +874,6 @@ def exit_app(_):
     :class:`bool`
         Always returns ``True`` to disable the "Exit" button after it has been clicked.
     """
-    import webview
-    webview.windows[0].evaluate_js("window.pywebview.api.close_window()")
+    from GONet_Wizard.ui import WINDOWS
+    WINDOWS.close("dashboard")
     return True

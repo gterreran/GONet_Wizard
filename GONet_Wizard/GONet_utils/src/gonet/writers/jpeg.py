@@ -76,5 +76,5 @@ def write_to_jpeg(self, output_filename: str, white_balance: bool = True) -> Non
         convert_to_uint8(blue)
     ], axis=-1)
 
-    image = Image.fromarray(rgb, mode="RGB")
+    image = Image.fromarray(rgb)
     image.save(output_filename, format="JPEG", quality=100)
