@@ -8,7 +8,7 @@
 
    cli_core
    run_dashboard
-   show
+   show/index
    show_meta
    build_full_array
    extract

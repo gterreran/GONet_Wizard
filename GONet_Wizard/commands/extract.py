@@ -37,8 +37,19 @@ Functions
 import json, warnings, argparse
 from typing import Union, List
 from GONet_Wizard.GONet_utils.src.extractors import extract_all
+from GONet_Wizard.GONet_utils import GONetFile
 from pathlib import Path
 from GONet_Wizard.commands.cli_core import ExpandFilenames, CommandSpec, filter_by_ext
+
+_channel_flags = [
+    {
+        "flags": [f"--{c}"],
+        "action": "store_true",
+        "default": False,
+        "help": f"Plot only the {c} channel."
+    }
+    for c in GONetFile.CHANNELS
+]
 
 COMMAND = CommandSpec(
     name="extract",
@@ -53,24 +64,7 @@ COMMAND = CommandSpec(
                 "`*` wildcards and comma-separated lists are supported."
             ),
         },
-        {
-            "flags": ["--red"],
-            "action": "store_true",
-            "default": False,
-            "help": "Extract only the red channel.",
-        },
-        {
-            "flags": ["--green"],
-            "action": "store_true",
-            "default": False,
-            "help": "Extract only the green channel.",
-        },
-        {
-            "flags": ["--blue"],
-            "action": "store_true",
-            "default": False,
-            "help": "Extract only the blue channel.",
-        },
+        *_channel_flags,
         {
             "flags": ["--shape"],
             "choices": ["circle", "rectangle", "annulus", "interactive"],
