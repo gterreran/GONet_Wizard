@@ -1,3 +1,5 @@
+# GONet_Wizard/commands/__init__.py
+
 """
 Command Definitions for the GONet Wizard CLI and GUI
 ====================================================

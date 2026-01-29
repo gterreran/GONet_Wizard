@@ -52,17 +52,16 @@ COMMAND = CommandSpec(
     help="Launch the interactive GONet dashboard.",
     args=[
         {
+            "flags": ["input"],
+            "nargs": "+",
+            "action": ExpandFilenames,
+            "help": "Path to GONet data directory or JSON/CSV file(s). Default is current directory.",
+        },
+        {
             "flags": ["--debug"],
             "action": "store_true",
             "default": settings.DASHBOARD_DEBUG.default,
             "help": "Run the dashboard in debug mode (more verbose logging).",
-        },
-        {
-            "flags": ["--input"],
-            "nargs": "+",
-            "default": ".",
-            "action": ExpandFilenames,
-            "help": "Path to GONet data directory or JSON/CSV file(s). Default is current directory.",
         },
         {
             "flags": ["--show_images_preview"],

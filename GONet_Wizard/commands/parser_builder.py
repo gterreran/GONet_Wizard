@@ -87,6 +87,15 @@ def build_subparser(parser: argparse.ArgumentParser, package) -> argparse.Argume
     commands listed under ``package.PARSER.args["commands"]`` and recursively
     constructs nested subcommand groups from ``package.PARSER.args["subparsers"]``.
 
+    The subparser group is created with ``parser_class=parser.__class__`` so
+    that all generated subparsers inherit the same parser type as the parent.
+    This is required when the root parser is a custom subclass (e.g.,
+    :class:`~GONet_Wizard.commands.smart_parser.SmartArgumentParser`) and parse
+    errors must be handled consistently across the entire command tree. Without
+    this override, argparse would instantiate subparsers as plain
+    :class:`argparse.ArgumentParser` instances, bypassing custom error/exit
+    behavior implemented by the parent parser class.
+
     Parameters
     ----------
     parser : :class:`argparse.ArgumentParser`
@@ -108,7 +117,11 @@ def build_subparser(parser: argparse.ArgumentParser, package) -> argparse.Argume
         If a nested subparser specification references a ``parser_name`` that is
         not present in the current subparser group's ``choices``.
     """
-    subparsers = parser.add_subparsers(dest=package.PARSER.dest, help=package.PARSER.help)
+    subparsers = parser.add_subparsers(
+        dest=package.PARSER.dest,
+        help=package.PARSER.help,
+        parser_class=parser.__class__,
+    )
 
     if package.PARSER.args.get("commands"):
         for cmd in package.PARSER.args["commands"]:

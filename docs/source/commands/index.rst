@@ -16,5 +16,7 @@
    gui
    specs
    parser_builder
+   smart_parser
+   argparse_errors
    inputs
    ui_bridge

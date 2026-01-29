@@ -11,5 +11,6 @@
    dash_runner
    preview
    runtime
+   launch_forms
    server
    windows

@@ -1,0 +1,1 @@
+.. automodule:: GONet_Wizard.commands.smart_parser
