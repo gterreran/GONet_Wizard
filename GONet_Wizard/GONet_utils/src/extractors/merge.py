@@ -128,6 +128,18 @@ def merge_extractor_into_data(
         Updated `data` dictionary with merged extractor results.
     
     """
+    # Separate scalars from per-file outputs for this extractor
+    ext_files = ext_results.get("files", None)
+
+    # Case A: extractor has only scalars (no 'files' key or empty per-file outputs)
+    if not ext_files:
+        for k, v in ext_results.items():
+            if k == "files":
+                continue
+            data[k] = v
+        return data
+
+    # Case B: extractor has per-file outputs
 
     ext_files = list(ext_files)
     ext_idx = _build_index(ext_files)
