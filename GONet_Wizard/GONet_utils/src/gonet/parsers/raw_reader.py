@@ -21,8 +21,7 @@ and returns the channel arrays in GONet's standard (B, G₁, G₂, R) order.
     Exception raised when a RAW file cannot be read due to format issues.
 
 """
-from pathlib import Path
-import os
+
 import numpy as np
 from GONet_Wizard.GONet_utils.src.gonet import config
 from GONet_Wizard.GONet_utils.src.gonet.io_utils import scale_uint12_to_16bit_range
@@ -77,11 +76,11 @@ def parse_raw_file(
 
         # form superpixel array
         sp=np.empty((int(config.PIXEL_PER_LINE/2),int(config.PIXEL_PER_COLUMN/2),4))
-        sp[:,:,0] = s[0::2,0::2]   # blue   (even, even)
-        sp[:,:,1] = s[0::2,1::2]   # green1 (even, odd)
-        sp[:,:,2] = s[1::2,0::2]   # green2 (odd,  even)
-        sp[:,:,3] = s[1::2,1::2]   # red    (odd,  odd)
-
+        
+        # Extract channels using BGGR pattern offsets
+        for i, channel in enumerate(config.CHANNEL_NAMES_RAW):
+            row_offset, col_offset = config.get_channel_bayer_offsets(channel)
+            sp[:, :, i] = s[row_offset::2, col_offset::2]
 
         array=scale_uint12_to_16bit_range(sp.transpose())
 

@@ -26,8 +26,21 @@ PADDED_LINE_BYTES : :class:`int`
 USED_LINE_BYTES : :class:`int`
     Number of bytes actually containing pixel data
     (for 12-bit encoding, ``PIXEL_PER_LINE * 12 / 8``).
+ChannelName : :class:`typing.Literal`
+    Type hint for channel names (raw or processed).
+CHANNEL_NAMES_RAW : :class:`tuple` of :class:`str`
+    Ordered tuple of RAW channel names: ('blue', 'green1', 'green2', 'red').
+CHANNEL_NAMES_PROCESSED : :class:`tuple` of :class:`str`
+    Ordered tuple of processed channel names: ('blue', 'green', 'red').
+
+Functions
+---------
+get_channel_bayer_offsets : callable
+    Returns the (row, col) offsets for a given channel in the BGGR Bayer pattern.
     
 """
+
+from typing import Literal
 
 RAW_FILE_OFFSET = 18711040
 RAW_HEADER_SIZE = 32768
@@ -38,3 +51,48 @@ PIXEL_PER_LINE = 4056
 PIXEL_PER_COLUMN = 3040
 PADDED_LINE_BYTES = 6112  # Including padding
 USED_LINE_BYTES = int(PIXEL_PER_LINE * 12 / 8)
+
+# Type hint for channel names
+ChannelName = Literal["blue", "green", "green1", "green2", "red"]
+
+# Actual tuples of channel names (for iteration, etc.)
+CHANNEL_NAMES_RAW = ("blue", "green1", "green2", "red")
+CHANNEL_NAMES_PROCESSED = ("blue", "green", "red")
+
+
+def get_channel_bayer_offsets(channel: ChannelName) -> tuple[int, int]:
+    """
+    Get the row and column byte offsets for a channel in the BGGR Bayer pattern.
+    
+    Parameters
+    ----------
+    channel : ChannelName
+        One of 'blue', 'green1', 'green2', or 'red'.
+    
+    Returns
+    -------
+    tuple of int
+        (row_offset, col_offset) indicating the starting pixel location
+        for the channel in the Bayer mosaic.
+        
+    Raises
+    ------
+    ValueError
+        If the channel name is not recognized.
+
+    """
+    # BGGR pattern locations (even/odd are 0/1 parity)
+    offsets = {
+        "blue": (0, 0),      # even-even
+        "green1": (0, 1),    # even-odd
+        "green2": (1, 0),    # odd-even
+        "red": (1, 1),       # odd-odd
+    }
+    
+    if channel not in offsets:
+        raise ValueError(
+            f"Unknown channel '{channel}'. Must be one of: "
+            f"{', '.join(offsets.keys())}"
+        )
+    
+    return offsets[channel]

@@ -1,3 +1,5 @@
+# GONet_Wizard/GONet_utils/src/gonet/gonet_file_raw.py
+
 """
 Specialized handling of RAW GONet `.jpg` images containing BGGR Bayer data.
 
@@ -27,6 +29,7 @@ from PIL import Image
 from GONet_Wizard.GONet_utils.src.gonet.filetypes import FileType
 from GONet_Wizard.GONet_utils import GONetFile
 from GONet_Wizard.GONet_utils.src.gonet import parsers
+from GONet_Wizard.GONet_utils.src.gonet import config
 
 
 class GONetFileRaw(GONetFile):
@@ -44,7 +47,7 @@ class GONetFileRaw(GONetFile):
         List of channel names replacing 'green' with 'green1' and 'green2'.
     """
 
-    CHANNELS = ['blue', 'green1', 'green2', 'red']
+    CHANNELS = config.CHANNEL_NAMES_RAW
     COLORS = {'blue': 'b', 'green1':'forestgreen', 'green2':'lime', 'red': 'r'}
 
     def __init__(
@@ -330,6 +333,7 @@ class GONetFileRaw(GONetFile):
             filetype=filetype,
             is_bayer_planes=False,
         )
+        
 
     def to_bayer_planes(
         self,
@@ -359,22 +363,13 @@ class GONetFileRaw(GONetFile):
         out_dtype = self.red.dtype
 
         # Initialize filled planes
-        b_plane  = np.full((H, W), fill_value, dtype=out_dtype)
-        g1_plane = np.full((H, W), fill_value, dtype=out_dtype)
-        g2_plane = np.full((H, W), fill_value, dtype=out_dtype)
-        r_plane  = np.full((H, W), fill_value, dtype=out_dtype)
+        out_array = {ch: np.full((H, W), fill_value, dtype=out_dtype) for ch in self.CHANNELS}
 
-        # BGGR locations (even/odd are 0/1 parity in the full Bayer mosaic)
-        # even-even -> blue
-        b_plane[0::2, 0::2] = self.blue
-        # even-odd  -> green1
-        g1_plane[0::2, 1::2] = self.green1
-        # odd-even  -> green2
-        g2_plane[1::2, 0::2] = self.green2
-        # odd-odd   -> red
-        r_plane[1::2, 1::2] = self.red
+        for ch in self.CHANNELS:
+            row_offset, col_offset = config.get_channel_bayer_offsets(ch)
+            out_array[ch][row_offset::2, col_offset::2] = self.get_channel(ch)
 
-        return {"blue": b_plane, "green1": g1_plane, "green2": g2_plane, "red": r_plane}
+        return out_array
     
     def as_bayer_planes(self, inplace: bool = True, fill_value: float | int = np.nan) -> 'GONetFileRaw':
         """
@@ -430,17 +425,17 @@ class GONetFileRaw(GONetFile):
             return self  # No change needed.
 
         # Inverse of BGGR placement:
-        blue  = self.blue[0::2, 0::2]
-        green1 = self.green1[0::2, 1::2]
-        green2 = self.green2[1::2, 0::2]
-        red   = self.red[1::2, 1::2]
-
+        out_arrays = {}
+        for channel in self.CHANNELS:
+            row_offset, col_offset = config.get_channel_bayer_offsets(channel)
+            out_arrays[channel] = self.get_channel(channel)[row_offset::2, col_offset::2]
+        
         return GONetFileRaw(
             filename=self.filename,
-            red=red,
-            green1=green1,
-            green2=green2,
-            blue=blue,
+            red=out_arrays["red"],
+            green1=out_arrays["green1"],
+            green2=out_arrays["green2"],
+            blue=out_arrays["blue"],
             meta=self.meta,
             filetype=self.filetype,
             is_bayer_planes=False,

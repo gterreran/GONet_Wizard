@@ -1,3 +1,5 @@
+# GONet_Wizard/GONet_utils/src/gonet/gonet_file.py
+
 """
 This module defines the :class:`GONetFile` class, which provides functionality for 
 handling and processing GONet files. The class encapsulates the properties 
@@ -52,6 +54,7 @@ from GONet_Wizard.GONet_utils.src.gonet.filetypes import FileType
 from GONet_Wizard.GONet_utils.src.gonet import parsers
 from GONet_Wizard.GONet_utils.src.gonet import analysis_utils
 from GONet_Wizard.GONet_utils.src.gonet import writers
+from GONet_Wizard.GONet_utils.src.gonet import config
 
 class GONetFile:
     """
@@ -69,7 +72,7 @@ class GONetFile:
         A mapping of channel names to their corresponding color codes (e.g., {'blue': 'b', 'green': 'g', 'red': 'r'}).
     """
 
-    CHANNELS = ['blue', 'green', 'red']
+    CHANNELS = config.CHANNEL_NAMES_PROCESSED
     COLORS = {'blue': 'b', 'green': 'g', 'red': 'r'}
 
     def __init__(
