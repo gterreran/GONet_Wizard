@@ -216,7 +216,7 @@ class GONetFile:
         """
         return self._filetype
 
-    def get_channel(self, channel_name: str) -> np.ndarray:
+    def get_channel(self, channel_name: config.ChannelName) -> np.ndarray:
         """
         Retrieve the pixel data for a specified color channel.
 
@@ -225,7 +225,7 @@ class GONetFile:
 
         Parameters
         ----------
-        channel_name : :class:`str`
+        channel_name : :class:`~config.ChannelName`
             The name of the channel to retrieve. Must be one of
             ``'blue'``, ``'green'``, or ``'red'``.
 
@@ -243,7 +243,7 @@ class GONetFile:
             raise ValueError(f"Invalid channel name: {channel_name}. Allowed channels: {self.CHANNELS}")
         return getattr(self, channel_name)
 
-    def set_channel(self, channel_name: str, data: np.ndarray, check_shape: bool = True) -> None:
+    def set_channel(self, channel_name: config.ChannelName, data: np.ndarray, check_shape: bool = True) -> None:
         """
         Set the pixel data for a specified color channel.
 
@@ -252,7 +252,7 @@ class GONetFile:
 
         Parameters
         ----------
-        channel_name : :class:`str`
+        channel_name : :class:`~config.ChannelName`
             The name of the channel to update. Must be one of
             ``'blue'``, ``'green'``, or ``'red'``.
 

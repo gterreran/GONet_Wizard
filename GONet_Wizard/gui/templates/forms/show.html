@@ -7,6 +7,15 @@
 {% set help = "You can type wildcards and comma-separated entries. Browse will insert selected paths." %}
 {% include "components/path_picker.html" %}
 
+{# Model path:  #}
+{% set input_id = "model-path" %}
+{% set name = "calibrator" %}
+{% set label = "Path for model file to correct for distortion" %}
+{% set placeholder = "e.g. /data/images.npz (or leave as .)" %}
+{% set pick_mode = "file" %}
+{% set help = "File containing the model used for distortion correction." %}
+{% include "components/path_picker.html" %}
+
 <div class="form-group">
   <div class="form-label">Channels</div>
   <div class="checkbox-row">

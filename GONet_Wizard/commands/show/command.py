@@ -82,6 +82,10 @@ COMMAND = CommandSpec(
             "flags": ["--save"],
             "help": "Save output as a PDF.",
         },
+        {
+            "flags": ["--calibrator"],
+            "help": "Optional .npz file containing a fitted PolarHarmonicCalibrator.",
+        }
     ]
     + _channel_flags,
 )
@@ -201,6 +205,13 @@ def cli_handler(args: argparse.Namespace) -> Optional[str]:
     window_w = _int_or_default(getattr(args, "window_width_px", None), 1250)
     window_h = _int_or_default(getattr(args, "window_height_px", None), 800)
 
+    if getattr(args, "calibrator", None):
+        from GONet_Wizard.GONet_utils.src.calibrators.distortion import PolarHarmonicCalibrator
+
+        calibrator = PolarHarmonicCalibrator.from_fit_npz(args.calibrator)
+    else:
+        calibrator = None
+
     fig = build_show_figure(
         files,
         channels=channels,
@@ -208,6 +219,7 @@ def cli_handler(args: argparse.Namespace) -> Optional[str]:
         window_height_px=window_h,
         width_frac=0.90,
         row_height_frac=0.40,
+        calibrator=calibrator
     )
 
     if getattr(args, "save", None):

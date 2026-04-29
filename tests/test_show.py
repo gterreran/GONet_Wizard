@@ -303,7 +303,7 @@ def test_build_show_figure_single_channel_adds_panel_titles(monkeypatch, dummy_a
     def fake_from_file(_path: str):
         return DummyGONet(meta={"hostname": "cam", "DateTime": "t"}, arr=dummy_arr)
 
-    monkeypatch.setattr(show_figure_mod.GONetFile, "from_file", staticmethod(fake_from_file))
+    monkeypatch.setattr(show_figure_mod.GONetFileRaw, "from_file", staticmethod(fake_from_file))
 
     # Spy on add_panel_title_pills
     calls = {"n": 0}
@@ -342,7 +342,7 @@ def test_build_show_figure_multi_channel_adds_row_frames(monkeypatch, dummy_arr)
     def fake_from_file(_path: str):
         return DummyGONet(meta={"hostname": "cam", "DateTime": "t"}, arr=dummy_arr)
 
-    monkeypatch.setattr(show_figure_mod.GONetFile, "from_file", staticmethod(fake_from_file))
+    monkeypatch.setattr(show_figure_mod.GONetFileRaw, "from_file", staticmethod(fake_from_file))
 
     calls = {"n": 0}
 

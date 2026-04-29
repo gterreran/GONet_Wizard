@@ -56,7 +56,10 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from GONet_Wizard.GONet_utils import GONetFile
+from GONet_Wizard.GONet_utils import GONetFileRaw
+from GONet_Wizard.GONet_utils.src.calibrators.distortion import (
+    PolarHarmonicCalibrator,
+)
 
 from .layout import (
     add_file_row_frames,
@@ -140,6 +143,30 @@ def auto_vmin_vmax(
     return vmin, vmax
 
 
+def _angular_customdata(
+    calibrator: PolarHarmonicCalibrator | None,
+    image_shape: tuple[int, int],
+    channel: str,
+) -> np.ndarray | None:
+    """
+    Build Plotly customdata containing angular coordinates.
+
+    Returns
+    -------
+    np.ndarray | None
+        Array with shape (height, width, 2), where the last axis is
+        (r_deg, theta_deg). Returns None if no calibrator is provided.
+    """
+    if calibrator is None:
+        return None
+
+    lookup = calibrator.build_lookup(
+        image_shape=image_shape,
+        channel=channel,
+    )
+
+    return np.dstack([lookup.r_deg, lookup.theta_deg])
+
 def _load_files(
     files: Sequence[Union[str, Path]],
     *,
@@ -177,7 +204,7 @@ def _load_files(
         bounds: dict = {}
 
         try:
-            gof = GONetFile.from_file(str(path))
+            gof = GONetFileRaw.from_file(str(path))
             meta = gof.meta or {}
 
             for ch in channels:
@@ -253,6 +280,7 @@ def build_show_figure(
     window_height_px: int = 800,
     width_frac: float = 0.95,
     row_height_frac: float = 0.50,
+    calibrator: PolarHarmonicCalibrator | None = None,
 ) -> go.Figure:
     """
     Build the Plotly figure for the ``show`` command.
@@ -292,6 +320,13 @@ def build_show_figure(
     channels = list(channels)
     if not channels:
         raise ValueError("No channels selected.")
+
+    # We are loading the file as GONetFileRaw here
+    # so we need to replace the green channel with either
+    # of the green1/green2 channels if green is requested
+    if "green" in channels:
+        channels.remove("green")
+        channels.append("green1")
 
     loaded = _load_files(
         files,
@@ -351,14 +386,30 @@ def build_show_figure(
             z = lf.data[ch0]
             vmin, vmax = lf.bounds[ch0]
 
+            customdata = _angular_customdata(
+                calibrator=calibrator,
+                image_shape=z.shape,
+                channel=ch0,
+            )
+
             fig.add_trace(
                 go.Heatmap(
                     z=z,
+                    customdata=customdata,
                     colorscale="Gray",
                     zmin=vmin,
                     zmax=vmax,
                     showscale=False,
-                    hovertemplate="x=%{x}<br>y=%{y}<br>value=%{z}<extra></extra>",
+                    hovertemplate=(
+                        "x=%{x}<br>"
+                        "y=%{y}<br>"
+                        "r=%{customdata[0]:.3f} deg<br>"
+                        "theta=%{customdata[1]:.3f} deg<br>"
+                        "value=%{z}"
+                        "<extra></extra>"
+                    ) if customdata is not None else (
+                        "x=%{x}<br>y=%{y}<br>value=%{z}<extra></extra>"
+                    ),
                 ),
                 row=r,
                 col=c,
@@ -374,14 +425,30 @@ def build_show_figure(
                 z = lf.data[ch]
                 vmin, vmax = lf.bounds[ch]
 
+                customdata = _angular_customdata(
+                    calibrator=calibrator,
+                    image_shape=z.shape,
+                    channel=ch,   # or ch in the multi-channel loop
+                )
+
                 fig.add_trace(
                     go.Heatmap(
                         z=z,
+                        customdata=customdata,
                         colorscale="Gray",
                         zmin=vmin,
                         zmax=vmax,
                         showscale=False,
-                        hovertemplate="x=%{x}<br>y=%{y}<br>value=%{z}<extra></extra>",
+                        hovertemplate=(
+                            "x=%{x}<br>"
+                            "y=%{y}<br>"
+                            "r=%{customdata[0]:.3f} deg<br>"
+                            "theta=%{customdata[1]:.3f} deg<br>"
+                            "value=%{z}"
+                            "<extra></extra>"
+                        ) if customdata is not None else (
+                            "x=%{x}<br>y=%{y}<br>value=%{z}<extra></extra>"
+                        ),
                     ),
                     row=r,
                     col=c,
