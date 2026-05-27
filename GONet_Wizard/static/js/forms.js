@@ -24,6 +24,7 @@
     event.preventDefault();
     const form = event.target;
 
+    window.GONet?.extract?.updateCombinedFields?.(document);
     const payload = payloadFromForm(form);
 
     // OPTIONAL debug: verify hidden flags are included

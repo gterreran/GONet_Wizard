@@ -314,6 +314,7 @@ def payload_to_argv_with_parser(root: argparse.ArgumentParser, payload: dict) ->
 
         flag = f"--{key.replace('_', '-')}"  # matches argparse flags
 
+        # Boolean flags
         if isinstance(val, bool) or (
             isinstance(val, str)
             and val.strip().lower()
@@ -323,19 +324,13 @@ def payload_to_argv_with_parser(root: argparse.ArgumentParser, payload: dict) ->
                 argv.append(flag)
             continue
 
-        if isinstance(val, str):
-            tokens = _split_csv_tokens(val)
-            if len(tokens) > 1:
-                argv.append(flag)
-                argv += tokens
-                continue
-
+        # Lists become repeated positional tokens
         if isinstance(val, list):
             argv.append(flag)
-            for item in val:
-                argv += _split_csv_tokens(str(item))
+            argv.extend(str(v) for v in val)
             continue
 
+        # Everything else is passed literally
         argv.append(flag)
         argv.append(str(val))
 

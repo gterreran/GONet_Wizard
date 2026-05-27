@@ -768,9 +768,34 @@ table.meta-table tr:nth-child(even) td.meta-val {
 
 .shape-two-col {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   align-items: start;
+}
+
+.shape-two-col .form-group {
+  min-width: 0;
+}
+
+.shape-two-col input,
+.shape-two-col select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.extract-output-row {
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 150px);
+  gap: 16px;
+}
+
+.extract-output-type {
+  width: 100%;
+  max-width: 150px;
+}
+
+.extract-output-type select {
+  min-width: 0;
 }
 
 .shape-note {
@@ -788,4 +813,15 @@ table.meta-table tr:nth-child(even) td.meta-val {
 .shape-fields .shape-two-col.hidden,
 .shape-note.hidden {
   display: none;
+}
+
+@media (max-width: 700px) {
+  .shape-two-col,
+  .extract-output-row {
+    grid-template-columns: 1fr;
+  }
+
+  .extract-output-type {
+    max-width: none;
+  }
 }

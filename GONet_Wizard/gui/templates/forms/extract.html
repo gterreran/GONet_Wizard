@@ -10,20 +10,20 @@
   <div class="form-label">Channels</div>
   <div class="checkbox-row">
     <label class="check">
-      <input type="checkbox" name="blue" data-cache="1">
+      <input type="checkbox" name="blue" data-cache="1" checked>
       <span>Blue</span>
     </label>
     <label class="check">
-      <input type="checkbox" name="green" data-cache="1">
+      <input type="checkbox" name="green" data-cache="1" checked>
       <span>Green</span>
     </label>
     <label class="check">
-      <input type="checkbox" name="red" data-cache="1">
+      <input type="checkbox" name="red" data-cache="1" checked>
       <span>Red</span>
     </label>
   </div>
   <div class="form-help">
-    Leave all unchecked to extract all channels.
+    All channels are selected by default. Uncheck channels you do not want to extract.
   </div>
 </div>
 
@@ -44,16 +44,43 @@
 <div class="shape-fields">
 
   <div class="form-group" data-shape-group="circle rectangle annulus">
-    <label class="form-label" for="extract-center">Center</label>
+    <div class="form-label">Center</div>
+    <div class="shape-two-col extract-pair-row">
+      <div class="form-group compact-form-group">
+        <label class="form-label" for="extract-center-x">X</label>
+        <input
+          id="extract-center-x"
+          type="text"
+          inputmode="decimal"
+          placeholder="e.g. 1000"
+          data-cache="1"
+          data-cache-key="extract::center_x"
+          data-composite-source="center"
+          data-composite-index="0"
+        />
+      </div>
+      <div class="form-group compact-form-group">
+        <label class="form-label" for="extract-center-y">Y</label>
+        <input
+          id="extract-center-y"
+          type="text"
+          inputmode="decimal"
+          placeholder="e.g. 800"
+          data-cache="1"
+          data-cache-key="extract::center_y"
+          data-composite-source="center"
+          data-composite-index="1"
+        />
+      </div>
+    </div>
     <input
       id="extract-center"
       name="center"
-      type="text"
-      placeholder="e.g. 1000,800"
+      type="hidden"
       data-cache="1"
     />
     <div class="form-help">
-      Pixel coordinates as x,y.
+      Pixel coordinates as x and y. Submitted as the CLI-compatible value <code>x,y</code>.
     </div>
   </div>
 
@@ -63,6 +90,7 @@
       id="extract-radius"
       name="radius"
       type="text"
+      inputmode="decimal"
       placeholder="e.g. 150"
       data-cache="1"
     />
@@ -72,16 +100,43 @@
   </div>
 
   <div class="form-group" data-shape-group="rectangle">
-    <label class="form-label" for="extract-sides">Sides</label>
+    <div class="form-label">Sides</div>
+    <div class="shape-two-col extract-pair-row">
+      <div class="form-group compact-form-group">
+        <label class="form-label" for="extract-width">Width</label>
+        <input
+          id="extract-width"
+          type="text"
+          inputmode="decimal"
+          placeholder="e.g. 300"
+          data-cache="1"
+          data-cache-key="extract::width"
+          data-composite-source="sides"
+          data-composite-index="0"
+        />
+      </div>
+      <div class="form-group compact-form-group">
+        <label class="form-label" for="extract-height">Height</label>
+        <input
+          id="extract-height"
+          type="text"
+          inputmode="decimal"
+          placeholder="e.g. 400"
+          data-cache="1"
+          data-cache-key="extract::height"
+          data-composite-source="sides"
+          data-composite-index="1"
+        />
+      </div>
+    </div>
     <input
       id="extract-sides"
       name="sides"
-      type="text"
-      placeholder="e.g. 300,400"
+      type="hidden"
       data-cache="1"
     />
     <div class="form-help">
-      Rectangle width,height in pixels.
+      Rectangle width and height in pixels. Submitted as the CLI-compatible value <code>width,height</code>.
     </div>
   </div>
 
@@ -92,6 +147,7 @@
         id="extract-inner-radius"
         name="inner_radius"
         type="text"
+        inputmode="decimal"
         placeholder="e.g. 100"
         data-cache="1"
       />
@@ -103,23 +159,51 @@
         id="extract-outer-radius"
         name="outer_radius"
         type="text"
+        inputmode="decimal"
         placeholder="e.g. 180"
         data-cache="1"
       />
     </div>
   </div>
 
-  <div class="form-group" data-shape-group="circle annulus rectangle interactive">
-    <label class="form-label" for="extract-angles">Optional angle range</label>
+  <div class="form-group" data-shape-group="circle annulus rectangle">
+    <div class="form-label">Optional angle range</div>
+    <div class="shape-two-col extract-pair-row">
+      <div class="form-group compact-form-group">
+        <label class="form-label" for="extract-angle-start">Start angle</label>
+        <input
+          id="extract-angle-start"
+          type="text"
+          inputmode="decimal"
+          placeholder="e.g. -90"
+          data-cache="1"
+          data-cache-key="extract::angle_start"
+          data-composite-source="angles"
+          data-composite-index="0"
+        />
+      </div>
+      <div class="form-group compact-form-group">
+        <label class="form-label" for="extract-angle-end">End angle</label>
+        <input
+          id="extract-angle-end"
+          type="text"
+          inputmode="decimal"
+          placeholder="e.g. 90"
+          data-cache="1"
+          data-cache-key="extract::angle_end"
+          data-composite-source="angles"
+          data-composite-index="1"
+        />
+      </div>
+    </div>
     <input
       id="extract-angles"
       name="angles"
-      type="text"
-      placeholder="e.g. -90,90"
+      type="hidden"
       data-cache="1"
     />
     <div class="form-help">
-      Start and end angles in degrees. Leave blank for the full range.
+      Start and end angles in degrees. Leave both blank for the full range.
     </div>
   </div>
 </div>
@@ -128,8 +212,8 @@
   Interactive mode ignores geometric fields and opens the extraction GUI.
 </div>
 
-<div class="shape-two-col">
-  <div class="form-group">
+<div class="shape-two-col extract-output-row">
+  <div class="form-group extract-output-filename">
     <label class="form-label" for="extract-output">Optional output filename</label>
     <input
       id="extract-output"
@@ -143,7 +227,7 @@
     </div>
   </div>
 
-  <div class="form-group">
+  <div class="form-group extract-output-type">
     <label class="form-label" for="extract-output-type">Output type</label>
     <select id="extract-output-type" name="output_type" data-cache="1">
       <option value="">Default (json)</option>
@@ -154,36 +238,3 @@
 </div>
 
 <button type="submit">Run extract</button>
-
-<script>
-  (function () {
-    const shapeSelect = document.getElementById("extract-shape");
-    const note = document.getElementById("extract-shape-note");
-    const shapeGroups = document.querySelectorAll("[data-shape-group]");
-
-    function updateShapeVisibility() {
-      const shape = (shapeSelect.value || "").trim();
-
-      shapeGroups.forEach(el => {
-        const allowed = (el.dataset.shapeGroup || "").split(/\s+/).filter(Boolean);
-
-        const show =
-          !shape ||
-          shape === "interactive"
-            ? allowed.includes("interactive")
-            : allowed.includes(shape);
-
-        el.classList.toggle("hidden", !show);
-      });
-
-      if (!shape || shape === "interactive") {
-        note.classList.remove("hidden");
-      } else {
-        note.classList.add("hidden");
-      }
-    }
-
-    shapeSelect.addEventListener("change", updateShapeVisibility);
-    updateShapeVisibility();
-  })();
-</script>

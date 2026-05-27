@@ -1,0 +1,50 @@
+[
+    {
+        "files": "/Users/gterreran/Desktop/Work/data/GONet/Grainger/new/251/251_250116_205417_1737060892.jpg",
+        "filename": "251_250116_205417_1737060892.jpg",
+        "camera": 251,
+        "unix_time": 1737060892,
+        "shape": "circle",
+        "x0": 1000.0,
+        "y0": 800.0,
+        "radius": 300.0,
+        "start_angle": 180.0,
+        "end_angle": 180.0,
+        "night": "20250116",
+        "date_utc": "2025-01-16T20:54:52.000000+00:00",
+        "date_local": "2025-01-16T14:54:52.000000-06:00",
+        "mjd": 60691.87143518519,
+        "hours_utc": "20:54:52",
+        "hours_local": "14:54:52",
+        "float_hours_utc": 0.8714351851851851,
+        "float_hours_local": 0.6214351851851851,
+        "temperature": 4.0,
+        "dew_point": -3.2,
+        "wind_speed": 22.3,
+        "pressure": 1014.2,
+        "humidity": 59.0,
+        "condition_code": 3,
+        "sunaltaz": 15.51437536435564,
+        "moonaltaz": -35.5748290456742,
+        "moon_illumination": 0.9087473591155262,
+        "exptime": 5.999981,
+        "red": {
+            "total_counts": 2184106645.0903034,
+            "mean_counts": 7725.963293173622,
+            "std": 9012.363487819473,
+            "npixels": 282697
+        },
+        "green": {
+            "total_counts": 6935344356.022128,
+            "mean_counts": 24532.78370843033,
+            "std": 15650.028781206649,
+            "npixels": 282697
+        },
+        "blue": {
+            "total_counts": 5543453659.247048,
+            "mean_counts": 19609.170451922193,
+            "std": 16220.75779811637,
+            "npixels": 282697
+        }
+    }
+]
