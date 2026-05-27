@@ -90,10 +90,10 @@ def _register_callbacks() -> None:
     from GONet_Wizard.GONet_utils.src.extract_app import extract_callbacks  # noqa: F401
 
 
-def ensure_dashboard_running(
+def ensure_extraction_gui_running(
     data_files: List[str],
     debug: bool,
-    port: int = 8050,
+    port: int = 8051,
 ) -> str:
     """
     Ensure the extraction GUI Dash server is running and return its URL.
@@ -116,7 +116,7 @@ def ensure_dashboard_running(
     -------
     :class:`str`
         The local URL of the extraction GUI
-        (e.g. ``"http://127.0.0.1:8050"``).
+        (e.g. ``"http://127.0.0.1:8051"``).
     """
     spec = DashLaunchSpec(
         app=app,

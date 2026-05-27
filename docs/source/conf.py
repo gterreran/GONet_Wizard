@@ -16,7 +16,7 @@ html_context = {
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'GONet Wizard'
-copyright = '2025, Giacomo Terreran'
+copyright = '2026, Giacomo Terreran'
 author = 'Giacomo Terreran'
 
 # The master toctree document (this is the main entry point for Sphinx)

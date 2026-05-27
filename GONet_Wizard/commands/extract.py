@@ -57,7 +57,7 @@ COMMAND = CommandSpec(
     args=[
         {
             "flags": ["filenames"],
-            "nargs": "+",
+            "nargs": "*",
             "action": ExpandFilenames,
             "help": (
                 "GONet file(s) to extract [.jpg, .tiff]. "
@@ -117,11 +117,23 @@ COMMAND = CommandSpec(
             "choices": ["json", "csv"],
             "help": "Output file type. Options are 'json' (default) or 'csv'.",
         },
+        {
+            "flags": ["--debug"],
+            "action": "store_true",
+            "default": False,
+            "help": "Run the extraction GUI in debug mode.",
+        },
+        {
+            "flags": ["--port"],
+            "type": int,
+            "default": 8051,
+            "help": "Port for the extraction GUI Dash server.",
+        },
     ],
 )
 
 
-def validate_output_file(output: str, output_type: str) -> str:
+def validate_output_file(output: str, output_type: str) -> Union[str, str]:
     """
     Validate the output file path and ensure it does not overwrite an existing file.
 
@@ -136,8 +148,8 @@ def validate_output_file(output: str, output_type: str) -> str:
 
     Returns
     -------
-    str
-        A unique output file path.
+    tuple of :class:`str`
+        A unique output file path and the output type.
 
     Raises
     ------
@@ -407,8 +419,33 @@ def extract_counts_from_GONet(
             print(f"Results saved to {output}")
 
 
-def cli_handler(args: argparse.Namespace) -> None:
-    files = filter_by_ext(args.filenames, [".jpg", ".tiff"])
+def cli_handler(args: argparse.Namespace):
+    files = args.filenames or [Path(".")]
+    files = filter_by_ext(files, [".jpg", ".jpeg", ".tiff", ".tif"])
+
+    if args.shape in {None, "interactive"}:
+        from GONet_Wizard.GONet_utils.src.extract_app.extract_gui import (
+            ensure_extraction_gui_running,
+        )
+        from GONet_Wizard.commands.ui_bridge import WindowRequest
+        from GONet_Wizard.ui.windows import WindowSpec
+
+        url = ensure_extraction_gui_running(
+            data_files=[str(p) for p in files],
+            debug=bool(args.debug),
+            port=int(args.port),
+        )
+
+        return WindowRequest(
+            key="extract-gui",
+            spec=WindowSpec(
+                title="GONet Wizard Extraction GUI",
+                url=url,
+                width=1250,
+                height=750,
+            ),
+        )
+
     extract_counts_from_GONet(
         files=files,
         red=args.red,

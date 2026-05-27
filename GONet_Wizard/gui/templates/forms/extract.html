@@ -1,13 +1,189 @@
-<div class="form-group"><input name="filenames" placeholder="*.tiff or comma-separated"></div>
-<div class="form-group"><input type="checkbox" name="red"> Red</div>
-<div class="form-group"><input type="checkbox" name="green"> Green</div>
-<div class="form-group"><input type="checkbox" name="blue"> Blue</div>
-<div class="form-group"><input name="shape" placeholder="circle, rectangle, annulus, etc."></div>
-<div class="form-group"><input name="center" placeholder="x,y center"></div>
-<div class="form-group"><input name="radius" placeholder="Radius (circle)"></div>
-<div class="form-group"><input name="sides" placeholder="x,y (rectangle)"></div>
-<div class="form-group"><input name="inner_radius" placeholder="Inner radius (annulus)"></div>
-<div class="form-group"><input name="outer_radius" placeholder="Outer radius (annulus)"></div>
-<div class="form-group"><input name="angles" placeholder="Start,end (default -180,180)"></div>
-<div class="form-group"><input name="output" placeholder="Output filename"></div>
+{% set input_id = "extract-filenames" %}
+{% set name = "filenames" %}
+{% set label = "GONet files or folders" %}
+{% set placeholder = "Type a path/pattern (e.g. /data/*.tiff) or use Browse…" %}
+{% set pick_mode = "files" %}
+{% set help = "You can type wildcards and comma-separated entries. Browse will insert selected paths." %}
+{% include "components/path_picker.html" %}
+
+<div class="form-group">
+  <div class="form-label">Channels</div>
+  <div class="checkbox-row">
+    <label class="check">
+      <input type="checkbox" name="blue" data-cache="1">
+      <span>Blue</span>
+    </label>
+    <label class="check">
+      <input type="checkbox" name="green" data-cache="1">
+      <span>Green</span>
+    </label>
+    <label class="check">
+      <input type="checkbox" name="red" data-cache="1">
+      <span>Red</span>
+    </label>
+  </div>
+  <div class="form-help">
+    Leave all unchecked to extract all channels.
+  </div>
+</div>
+
+<div class="form-group">
+  <label class="form-label" for="extract-shape">Extraction shape</label>
+  <select id="extract-shape" name="shape" data-cache="1">
+    <option value="">Interactive</option>
+    <option value="circle">Circle</option>
+    <option value="rectangle">Rectangle</option>
+    <option value="annulus">Annulus</option>
+    <option value="interactive">Interactive</option>
+  </select>
+  <div class="form-help">
+    If left blank, or set to Interactive, the region will be selected in the extraction window.
+  </div>
+</div>
+
+<div class="shape-fields">
+
+  <div class="form-group" data-shape-group="circle rectangle annulus">
+    <label class="form-label" for="extract-center">Center</label>
+    <input
+      id="extract-center"
+      name="center"
+      type="text"
+      placeholder="e.g. 1000,800"
+      data-cache="1"
+    />
+    <div class="form-help">
+      Pixel coordinates as x,y.
+    </div>
+  </div>
+
+  <div class="form-group" data-shape-group="circle">
+    <label class="form-label" for="extract-radius">Radius</label>
+    <input
+      id="extract-radius"
+      name="radius"
+      type="text"
+      placeholder="e.g. 150"
+      data-cache="1"
+    />
+    <div class="form-help">
+      Radius in pixels for circular extraction.
+    </div>
+  </div>
+
+  <div class="form-group" data-shape-group="rectangle">
+    <label class="form-label" for="extract-sides">Sides</label>
+    <input
+      id="extract-sides"
+      name="sides"
+      type="text"
+      placeholder="e.g. 300,400"
+      data-cache="1"
+    />
+    <div class="form-help">
+      Rectangle width,height in pixels.
+    </div>
+  </div>
+
+  <div class="shape-two-col" data-shape-group="annulus">
+    <div class="form-group">
+      <label class="form-label" for="extract-inner-radius">Inner radius</label>
+      <input
+        id="extract-inner-radius"
+        name="inner_radius"
+        type="text"
+        placeholder="e.g. 100"
+        data-cache="1"
+      />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="extract-outer-radius">Outer radius</label>
+      <input
+        id="extract-outer-radius"
+        name="outer_radius"
+        type="text"
+        placeholder="e.g. 180"
+        data-cache="1"
+      />
+    </div>
+  </div>
+
+  <div class="form-group" data-shape-group="circle annulus rectangle interactive">
+    <label class="form-label" for="extract-angles">Optional angle range</label>
+    <input
+      id="extract-angles"
+      name="angles"
+      type="text"
+      placeholder="e.g. -90,90"
+      data-cache="1"
+    />
+    <div class="form-help">
+      Start and end angles in degrees. Leave blank for the full range.
+    </div>
+  </div>
+</div>
+
+<div class="shape-note" id="extract-shape-note">
+  Interactive mode ignores geometric fields and opens the extraction GUI.
+</div>
+
+<div class="shape-two-col">
+  <div class="form-group">
+    <label class="form-label" for="extract-output">Optional output filename</label>
+    <input
+      id="extract-output"
+      name="output"
+      type="text"
+      placeholder="e.g. extraction_circle.json"
+      data-cache="1"
+    />
+    <div class="form-help">
+      If omitted, a default name will be generated automatically.
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label" for="extract-output-type">Output type</label>
+    <select id="extract-output-type" name="output_type" data-cache="1">
+      <option value="">Default (json)</option>
+      <option value="json">json</option>
+      <option value="csv">csv</option>
+    </select>
+  </div>
+</div>
+
 <button type="submit">Run extract</button>
+
+<script>
+  (function () {
+    const shapeSelect = document.getElementById("extract-shape");
+    const note = document.getElementById("extract-shape-note");
+    const shapeGroups = document.querySelectorAll("[data-shape-group]");
+
+    function updateShapeVisibility() {
+      const shape = (shapeSelect.value || "").trim();
+
+      shapeGroups.forEach(el => {
+        const allowed = (el.dataset.shapeGroup || "").split(/\s+/).filter(Boolean);
+
+        const show =
+          !shape ||
+          shape === "interactive"
+            ? allowed.includes("interactive")
+            : allowed.includes(shape);
+
+        el.classList.toggle("hidden", !show);
+      });
+
+      if (!shape || shape === "interactive") {
+        note.classList.remove("hidden");
+      } else {
+        note.classList.add("hidden");
+      }
+    }
+
+    shapeSelect.addEventListener("change", updateShapeVisibility);
+    updateShapeVisibility();
+  })();
+</script>
