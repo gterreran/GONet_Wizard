@@ -11,12 +11,16 @@ Attributes
 __version__ : :class:`str`
     The version string of the installed GONet_Wizard package.
 
-Raises
-------
-PackageNotFoundError
-    If the GONet_Wizard package is not installed or cannot be found in the environment.
+Notes
+-----
+- The version is determined at runtime, so it will reflect the actual installed
+  version of the package. If the package is not installed, it defaults to "dev".
+
 """
 
-from importlib.metadata import version
+from importlib.metadata import version, PackageNotFoundError
 
-__version__ = version("GONet_Wizard")
+try:
+    __version__ = version("GONet_Wizard")
+except PackageNotFoundError:
+    __version__ = "dev"
