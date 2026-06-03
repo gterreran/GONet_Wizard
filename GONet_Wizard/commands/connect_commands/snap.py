@@ -35,6 +35,9 @@ from scp import SCPClient
 from GONet_Wizard.settings import GONetConfig
 from GONet_Wizard.commands.connect_commands.ssh_utils import ssh_connect
 from GONet_Wizard.commands.cli_core import CommandSpec
+from GONet_Wizard.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 COMMAND = CommandSpec(
     name="snap",
@@ -140,16 +143,16 @@ def upload_if_different(ssh: paramiko.SSHClient, local_path: str, remote_path: s
 
     if remote_hash is not None:
         if remote_hash == local_hash:
-            print(f"✅ Remote file is identical. Skipping upload.")
+            logger.info("Remote file is identical. Skipping upload.")
             return
         else:
-            print(f"🆚 Remote file differs from local.")
+            logger.info("Remote file differs from local.")
 
-    print(f"📤 Uploading config file: {local_path} → {remote_path}...")
+    logger.info("Uploading config file: %s → %s", local_path, remote_path)
 
     with SCPClient(ssh.get_transport()) as scp:
         scp.put(local_path, remote_path)
-        print("📤 File uploaded.")
+        logger.info("File uploaded.")
 
 
 def run_remote_script_with_live_output(ssh: paramiko.SSHClient, command: str) -> None:
@@ -171,7 +174,7 @@ def run_remote_script_with_live_output(ssh: paramiko.SSHClient, command: str) ->
     while not stdout.channel.exit_status_ready():
         if stdout.channel.recv_ready():
             line = stdout.channel.recv(1024).decode()
-            print(line, end='')
+            logger.info("%s", line.rstrip())
 
 
 @ssh_connect
@@ -203,9 +206,9 @@ def take_snapshot(ssh: paramiko.SSHClient, config_file_path: str = None) -> None
     """
     config = GONetConfig()
 
-    print("📂 Checking images folder before script runs...")
+    logger.info("Checking images folder before script runs.")
     initial_files = list_remote_files(ssh, config.gonet_images_folder)
-    print(f"📄 Found {len(initial_files)} files before execution.")
+    logger.info("Found %s files before execution.", len(initial_files))
 
     if config_file_path:
         config_remote_file_path = os.path.join(config.gonet_config_folder, os.path.basename(config_file_path))
@@ -213,30 +216,30 @@ def take_snapshot(ssh: paramiko.SSHClient, config_file_path: str = None) -> None
     else:
         config_remote_file_path = ''
 
-    print("\n🚀 Running remote script with live logs...")
+    logger.info("Running remote script with live logs.")
     cmd = f'python3 {config.gonet4_path} {config_remote_file_path}'
     run_remote_script_with_live_output(ssh, cmd)
-    print("\n✅ Script execution finished.")
+    logger.info("Script execution finished.")
 
-    print("📂 Checking images folder after script runs...")
+    logger.info("Checking images folder after script runs.")
     final_files = list_remote_files(ssh, config.gonet_images_folder)
     new_files = final_files - initial_files
-    print(f"🆕 New images created: {len(new_files)}")
+    logger.info("New images created: %s", len(new_files))
     for f in new_files:
-        print(f"   • {f}")
+        logger.info("New image: %s", f)
 
     if new_files:
-        print(f"\n⬇️  Downloading new images to: {config.local_output_folder}")
+        logger.info("Downloading new images to: %s", config.local_output_folder)
         os.makedirs(config.local_output_folder, exist_ok=True)
         with SCPClient(ssh.get_transport()) as scp:
             for filename in new_files:
                 remote_path = os.path.join(config.gonet_images_folder, filename)
                 local_path = os.path.join(config.local_output_folder, filename)
-                print(f"   ↳ {filename}")
+                logger.info("Downloading %s", filename)
                 scp.get(remote_path, local_path)
-        print("✅ All new images downloaded.")
+        logger.info("All new images downloaded.")
     else:
-        print("ℹ️ No new images to download.")
+        logger.info("No new images to download.")
 
 def cli_handler(args: argparse.Namespace) -> None:
     """

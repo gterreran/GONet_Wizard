@@ -38,7 +38,6 @@ Functions
 
 from __future__ import annotations
 
-import logging
 import socket
 import threading
 import time
@@ -46,6 +45,8 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 from dash import Dash
+
+from GONet_Wizard.logging_utils import silence_noisy_loggers
 
 
 # --------------------------
@@ -131,8 +132,7 @@ def _suppress_startup_noise() -> None:
     -----
     This is only applied when debug is disabled.
     """
-    logging.getLogger("werkzeug").setLevel(logging.ERROR)
-    logging.getLogger("dash.dash").setLevel(logging.ERROR)
+    silence_noisy_loggers()
     try:
         import flask.cli  # type: ignore
         flask.cli.show_server_banner = lambda *args, **kwargs: None  # noqa: E731

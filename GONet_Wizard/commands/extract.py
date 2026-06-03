@@ -40,6 +40,9 @@ from GONet_Wizard.GONet_utils.src.extractors import extract_all
 from GONet_Wizard.GONet_utils import GONetFile
 from pathlib import Path
 from GONet_Wizard.commands.cli_core import ExpandFilenames, CommandSpec, filter_by_ext
+from GONet_Wizard.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 _channel_flags = [
     {
@@ -181,7 +184,7 @@ def validate_output_file(output: str, output_type: str) -> Union[str, str]:
 
     output_path = Path(output)
     if output_path.exists():
-        print(f"Warning: {output} already exists.")
+        logger.warning("%s already exists.", output)
         # Generate a unique filename by appending or incrementing an index
         stem = output_path.stem
         suffix = output_path.suffix
@@ -191,13 +194,13 @@ def validate_output_file(output: str, output_type: str) -> Union[str, str]:
         while True:
             new_filename = parent / f"{stem}_{index}{suffix}"
             if not new_filename.exists():
-                print(f"Saving to {new_filename} instead.")
+                logger.info("Saving to %s instead.", new_filename)
                 return str(new_filename), output_type
             index += 1
 
     # Check if the parent directory exists, and create it if it doesn't
     if not output_path.parent.exists():
-        print(f"Directory {output_path.parent} does not exist. Creating it.")
+        logger.info("Directory %s does not exist. Creating it.", output_path.parent)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
     return output, output_type
@@ -397,11 +400,11 @@ def extract_counts_from_GONet(
             shape = extraction_params['shape']
 
     if extraction_params is None:
-        print("Extraction parameters were not set. Exiting.")
+        logger.info("Extraction parameters were not set. Exiting.")
         return
 
-    print(f"Extracting {shape}")
-    print(f"Channels - {', '.join(channels)}")
+    logger.info("Extracting %s", shape)
+    logger.info("Channels: %s", ", ".join(channels))
     out_epoch_list = extract_all(files, channels, extraction_params)
     
     for epoch in out_epoch_list:
@@ -411,12 +414,12 @@ def extract_counts_from_GONet(
         import pandas as pd
         df = pd.json_normalize(out_epoch_list, sep="_")
         df.to_csv(output, index=False)
-        print(f"Results saved to {output}")
+        logger.info("Results saved to %s", output)
 
     else:
         with open(output, "w") as f:
             json.dump(out_epoch_list, f, indent=4)
-            print(f"Results saved to {output}")
+            logger.info("Results saved to %s", output)
 
 
 def cli_handler(args: argparse.Namespace):

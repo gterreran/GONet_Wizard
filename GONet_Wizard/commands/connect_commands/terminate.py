@@ -27,6 +27,9 @@ ensuring safe and consistent remote execution.
 import paramiko, argparse
 from GONet_Wizard.commands.connect_commands.ssh_utils import ssh_connect
 from GONet_Wizard.commands.cli_core import CommandSpec
+from GONet_Wizard.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 COMMAND = CommandSpec(
     name="terminate_imaging",
@@ -60,7 +63,7 @@ def terminate_imaging(ssh: paramiko.SSHClient) -> None:
     - If crontab removal or process termination fails, a warning is printed.
 
     """
-    print("🧹 Clearing remote crontab...")
+    logger.info("Clearing remote crontab.")
     command = (
         "crontab -r && "
         "ps aux | grep '[g]onet4.py' | grep -v $$ | awk '{print $2}' | xargs -r kill && "
@@ -73,7 +76,7 @@ def terminate_imaging(ssh: paramiko.SSHClient) -> None:
     err = stderr.read().decode().strip()
 
     if err:
-        print(f"⚠️ Error clearing crontab: {err.strip()}")
+        logger.warning("Error clearing crontab: %s", err.strip())
 
 
 def cli_handler(args: argparse.Namespace) -> None:

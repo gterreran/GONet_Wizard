@@ -28,6 +28,9 @@ import json
 import threading
 import time
 from typing import List, Any
+from GONet_Wizard.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class WebviewAPI:
@@ -202,7 +205,7 @@ class WebviewAPI:
         window = webview.windows[0]
 
         if not hasattr(window, "create_file_dialog"):
-            print("File dialog not supported in current backend.")
+            logger.warning("File dialog not supported in current backend.")
             return
 
         path = window.create_file_dialog(

@@ -23,6 +23,9 @@ import paramiko
 from typing import Callable, Any
 from functools import wraps
 from GONet_Wizard.settings import GONetConfig
+from GONet_Wizard.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 def ssh_connect(func: Callable[[paramiko.SSHClient, Any], Any]) -> Callable[[str, Any], Any]:
     """
@@ -63,18 +66,18 @@ def ssh_connect(func: Callable[[paramiko.SSHClient, Any], Any]) -> Callable[[str
     @wraps(func)
     def wrapper(gonet_ip: str, *args: Any, **kwargs: Any) -> Any:
         config = GONetConfig()
-        print(f"🔌 Connecting to {config.gonet_user}@{gonet_ip}...")
+        logger.info("Connecting to %s@%s.", config.gonet_user, gonet_ip)
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
             ssh.connect(gonet_ip, username=config.gonet_user, password=config.gonet_password)
-            print("✅ Connected successfully.")
+            logger.info("Connected successfully.")
             result = func(ssh, *args, **kwargs)
-        except Exception as e:
-            print(f"❌ SSH connection error: {e}")
+        except Exception:
+            logger.exception("SSH connection error.")
             raise
         finally:
-            print("🔒 Closing SSH connection.")
+            logger.info("Closing SSH connection.")
             ssh.close()
 
         return result

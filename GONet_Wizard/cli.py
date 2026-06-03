@@ -92,6 +92,7 @@ from GONet_Wizard._version import __version__
 from GONet_Wizard import commands
 from GONet_Wizard.commands import cli_core
 from GONet_Wizard._branding import patch_webview_start
+from GONet_Wizard.logging_utils import configure_logging
 from typing import List, Optional, Tuple
 
 patch_webview_start()
@@ -137,6 +138,7 @@ def _split_global_and_rest(argv: Optional[List[str]]) -> Tuple[argparse.Namespac
     pre = argparse.ArgumentParser(add_help=False)
     pre.add_argument("--ui-port", type=int, default=5050)
     pre.add_argument("--debug-webview", action="store_true", default=False)
+    pre.add_argument("--log-level", default=None)
     g, rest = pre.parse_known_args(argv)
     return g, rest
 
@@ -233,6 +235,16 @@ def main(argv=None) -> None:
         help="Enable pywebview debug mode.",
     )
 
+    parser.add_argument(
+        "--log-level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        default=None,
+        help=(
+            "Enable package logging at the selected level. By default, only "
+            "commands that explicitly configure logging emit log messages."
+        ),
+    )
+
     parser = cli_core.build_subparser(parser, commands)
 
     try:
@@ -256,6 +268,9 @@ def main(argv=None) -> None:
         if e.message:
             parser._print_message(f"{parser.prog}: error: {e.message}\n")
         return
+
+    if args.log_level is not None:
+        configure_logging(args.log_level)
 
     if not hasattr(args, "handler"):
         parser.print_help()

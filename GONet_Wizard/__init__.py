@@ -16,5 +16,9 @@ Settings are accessed dynamically to ensure runtime flexibility and testability.
 """
 
 from __future__ import annotations
+
+import logging
 from GONet_Wizard._version import __version__
+
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 import GONet_Wizard.settings

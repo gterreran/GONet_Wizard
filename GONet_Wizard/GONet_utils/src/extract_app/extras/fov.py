@@ -4,6 +4,9 @@ import numpy as np
 from numpy.linalg import lstsq
 from scipy import ndimage as ndi
 from scipy.special import erf, erfinv
+from GONet_Wizard.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 # ------------------------- Stats helpers -------------------------
 
@@ -460,14 +463,14 @@ def detect_fov(
     }
 
     if verbose:
-        print(f"[init] bg pixels={dbg['bg_count']}, q={q:g}, tail='{tail}'")
+        logger.info("[init] bg pixels=%s, q=%g, tail=%r", dbg["bg_count"], q, tail)
 
     # --- Initial noise model from provided background (sigma-clipped Gaussian)
     vals0 = image[bg_mask]
     mu0, sig0, n0 = _fit_gaussian_sigma_clipped(vals0, clip_sigma=clip_sigma)
     noise_cdf = _gaussian_cdf_factory(mu0, sig0)
     if verbose:
-        print(f"[init] noise μ={mu0:.3f}, σ={sig0:.3f} (kept {n0}/{vals0.size})")
+        logger.info("[init] noise μ=%.3f, σ=%.3f (kept %s/%s)", mu0, sig0, n0, vals0.size)
 
     # --- Per-pixel p-values and scores
     p = _pvals_from_noise(image, noise_cdf, tail=tail)
@@ -482,11 +485,15 @@ def detect_fov(
     z_med0, med0, sigmad0 = _median_z(x_cut0, image[bg_mask])
 
     if verbose:
-        print(f"[init] FDR p*={thr:.3e}  discoveries={int(mask.sum())} ({mask.mean():.2%})")
-        print(f"[init] p*→ intensity≈{x_cut0:.3f}  z_mu={z0:.2f}σ  "
-            f"z_med={z_med0:.2f}σ  (μ={mu0:.2f}, σ={sig0:.2f}, med={med0:.2f}, σ_MAD={sigmad0:.2f})")
-        print(f"[init] counts: image {n_all0}/{image.size} ({100*f_all0:.2f}%)  "
-            f"bgROI {n_bg0}/{int(bg_mask.sum())} ({100*f_bg0:.2f}%)")
+        logger.info("[init] FDR p*=%.3e discoveries=%s (%.2f%%)", thr, int(mask.sum()), 100 * mask.mean())
+        logger.info(
+            "[init] p*→ intensity≈%.3f z_mu=%.2fσ z_med=%.2fσ (μ=%.2f, σ=%.2f, med=%.2f, σ_MAD=%.2f)",
+            x_cut0, z0, z_med0, mu0, sig0, med0, sigmad0,
+        )
+        logger.info(
+            "[init] counts: image %s/%s (%.2f%%) bgROI %s/%s (%.2f%%)",
+            n_all0, image.size, 100 * f_all0, n_bg0, int(bg_mask.sum()), 100 * f_bg0,
+        )
 
     # --- Spatial coherence & LCC
     mask = _clean_and_lcc(mask)
@@ -501,7 +508,7 @@ def detect_fov(
     yc, xc, r, inliers = _ransac_circle(pts, n_iter=400, inlier_tol=2.5, min_inliers=50)
 
     if verbose:
-        print(f"[init] circle: yc={yc:.2f}, xc={xc:.2f}, r={r:.2f}  (boundary pts={pts.shape[0]})")
+        logger.info("[init] circle: yc=%.2f, xc=%.2f, r=%.2f (boundary pts=%s)", yc, xc, r, pts.shape[0])
 
     dbg["init"] = {
         "thr": float(thr),
@@ -522,7 +529,7 @@ def detect_fov(
 
         if not np.any(new_bg):
             if verbose:
-                print(f"[iter {it}] No outside-of-circle background left; stopping.")
+                logger.info("[iter %s] No outside-of-circle background left; stopping.", it)
             break
 
         vals_bg = image[new_bg]
@@ -537,10 +544,14 @@ def detect_fov(
         z_medi, medi, sigmadi = _median_z(x_cuti, image[bg_mask])
 
         if verbose:
-            print(f"[iter {it}] p*→ intensity≈{x_cuti:.3f}  z_mu={zi:.2f}σ  "
-                f"z_med={z_medi:.2f}σ  (μ={mu_i:.2f}, σ={sig_i:.2f}, med={medi:.2f}, σ_MAD={sigmadi:.2f})")
-            print(f"[iter {it}] counts: image {n_alli}/{image.size} ({100*f_alli:.2f}%)  "
-                f"bgROI {n_bgi}/{int(bg_mask.sum())} ({100*f_bgi:.2f}%)")
+            logger.info(
+                "[iter %s] p*→ intensity≈%.3f z_mu=%.2fσ z_med=%.2fσ (μ=%.2f, σ=%.2f, med=%.2f, σ_MAD=%.2f)",
+                it, x_cuti, zi, z_medi, mu_i, sig_i, medi, sigmadi,
+            )
+            logger.info(
+                "[iter %s] counts: image %s/%s (%.2f%%) bgROI %s/%s (%.2f%%)",
+                it, n_alli, image.size, 100 * f_alli, n_bgi, int(bg_mask.sum()), 100 * f_bgi,
+            )
         last_thr = float(thr)
         mask = p <= thr
         mask = _clean_and_lcc(mask)
@@ -558,8 +569,10 @@ def detect_fov(
 
         rel = abs(r - prev_r) / max(prev_r, 1e-12)
         if verbose:
-            print(f"[iter {it}] FDR p*={thr:.3e}  mask={int(mask.sum())} px  "
-                  f"circle: yc={yc:.2f}, xc={xc:.2f}, r={r:.2f}  Δr={rel:.2e}")
+            logger.info(
+                "[iter %s] FDR p*=%.3e mask=%s px circle: yc=%.2f, xc=%.2f, r=%.2f Δr=%.2e",
+                it, thr, int(mask.sum()), yc, xc, r, rel,
+            )
 
         dbg["iters"].append({
             "thr": float(thr),
@@ -571,7 +584,7 @@ def detect_fov(
         if rel < tol:
             converged = True
             if verbose:
-                print(f"[iter {it}] Converged (Δr<{tol}).")
+                logger.info("[iter %s] Converged (Δr<%s).", it, tol)
             break
         prev_r = r
 

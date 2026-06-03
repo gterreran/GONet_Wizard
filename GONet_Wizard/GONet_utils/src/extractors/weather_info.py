@@ -25,6 +25,9 @@ from typing import Dict, Any, Tuple
 import numpy as np
 from datetime import timedelta
 from GONet_Wizard.GONet_dashboard.src import env
+from GONet_Wizard.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class WeatherInfo(Extractor):
@@ -109,7 +112,7 @@ class WeatherInfo(Extractor):
 
         # Handle empty weather data
         if weather_data.empty:
-            print("Warning: No weather data available for the requested time range.")
+            logger.warning("No weather data available for the requested time range.")
             results = {
                 "files": raw["file_list"],
                 DATA_SPEC["temperature"].key: np.full(len(times), np.nan),

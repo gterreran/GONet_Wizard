@@ -65,6 +65,10 @@ from typing import Any, Optional
 
 from dotenv import load_dotenv
 
+from GONet_Wizard.logging_utils import get_logger
+
+logger = get_logger(__name__)
+
 
 load_dotenv()
 
@@ -157,6 +161,7 @@ def require_env_var(envvar: EnvVar, prompt: Optional[str] = None) -> str:
     if value is None:
         if prompt is None:
             prompt = f"Enter a value for {envvar.name}: "
+        logger.warning("Environment variable %r is not set; prompting the user.", envvar.name)
         print(f"⚠️  Environment variable '{envvar.name}' is not set.")
         value = input(prompt)
         print(

@@ -17,7 +17,7 @@ date/time parsing utilities, and functions to create dynamic filter UI component
 - :func:`new_selection_filter` : Create a `Dash <https://dash.plotly.com/>`_ component for a selection-based filter using manually selected points.
 
 """
-import traceback, inspect, warnings, os, uuid, datetime
+import inspect, warnings, os, uuid, datetime
 from functools import wraps
 
 from dash import html, dcc, ctx, no_update
@@ -26,6 +26,9 @@ import dash_daq as daq
 
 from GONet_Wizard.GONet_dashboard.src import env
 from GONet_Wizard.GONet_dashboard.src.server import app
+from GONet_Wizard.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 def debug_print(callback_fn):
     """
@@ -49,7 +52,7 @@ def debug_print(callback_fn):
     def wrapper(*args, **kwargs):
         if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
             caller = inspect.stack()[1]
-            print(f"{callback_fn.__name__} fired (line {caller.lineno}) triggered by {ctx.triggered_id}.")
+            logger.debug("%s fired (line %s) triggered by %s.", callback_fn.__name__, caller.lineno, ctx.triggered_id)
         return callback_fn(*args, **kwargs)
     return wrapper
 
@@ -119,7 +122,7 @@ def gonet_callback(*args, **kwargs):
             try:
                 if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
                     caller = inspect.stack()[1]
-                    print(f"{callback_fn.__name__} fired (line {caller.lineno}) triggered by {ctx.triggered_id}.")
+                    logger.debug("%s fired (line %s) triggered by %s.", callback_fn.__name__, caller.lineno, ctx.triggered_id)
 
                 # Capture warnings
                 with warnings.catch_warnings(record=True) as wlist:
@@ -146,8 +149,7 @@ def gonet_callback(*args, **kwargs):
                 return (*result, "", "", {"display": "none"})
 
             except Exception as e:
-                print(f"Exception in callback: {callback_fn.__name__}")
-                print(traceback.format_exc())
+                logger.exception("Exception in callback: %s", callback_fn.__name__)
                 return (
                     *[no_update] * n_real_outputs,
                     f"🚨 {str(e)}",
@@ -196,7 +198,7 @@ def parse_date_time(label, value):
 
     # Function to convert ISO datetime to Unix time (int)
     def convert_to_unix_time(value):
-        print(value)
+        logger.debug("Parsing datetime value: %s", value)
         try:
             # Parse the value as an ISO datetime, which includes timezone info
             dt = datetime.datetime.fromisoformat(value)
@@ -206,7 +208,7 @@ def parse_date_time(label, value):
             return unix_time
 
         except ValueError:
-            print(f"Error: Value '{value}' could not be parsed into a valid datetime.")
+            logger.warning("Value %r could not be parsed into a valid datetime.", value)
             return None  # Or return a default value or raise an exception
 
     def time_to_fraction_of_day(time_str):

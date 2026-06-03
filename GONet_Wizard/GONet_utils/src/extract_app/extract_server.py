@@ -36,6 +36,10 @@ from dash_extensions.enrich import DashProxy, ServersideOutputTransform
 from pathlib import Path
 import shutil, atexit, signal, os
 
+from GONet_Wizard.logging_utils import get_logger
+
+logger = get_logger(__name__)
+
 # Default FS backend folder used by dash-extensions when no backend is provided
 # (created in the current working directory). We’ll clean it proactively.
 CACHE_DIRS = [
@@ -60,9 +64,9 @@ app = DashProxy(__name__, server=server,
 def _on_exit(*_):
     try:
         _clear_cache_dirs()
-        print("Serverside cache cleared.")
-    except Exception as e:
-        print(f"Cache cleanup failed: {e}")
+        logger.debug("Serverside cache cleared.")
+    except Exception:
+        logger.exception("Cache cleanup failed.")
 
 atexit.register(_on_exit)
 for _sig in ("SIGINT", "SIGTERM"):

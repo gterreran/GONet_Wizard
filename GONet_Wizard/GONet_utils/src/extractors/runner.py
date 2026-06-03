@@ -45,6 +45,9 @@ from GONet_Wizard.GONet_utils.src.extractors.core import Extractor,sort_extracto
 import numpy as np
 from typing import List, Dict, Any
 from concurrent.futures import ThreadPoolExecutor
+from GONet_Wizard.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 # List of all extractors
 ALL_EXTRACTORS = [
@@ -117,7 +120,7 @@ def extract_all(file_list: List[str], channels: List[str], extraction_params: Di
             # Run the rest of the extractors sequentially
             for extractor in sort_extractors(other_extractors):
                 results, context = extractor.extract(raw, context)
-                print(f"Extractor {extractor.__class__.__name__} completed.")
+                logger.debug("Extractor %s completed.", extractor.__class__.__name__)
                 merge_extractor_into_data(data, results)
 
             # Wait for ExtractionValues to complete and retrieve its results
@@ -127,7 +130,7 @@ def extract_all(file_list: List[str], channels: List[str], extraction_params: Di
         # Run all extractors sequentially if ExtractionValues is not present
         for extractor in sort_extractors(extractors):
             results, context = extractor.extract(raw, context)
-            print(f"Extractor {extractor.__class__.__name__} completed.")
+            logger.debug("Extractor %s completed.", extractor.__class__.__name__)
             merge_extractor_into_data(data, results)
 
     # Transform the final data dictionary into a list of dictionaries

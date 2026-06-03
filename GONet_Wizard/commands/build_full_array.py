@@ -21,6 +21,7 @@ import argparse, warnings
 from GONet_Wizard.commands.cli_core import ExpandFilenames, CommandSpec, filter_by_ext
 from GONet_Wizard.GONet_utils.src.gonet.analysis_utils.full_array import build_full_array
 from pathlib import Path
+from GONet_Wizard.logging_utils import configure_logging
 
 COMMAND = CommandSpec(
     name="build_full_array",
@@ -120,6 +121,9 @@ def cli_handler(args: argparse.Namespace) -> None:
     None
     
     """
+    if args.verbose:
+        configure_logging("INFO")
+
     files = filter_by_ext(args.input, [".jpg"])
     # If more than one file, outfile will be used as a suffix basename
 

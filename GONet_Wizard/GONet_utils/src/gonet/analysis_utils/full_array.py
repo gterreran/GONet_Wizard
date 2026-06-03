@@ -26,7 +26,6 @@ Notes
 
 from __future__ import annotations
 
-import logging
 import os
 from pathlib import Path
 from typing import Dict, Iterable, Optional, Tuple
@@ -34,8 +33,9 @@ from typing import Dict, Iterable, Optional, Tuple
 import numpy as np
 
 from GONet_Wizard.GONet_utils import GONetFileRaw
+from GONet_Wizard.logging_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def hist_match_to_ref(
@@ -209,17 +209,8 @@ def build_full_array(
     if gonet_file.suffix.lower() != ".jpg":
         raise ValueError("Input file must be a GONet RAW .jpg file.")
 
-    # minimal logger config if needed
-    if not logger.handlers:
-        handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
-        logger.addHandler(handler)
-
     if verbose:
-        logger.setLevel(logging.INFO)
-    else:
-        if logger.level == logging.NOTSET:
-            logger.setLevel(logging.WARNING)
+        logger.info("Verbose processing requested for full-array build.")
 
     logger.info("Loading %s.", os.path.basename(gonet_file))
     go = GONetFileRaw.from_file(gonet_file, meta=False)
