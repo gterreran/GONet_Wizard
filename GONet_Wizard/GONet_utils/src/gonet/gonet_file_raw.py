@@ -394,10 +394,11 @@ class GONetFileRaw(GONetFile):
         
         planes = self.to_bayer_planes(fill_value=fill_value)
         if inplace:
-            # Modify the current instance in-place using set_channel
             for channel in self.CHANNELS:
                 self.set_channel(channel, planes[channel], check_shape=False)
-            return None
+
+            self._is_bayer_planes = True
+            return self
         
         return GONetFileRaw(
             filename=self.filename,
