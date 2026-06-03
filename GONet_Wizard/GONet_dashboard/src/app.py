@@ -132,7 +132,7 @@ def _index_string() -> str:
         <head>
             {%metas%}
             <title>{%title%}</title>
-            <link rel="icon" href="/img/logo/favicon.ico" type="image/x-icon">
+            <link rel="icon" type="image/x-icon" href="/assets/img/logo/GONet_Wizard.ico">
             {%css%}
             <link rel="stylesheet" href="/assets/css/style.css">
         </head>
