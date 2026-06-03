@@ -87,22 +87,27 @@ Constants
     Root parser specification defining the command hierarchy for the CLI/GUI.
 """
 
-from GONet_Wizard.commands import show, show_meta, extract, run_dashboard, connect, build_full_array, gui
-from GONet_Wizard.commands import connect_commands
+# connect is intentionally not registered yet.
+# The remote-camera workflow is experimental and may become
+# a separate package or optional extension later.
+# "GONet_Wizard.commands.connect_commands",
+
+from GONet_Wizard.commands import show, show_meta, extract, run_dashboard, build_full_array, gui, connect
+#from GONet_Wizard.commands import connect_commands
 from .cli_core import ParserSpec
 
-COMMANDS = (show, show_meta, extract, run_dashboard, connect, build_full_array, gui)
+COMMANDS = (show, show_meta, extract, run_dashboard, build_full_array, gui) #connect
 
 PARSER = ParserSpec(
     dest="command",
     help="Top-level commands for GONet Wizard CLI.",
     args={
         "commands": COMMANDS,
-        "subparsers": [
-            {
-                "parser_name": "connect",
-                "package": connect_commands,
-            }
-        ],
+        # "subparsers": [
+        #     {
+        #         "parser_name": "connect",
+        #         "package": connect_commands,
+        #     }
+        # ],
     },
 )

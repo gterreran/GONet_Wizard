@@ -17,7 +17,6 @@ arguments for building a full-array GONet image.
 - :func:`cli_handler` : CLI handler for the `build_full_array` command.
 
 """
-import os
 import argparse, warnings
 from GONet_Wizard.commands.cli_core import ExpandFilenames, CommandSpec, filter_by_ext
 from GONet_Wizard.GONet_utils.src.gonet.analysis_utils.full_array import build_full_array
@@ -68,6 +67,37 @@ COMMAND = CommandSpec(
     ]
 )
 
+def parse_channel_weights(weights: str | None) -> dict[str, float] | None:
+    if weights is None:
+        return None
+
+    parsed = {}
+
+    for item in weights.split(","):
+        item = item.strip()
+        if not item:
+            continue
+
+        if "=" not in item:
+            raise ValueError(
+                f"Invalid weight entry '{item}'. Expected format name=value."
+            )
+
+        name, value = item.split("=", 1)
+        name = name.strip()
+        value = value.strip()
+
+        if not name:
+            raise ValueError("Channel weight name cannot be empty.")
+
+        try:
+            parsed[name] = float(value)
+        except ValueError as exc:
+            raise ValueError(
+                f"Invalid weight value '{value}' for channel '{name}'."
+            ) from exc
+
+    return parsed
 
 def cli_handler(args: argparse.Namespace) -> None:
     """
@@ -116,12 +146,14 @@ def cli_handler(args: argparse.Namespace) -> None:
             outfiles = []
             for f in files:
                 outfiles.append(Path(f"{f.stem}_{out}.npz"))
-                
+
+    channel_weights = parse_channel_weights(args.weights)
+
     for i, f in enumerate(files):
         build_full_array(
             gonet_file=f,
             show=args.show,
             outfile=outfiles[i],
             verbose=args.verbose,
-            channel_weights=args.weights,
+            channel_weights=channel_weights,
         )
