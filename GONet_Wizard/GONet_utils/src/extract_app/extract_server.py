@@ -36,6 +36,7 @@ from dash_extensions.enrich import DashProxy, ServersideOutputTransform
 from pathlib import Path
 import shutil, atexit, signal, os
 
+import GONet_Wizard.settings as settings
 from GONet_Wizard.logging_utils import get_logger
 
 logger = get_logger(__name__)
@@ -57,8 +58,32 @@ _clear_cache_dirs()
 
 # Flask + Dash app
 server = Flask("GONet Wizard extraction GUI")
-app = DashProxy(__name__, server=server,
-                transforms=[ServersideOutputTransform()])
+app = DashProxy(
+    __name__,
+    server=server,
+    assets_folder=settings.STATIC,
+    transforms=[ServersideOutputTransform()],
+)
+
+app.index_string = """
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        <link rel="icon" type="image/x-icon" href="/assets/img/logo/GONet_Wizard.ico">
+        {%css%}
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+"""
 
 # --- Clean on process exit (and on SIGINT/SIGTERM) ---
 def _on_exit(*_):
