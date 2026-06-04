@@ -2,9 +2,12 @@
 GONet Connect Command.
 ========================
 
-This module defines the `connect` command for the GONet Wizard CLI.
-The :data:`COMMAND` constant is defined here, which parses the
-GONet device IP address as an argument.
+This module defines the experimental ``connect`` command specification.
+
+The remote-camera workflow is currently deferred and intentionally not
+registered in the public GONet Wizard command tree. The :data:`COMMAND`
+constant is kept so the SSH workflow can be revived later or split into a
+separate remote-control package without rebuilding the command specification.
 
 Constants
 ---------

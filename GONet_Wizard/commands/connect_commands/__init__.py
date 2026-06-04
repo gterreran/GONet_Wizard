@@ -2,15 +2,15 @@
 Subcommands for the ``connect`` Command
 =======================================
 
-This package defines the nested subcommands available under the top-level
-``connect`` command of the GONet Wizard CLI. These subcommands perform remote
-operations on a GONet device over SSH, such as triggering imaging or terminating
-running processes.
+This package contains the experimental remote-camera helpers originally planned
+for a nested ``connect`` command. These helpers perform remote operations on a
+GONet device over SSH, such as triggering imaging or terminating running
+processes.
 
-The package integrates with the centralized CLI parser through the
-:data:`PARSER` object, which is a :class:`~GONet_Wizard.commands.cli_core.ParserSpec`
-describing this subcommand group. The main ``connect`` command (defined in
-``GONet_Wizard.commands.connect``) delegates its nested parsing to this package.
+The remote-camera workflow is currently deferred and intentionally not
+registered in the public GONet Wizard command tree. The :data:`PARSER` object is
+kept here so the workflow can be revived later or moved into a separate remote
+control package without reconstructing the command specification from scratch.
 
 Parser Specification
 --------------------
@@ -20,7 +20,7 @@ The :data:`PARSER` defined here specifies the following:
 - ``dest="connect_subcommand"``  
   The argparse attribute where the chosen subcommand name will be stored.
 - ``help``  
-  The help text shown when running ``GONet_Wizard connect -h``.
+  The help text that would be shown if the experimental ``connect`` group were registered.
 - ``args={"commands": COMMANDS}``  
   Registers the ``snap`` and ``terminate`` command modules—each of which provides
   a :class:`~GONet_Wizard.commands.cli_core.CommandSpec` and a CLI handler.

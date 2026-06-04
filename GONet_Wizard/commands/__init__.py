@@ -57,9 +57,10 @@ This package declares the root :data:`PARSER` object (a
 group. The centralized parser builder consumes :data:`PARSER` to build the
 complete command hierarchy dynamically.
 
-Top-level commands are collected in :data:`COMMANDS`. Nested command groups are
-registered as subparser packages (e.g., the ``connect`` group delegates to the
-:mod:`GONet_Wizard.commands.connect_commands` subpackage via :data:`PARSER`).
+Top-level commands are collected in :data:`COMMANDS`. Experimental nested
+command groups can be parked in the source tree without being registered in
+:data:`PARSER`; for example, the remote-camera ``connect`` workflow is currently
+deferred and intentionally omitted from the public command tree.
 
 Available Commands
 ------------------
@@ -72,8 +73,6 @@ Available Commands
     Extract pixel counts from GONet files using configurable ROI shapes.
 :mod:`GONet_Wizard.commands.run_dashboard`
     Launch the interactive Dash-based GONet Wizard dashboard in a managed window.
-:mod:`GONet_Wizard.commands.connect`
-    Command group for connecting to a GONet device (subcommands in :mod:`.connect_commands`).
 :mod:`GONet_Wizard.commands.build_full_array`
     Build or process full-array products from GONet inputs.
 :mod:`GONet_Wizard.commands.gui`

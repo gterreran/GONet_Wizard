@@ -2,10 +2,11 @@
 Remote Snapshot Command for GONet Devices
 =========================================
 
-This module implements the ``snap`` subcommand of the GONet Wizard CLI, enabling
-remote execution of the ``gonet4.py`` imaging script on a GONet device. It
-provides tools for uploading configuration files, running the script with live
-output, and downloading newly created images.
+This module implements the experimental ``snap`` remote-camera helper. The
+remote-camera workflow is currently deferred and is not registered in the
+public GONet Wizard command tree. The helper can execute the ``gonet4.py``
+imaging script on a GONet device, upload configuration files, stream live
+output, and download newly created images.
 
 The command is declared via the :data:`COMMAND` constant, a
 :class:`~GONet_Wizard.commands.cli_core.CommandSpec` describing the CLI argument

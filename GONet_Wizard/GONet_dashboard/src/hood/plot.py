@@ -254,9 +254,9 @@ class FigureWrapper:
         fig : :class:`dict`
             A Plotly-compatible figure dictionary. This should contain a `layout` key with
             axis configurations and a `data` list for trace dictionaries or Trace objects.
-        x_field : :class:`str`
+        xfield : :class:`str`
             The field name used for the x-axis (must be a key in `all_data`).
-        y_field : :class:`str`
+        yfield : :class:`str`
             The field name used for the y-axis (must be a key in `all_data`).
         all_data : :class:`pd.DataFrame`
             The full dataframe used by the dashboard.

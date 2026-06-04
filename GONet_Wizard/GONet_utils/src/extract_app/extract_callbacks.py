@@ -274,11 +274,15 @@ def update_shape_options(_, selected_shape, fig, config):
     Parameters
     ----------
     _ : :class:`str` or :class:`NoneType`
-        Dummy Div triggered by :func:`.update_figure` when the figure is ready (ignored).
-
+        Dummy Div triggered by :func:`.update_figure_heatmap` when the figure is
+        ready (ignored).
     selected_shape : :class:`str`
         The currently selected shape type from the dropdown. Possible values are
         "circle", "rectangle", "annulus", and "freehand".
+    fig : :class:`dict`
+        Current Plotly figure dictionary for the ``gonet-image`` component.
+    config : :class:`dict`
+        Current Plotly configuration dictionary for the ``gonet-image`` component.
 
     Returns
     -------
@@ -287,12 +291,12 @@ def update_shape_options(_, selected_shape, fig, config):
 
         - :class:`dict` or :data:`dash.no_update`: Updated figure object.
         - :class:`dict` or :data:`dash.no_update`: Updated figure configuration object.
-        - :class:`dict`: CSS class for the shape options container (to show/hide it).
-        - :class:`dict`: CSS class for the freehand options container (to show/hide it).
-        - :class:`dict`: CSS class for the FOV buttons container (to show/hide it).
+        - :class:`str`: CSS class for the shape options container (to show/hide it).
+        - :class:`str`: CSS class for the freehand options container (to show/hide it).
+        - :class:`str`: CSS class for the FOV buttons container (to show/hide it).
         - :class:`str` or :data:`dash.no_update`: Label text for extra parameters.
         - :class:`str` or :data:`dash.no_update`: Placeholder text for parameter 1 input.
-        - :class:`dict` or :data:`dash.no_update`: CSS class for parameter 2 input (to show/hide it).
+        - :class:`str` or :data:`dash.no_update`: CSS class for parameter 2 input (to show/hide it).
         - :class:`str` or :data:`dash.no_update`: Placeholder text for parameter 2 input.
         - :class:`str`: An empty string to update the `config-done-dummy-div` component,
           which serves as control for the extraction-params component.
@@ -611,10 +615,10 @@ def update_drawn_figure_and_extraction_values(extraction_params, fig, mask, extr
     fig : :class:`dict`
         The current figure object for the `gonet-image` component, which contains
         the image data used for the extraction.
-    masked_figure : :class:`list`
-        The current masked figure data stored in the `mask` store.
-    extracted_values : :class:`~GONet_Wizard.GONet_utils.src.extract_app.extractors.extraction_output`
-          object with the extracted values.
+    mask : :class:`list`
+        The current mask data stored in the ``mask`` store.
+    extracted_values : :class:`~GONet_Wizard.GONet_utils.src.extractors.core.ExtractionOutput`
+        Object containing the extracted values.
     
 
     Returns

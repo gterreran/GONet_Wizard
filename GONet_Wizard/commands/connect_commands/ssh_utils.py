@@ -8,7 +8,7 @@ their task with an active :class:`paramiko.client.SSHClient` instance.
 
 Environment
 -----------
-Uses credentials from :class:`GONet_Wizard.commands.settings.GONetConfig`:
+Uses credentials from :class:`GONet_Wizard.settings.GONetConfig`:
 
 - ``GONET_USER``
 - ``GONET_PASSWORD``

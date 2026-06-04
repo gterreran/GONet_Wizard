@@ -2,7 +2,7 @@
 This module provides the base framework and utility functions for defining and working
 with geometric shapes in extraction operations. It includes abstract classes, validation
 methods, and helper functions for creating and manipulating shapes such as circles,
-rectangles, and paths.
+annuli, and SVG paths. Rectangular regions are represented as path shapes.
 
 **Classes**
 
@@ -62,8 +62,9 @@ class Shape(ABC):
     Attributes
     ----------
     _registry : :class:`dict`
-        A class-level dictionary that maps shape type strings (e.g., "circle", "rectangle")
-        to their corresponding shape subclasses. This registry allows dynamic instantiation
+        A class-level dictionary that maps shape type strings (e.g., "circle", "annulus",
+        "rectangle") to their corresponding shape subclasses. Rectangles are handled by the
+        path subclass. This registry allows dynamic instantiation
         of shape objects based on their type.
 
     Notes
@@ -97,22 +98,26 @@ class Shape(ABC):
         Provide the keys and parameters required for pixel count extraction.
 
         This method is implemented by subclasses of :class:`.Shape` to return a dictionary
-        containing the parameters necessary for the :class:`~.GONet_Wizard.GONet_utils.src.extractors.ExtractionValues` class to perform
-        pixel count extraction. The keys in the returned dictionary must match the
-        expected structure defined in the `DATA_SPEC` used by :class:`~.GONet_Wizard.GONet_utils.src.extractors.ExtractionValues`.
+        containing the parameters necessary for
+        :class:`~GONet_Wizard.GONet_utils.src.extractors.extraction_values.ExtractionValues`
+        to perform pixel count extraction. The keys in the returned dictionary must match
+        the expected structure defined in :data:`GONet_Wizard.GONet_utils.DATA_SPEC`.
 
         Returns
         -------
-        dict
+        :class:`dict`
             A dictionary containing the shape-specific parameters required for extraction.
-            The keys correspond to the fields expected by the :class:`~.GONet_Wizard.GONet_utils.src.extractors.ExtractionValues` class.
+            The keys correspond to the fields expected by
+            :class:`~GONet_Wizard.GONet_utils.src.extractors.extraction_values.ExtractionValues`.
 
         Notes
         -----
-        - Subclasses of `Shape` must implement this method to provide the correct parameters
-          for their specific geometry (e.g., circle, rectangle, annulus).
-        - The `ExtractionValues` class uses these parameters to generate masks and compute
-          statistics for pixel values within the defined shape.
+        - Subclasses of :class:`Shape` must implement this method to provide the correct
+          parameters for their specific geometry (e.g., circle, annulus, path).
+        - Rectangular regions are represented by the path subclass.
+        - :class:`~GONet_Wizard.GONet_utils.src.extractors.extraction_values.ExtractionValues`
+          uses these parameters to generate masks and compute statistics for pixel values
+          within the defined shape.
 
         """
         pass

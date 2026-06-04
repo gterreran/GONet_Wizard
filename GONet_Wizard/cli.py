@@ -76,10 +76,9 @@ Available Commands
 - ``dashboard`` (:mod:`GONet_Wizard.commands.run_dashboard`) — Launch the interactive dashboard.
 - ``gui`` (:mod:`GONet_Wizard.commands.gui`) — Open the unified GUI launcher window.
 - ``build_full_array`` (:mod:`GONet_Wizard.commands.build_full_array`) — Build/process full-array products.
-- ``connect`` (:mod:`GONet_Wizard.commands.connect`) — Connect to a remote GONet camera via SSH.
 
-  - ``snap`` (:mod:`GONet_Wizard.commands.connect_commands.snap`) — Trigger remote snapshot capture.
-  - ``terminate_imaging`` (:mod:`GONet_Wizard.commands.connect_commands.terminate_imaging`) — Stop remote imaging processes.
+Experimental remote-camera commands live under :mod:`GONet_Wizard.commands.connect_commands`,
+but they are intentionally not registered in the public command tree yet.
 
 """
 

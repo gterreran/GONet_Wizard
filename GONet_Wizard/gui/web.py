@@ -261,7 +261,7 @@ def payload_to_argv_with_parser(root: argparse.ArgumentParser, payload: dict) ->
     payload : :class:`dict`
         GUI payload containing:
 
-        - ``command``: command token string (e.g. ``"show"`` or ``"connect snap"``)
+        - ``command``: command token string (e.g. ``"show"`` or ``"extract"``)
         - additional form fields keyed by argparse dest name
 
     Returns

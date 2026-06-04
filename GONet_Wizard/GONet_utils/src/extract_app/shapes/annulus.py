@@ -45,8 +45,6 @@ class Annulus(base.Shape):
 
         Parameters
         ----------
-        shape_name : :class:`str`
-            Name of the shape, set to "annulus".
         x0 : :class:`float`
             X-coordinate of the center of the annulus.
         y0 : :class:`float`
