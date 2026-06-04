@@ -59,6 +59,32 @@ class Field:
         field_type: str = "env",
         **extras: Any,
     ):
+        """
+        Initialize a field metadata object.
+
+        Parameters
+        ----------
+        key : :class:`str`
+            Canonical field key used internally and in serialized outputs.
+        label : :class:`str`
+            Human-readable label used in plots, tables, or UI controls.
+        unit : :class:`str`
+            Display unit associated with the field.
+        aliases : :class:`list` of :class:`str`, optional
+            Alternate or legacy names accepted for the field.
+        plottable : :class:`bool`, optional
+            Whether the field should be exposed as a plottable quantity.
+        field_type : :class:`str`, optional
+            Field category. Expected values are ``"env"`` for environmental
+            metadata and ``"chn"`` for channel-derived values.
+        **extras
+            Additional field metadata loaded from ``data_spec.yaml``. The
+            ``load`` entry, when present, is stored on :attr:`load`.
+
+        Returns
+        -------
+        None
+        """
         self.key = key
         self.aliases = aliases or []
         self.label = label

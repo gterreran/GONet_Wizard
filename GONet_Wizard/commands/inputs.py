@@ -147,6 +147,18 @@ def expand_inputs(tokens: Sequence[str]) -> List[Path]:
     seen: set[Path] = set()
 
     def add_file(p: Path) -> None:
+        """
+        Add a path to the output list if it has not already been seen.
+
+        Parameters
+        ----------
+        p : :class:`pathlib.Path`
+            File path to normalize and append.
+
+        Returns
+        -------
+        None
+        """
         p = p.expanduser()
         if p not in seen:
             out.append(p)

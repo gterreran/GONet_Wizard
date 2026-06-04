@@ -45,10 +45,24 @@ def write_to_jpeg(self, output_filename: str, white_balance: bool = True) -> Non
 
     Raises
     ------
-    ValueError
+    :class:`ValueError`
         If ``white_balance`` is True but the WB metadata is missing or invalid.
     """
-    def convert_to_uint8(arr):
+    def convert_to_uint8(arr: np.ndarray) -> np.ndarray:
+        """
+        Convert 16-bit channel data to 8-bit image data.
+
+        Parameters
+        ----------
+        arr : :class:`numpy.ndarray`
+            Channel data in the nominal 16-bit range. Values outside the valid
+            range are clipped before conversion.
+
+        Returns
+        -------
+        :class:`numpy.ndarray`
+            Unsigned 8-bit channel data scaled to the range ``[0, 255]``.
+        """
         arr = np.clip(arr, 0, 2**16 - 1)
         return np.round(arr / (2**16 - 1) * 255).astype(np.uint8)
 

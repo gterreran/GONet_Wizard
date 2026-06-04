@@ -423,6 +423,32 @@ def extract_counts_from_GONet(
 
 
 def cli_handler(args: argparse.Namespace):
+    """
+    Dispatch the extraction command from parsed CLI arguments.
+
+    When no explicit shape is supplied, or when the shape is ``"interactive"``,
+    this handler launches the Dash-based extraction GUI and returns a
+    :class:`~GONet_Wizard.commands.ui_bridge.WindowRequest` for the shared UI
+    runtime. Otherwise, it runs the non-interactive extraction workflow directly
+    and writes JSON or CSV output through :func:`extract_counts_from_GONet`.
+
+    Parameters
+    ----------
+    args : :class:`argparse.Namespace`
+        Parsed command-line arguments produced from :data:`COMMAND`.
+
+    Returns
+    -------
+    :class:`~GONet_Wizard.commands.ui_bridge.WindowRequest` or None
+        A window request when launching the interactive extraction GUI. Returns
+        `None` after a non-interactive extraction run.
+
+    Raises
+    ------
+    :class:`~GONet_Wizard.commands.inputs.ExtensionFilterError`
+        If the supplied filenames do not include any supported GONet image
+        files.
+    """
     files = args.filenames or [Path(".")]
     files = filter_by_ext(files, [".jpg", ".jpeg", ".tiff", ".tif"])
 

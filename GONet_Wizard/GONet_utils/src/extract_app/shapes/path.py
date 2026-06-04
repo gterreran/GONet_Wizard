@@ -186,8 +186,21 @@ class Path(base.Shape):
                 base.normalize_angle_deg(np.degrees(np.arctan2(dy, dx))) for dx, dy in corner_vectors
             ]
 
-            def intersection(angle_deg):
-                """Find where a ray at angle_deg intersects the rectangle edges."""
+            def intersection(angle_deg: float) -> tuple[float, float]:
+                """
+                Find where a ray intersects the rectangle boundary.
+
+                Parameters
+                ----------
+                angle_deg : :class:`float`
+                    Ray angle in degrees, measured from the positive x-axis.
+
+                Returns
+                -------
+                :class:`tuple`
+                    ``(x, y)`` coordinates where the ray intersects the
+                    rectangle boundary.
+                """
                 tan_a = np.tan(np.radians(angle_deg))
                 if angle_deg < corners_angles[0] or angle_deg > corners_angles[3]:
                     x = x0 - side1 / 2

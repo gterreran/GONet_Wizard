@@ -75,6 +75,20 @@ class Shape(ABC):
     _registry = {}
 
     def __init__(self, **params):
+        """
+        Store shape parameters for subclass-specific validation and masking.
+
+        Parameters
+        ----------
+        **params
+            Shape-specific parameters such as center coordinates, radii,
+            vertices, or angle limits. Subclasses interpret and validate these
+            values in their own :meth:`validate` implementations.
+
+        Returns
+        -------
+        None
+        """
         self.params = params
 
     @abstractmethod

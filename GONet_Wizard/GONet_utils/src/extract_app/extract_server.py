@@ -49,6 +49,17 @@ CACHE_DIRS = [
 ]
 
 def _clear_cache_dirs() -> None:
+    """
+    Reset the filesystem cache directories used by server-side Dash state.
+
+    Each configured cache directory is removed, if present, and recreated. This
+    prevents stale server-side objects from previous local runs from being
+    reused by the extraction GUI.
+
+    Returns
+    -------
+    None
+    """
     for d in CACHE_DIRS:
         shutil.rmtree(d, ignore_errors=True)
         d.mkdir(parents=True, exist_ok=True)
@@ -86,7 +97,20 @@ app.index_string = """
 """
 
 # --- Clean on process exit (and on SIGINT/SIGTERM) ---
-def _on_exit(*_):
+def _on_exit(*_) -> None:
+    """
+    Clear extraction-GUI cache directories during interpreter or signal exit.
+
+    Parameters
+    ----------
+    *_
+        Optional positional arguments supplied by :mod:`atexit` or signal
+        handlers. They are ignored.
+
+    Returns
+    -------
+    None
+    """
     try:
         _clear_cache_dirs()
         logger.debug("Serverside cache cleared.")

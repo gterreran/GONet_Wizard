@@ -69,6 +69,32 @@ COMMAND = CommandSpec(
 )
 
 def parse_channel_weights(weights: str | None) -> dict[str, float] | None:
+    """
+    Parse comma-separated channel weights from the CLI.
+
+    The ``--weights`` option accepts strings such as
+    ``"red=0.25,green1=0.5,green2=0.5,blue=0.25"``. This helper
+    converts that text representation into the mapping expected by
+    :func:`~GONet_Wizard.GONet_utils.src.gonet.analysis_utils.full_array.build_full_array`.
+
+    Parameters
+    ----------
+    weights : :class:`str`, optional
+        Comma-separated ``name=value`` pairs. If `None`, no custom channel
+        weights are applied. Empty entries are ignored.
+
+    Returns
+    -------
+    :class:`dict` or None
+        Mapping from channel name to floating-point weight, or `None` when no
+        weights were provided.
+
+    Raises
+    ------
+    :class:`ValueError`
+        If an entry is missing the ``=`` separator, has an empty channel name,
+        or contains a value that cannot be converted to :class:`float`.
+    """
     if weights is None:
         return None
 

@@ -49,7 +49,17 @@ def write_to_fits(self, output_filename: str) -> None:
     
     """
 
-    def build_base_header():
+    def build_base_header() -> fits.Header:
+        """
+        Build the shared FITS header from the file metadata.
+
+        Returns
+        -------
+        :class:`astropy.io.fits.Header`
+            Header populated with GONet camera, image, exposure, and location
+            metadata when available. If no metadata are present, an empty
+            header is returned.
+        """
         header = fits.Header()
 
         if self.meta is None:
@@ -87,6 +97,21 @@ def write_to_fits(self, output_filename: str) -> None:
 
     # Create each image HDU with proper extensions
     def make_channel_hdu(data: np.ndarray, channel: str) -> fits.ImageHDU:
+        """
+        Create an image extension for a single color channel.
+
+        Parameters
+        ----------
+        data : :class:`numpy.ndarray`
+            Pixel data to store in the FITS image extension.
+        channel : :class:`str`
+            Name of the channel represented by ``data``.
+
+        Returns
+        -------
+        :class:`astropy.io.fits.ImageHDU`
+            FITS image extension with channel-specific header keywords.
+        """
         hdr = base_header.copy()
         hdr['CHANNEL'] = (channel.upper(), 'Image channel')
         hdr['EXTNAME'] = (channel.upper(), 'Extension name')

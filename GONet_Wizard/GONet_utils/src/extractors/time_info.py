@@ -118,6 +118,20 @@ class TimeInfo(Extractor):
         sm_local = np.fromiter((d.hour*3600 + d.minute*60 + d.second for d in dt_local), dtype=int, count=len(dt_local))
 
         def format_hms(seconds: np.ndarray) -> np.ndarray:
+            """
+            Format seconds after midnight as ``HH:MM:SS`` strings.
+
+            Parameters
+            ----------
+            seconds : :class:`numpy.ndarray`
+                Seconds after midnight to format. Values are converted to
+                integer seconds before formatting.
+
+            Returns
+            -------
+            :class:`numpy.ndarray`
+                Array of zero-padded time strings in ``HH:MM:SS`` format.
+            """
             seconds = np.asarray(seconds, dtype=int)
             hh = seconds // 3600
             mm = (seconds % 3600) // 60

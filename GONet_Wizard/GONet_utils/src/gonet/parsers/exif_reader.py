@@ -28,13 +28,13 @@ def parse_exif_metadata(exif: dict) -> dict:
 
     Parameters
     ----------
-    exif : dict
+    exif : :class:`dict`
         A dictionary containing raw EXIF metadata extracted from the JPEG file.
 
     Returns
     -------
-    dict
-        A structured metadata dictionary, with JPEG-related keys under 'JPEG'.
+    :class:`dict`
+        A structured metadata dictionary, with JPEG-related keys under ``'JPEG'``.
     """
 
     structured = {}
@@ -84,7 +84,21 @@ def parse_exif_metadata(exif: dict) -> dict:
                 except (ValueError, TypeError):
                     gps_normalized[k] = v  # fallback for non-integer keys
 
-            def dms_to_deg(dms):
+            def dms_to_deg(dms: tuple) -> float:
+                """
+                Convert degrees/minutes/seconds coordinates to decimal degrees.
+
+                Parameters
+                ----------
+                dms : :class:`tuple`
+                    Three-element ``(degrees, minutes, seconds)`` coordinate
+                    tuple from EXIF GPS metadata.
+
+                Returns
+                -------
+                :class:`float`
+                    Coordinate value in decimal degrees.
+                """
                 return dms[0] + dms[1] / 60.0 + dms[2] / 3600.0
 
             if 1 in gps_normalized and 2 in gps_normalized:
