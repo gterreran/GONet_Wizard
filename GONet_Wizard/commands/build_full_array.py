@@ -1,21 +1,29 @@
 
 """
-Build the Full-Array command
-==============================
+CLI command for building full-array GONet products.
 
-This module defines the `build_full_array` command for the GONet Wizard CLI.
-The :data:`COMMAND` constant is defined here, which parses the command-line
-arguments for building a full-array GONet image.
+The ``build_full_array`` command converts one or more RAW GONet ``.jpg`` files
+into full-array ``.npz`` products.  It delegates the image-processing work to
+:func:`GONet_Wizard.GONet_utils.src.gonet.analysis_utils.full_array.build_full_array`
+and keeps this module focused on CLI concerns: input expansion, extension
+filtering, output-name selection, logging configuration, and parsing optional
+channel weights.
 
-**Constants**
+The command is primarily intended for scripted preprocessing before downstream
+analysis or visualization.
 
-- :data:`COMMAND` : :class:`~GONet_Wizard.commands.cli_core.CommandSpec` object
-  for the `build_full_array` command.
+Constants
+---------
+:data:`COMMAND`
+    Declarative command specification used by the shared parser builder and GUI
+    form generator.
 
-**Functions**
-
-- :func:`cli_handler` : CLI handler for the `build_full_array` command.
-
+Functions
+---------
+:func:`parse_channel_weights`
+    Convert the ``--weights`` CLI string into a channel-to-weight mapping.
+:func:`cli_handler`
+    Execute the command after argparse has populated the namespace.
 """
 import argparse, warnings
 from GONet_Wizard.commands.cli_core import ExpandFilenames, CommandSpec, filter_by_ext

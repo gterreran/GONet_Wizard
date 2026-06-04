@@ -1,26 +1,27 @@
 """
-This module defines the structure and metadata for fields used in the extraction process.
-It loads field definitions from a YAML file and provides a :class:`Field` class to represent
-each field, including its key, label, unit, and aliases.
+Field metadata shared by extraction and dashboard workflows.
 
-**Attributes**
+GONet Wizard stores field definitions in ``data_spec.yaml`` so that serialized
+extraction outputs, dashboard labels, plotting units, and legacy aliases remain
+consistent across the package.  This module loads that YAML file at import time
+and exposes the result as :data:`DATA_SPEC`, a mapping from canonical field keys
+to :class:`Field` objects.
 
+The field specification is intentionally lightweight.  It does not perform data
+loading by itself; instead, loaders and extractors use it to discover how values
+should be named, displayed, grouped, and matched against older output formats.
+
+Attributes
+----------
 DATA_SPEC_PATH : :class:`pathlib.Path`
-    Path to the `data_spec.yaml` file containing field definitions.
+    Path to the package-shipped ``data_spec.yaml`` file.
 DATA_SPEC : :class:`dict`
-    A dictionary mapping field keys to :class:`Field` objects, representing the
-    metadata for each field.
+    Mapping from canonical field keys to :class:`Field` metadata objects.
 
-**Classes**
-
+Classes
+-------
 :class:`Field`
-    Represents a single named field to extract, including its key, label, unit, and aliases.
-
-Notes
------
-- The `Field` class provides a structured way to manage field metadata, ensuring
-  consistency across the extraction process.
-
+    Metadata container describing one extraction/dashboard field.
 """
 
 import yaml

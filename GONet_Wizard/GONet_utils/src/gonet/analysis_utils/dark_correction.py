@@ -1,18 +1,20 @@
 """
-Dark signal correction utilities for GONet images.
+Dark-signal and overscan correction utilities for GONet images.
 
-The :mod:`gonet.dark_correction` module provides routines to mitigate fixed
-electronic offsets in GONet data prior to scientific analysis and visualization.
-Functions are written to work with both :class:`~GONetFile` (single green) and
-:class:`~GONetFileRaw` (separate ``green1``/``green2``) via duck typing, preserving
-metadata and file type, and optionally operating in-place.
+The routines in this module operate on GONet image containers via duck typing:
+objects are expected to expose ``CHANNELS``, :meth:`get_channel`, and
+:meth:`set_channel`.  This lets the same correction code work with both
+:class:`~GONet_Wizard.GONet_utils.src.gonet.gonet_file.GONetFile` and
+:class:`~GONet_Wizard.GONet_utils.src.gonet.gonet_file_raw.GONetFileRaw`.
 
-**Functions**
+At present the module provides a single overscan subtraction helper used during
+RAW full-array construction and other preprocessing workflows.
 
-- :func:`.remove_overscan`
-    Subtract the mean of a predefined overscan stripe from one or more channels,
-    in-place or returning a corrected copy.
-
+Functions
+---------
+:func:`remove_overscan`
+    Subtract the mean of a fixed overscan stripe from selected channels, either
+    in-place or into a new image container of the same class.
 """
 import numpy as np
 from typing import Optional

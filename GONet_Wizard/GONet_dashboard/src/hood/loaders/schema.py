@@ -1,27 +1,28 @@
 """
-Schema utilities
-================
+Schema coercion helpers for dashboard loaders.
 
-Provides schema-related utility functions.
+Dashboard input files may contain values as strings, native Python objects, or
+serialized timestamps depending on the source format.  This module provides the
+small coercion and transform functions used by concrete loaders to normalize
+those values before they are combined into a single :class:`pandas.DataFrame`.
+
+The functions are intentionally conservative: failed numeric conversions return
+``None`` instead of raising, which lets loaders preserve partially valid rows and
+lets the dashboard decide how to handle missing values.
 
 Constants
 ---------
-- :data:`COERCERS`: Mapping of coercion function names to functions.
-- :data:`TRANSFORMS`: Mapping of transformation function names to functions.
+:data:`COERCERS`
+    Mapping from schema names to value coercion functions.
+:data:`TRANSFORMS`
+    Mapping from schema names to post-coercion transform functions.
 
 Functions
 ---------
-- :func:`parse_hours_of_the_day`: Parse 'HH:MM:SS' into a fixed date, split by a day boundary.
-- :func:`compose_parser`: Compose a per-field parser from DATA_SPEC.load.
-- Coercion functions:
-    
-    - :func:`as_is`
-    - :func:`as_float`
-    - :func:`as_int`
-    - :func:`as_bool`
-    - :func:`as_str`
-    - :func:`as_datetime`
-
+:func:`compose_parser`
+    Build a per-field parser from a :class:`~GONet_Wizard.GONet_utils.src.data_spec.Field`.
+:func:`parse_hours_of_the_day`
+    Parse ``HH:MM:SS`` strings across a configurable day boundary.
 """
 
 

@@ -1,14 +1,16 @@
 """
-Color utilities
-===============
+Derived color-column utilities for dashboard data.
 
-Provides color-related utility functions.
+The dashboard represents channel ratios as astronomical color-like quantities,
+computed as ``2.5 * log10(a / b)``.  This module keeps that calculation in one
+place so JSON and CSV dashboard inputs produce the same derived ``color_*``
+columns after loading.
 
 Functions
 ---------
-
-- :func:`color_from_channels`: Vectorized 2.5 * log10(a / b) with NaN handling.
-
+:func:`color_from_channels`
+    Compute a vectorized color value from two count arrays, returning
+    ``NaN`` where either input is non-finite or non-positive.
 """
 
 from __future__ import annotations

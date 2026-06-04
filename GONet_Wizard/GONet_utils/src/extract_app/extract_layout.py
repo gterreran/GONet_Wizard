@@ -1,9 +1,19 @@
 """
-Defines the Dash layout for the GONet extraction GUI.
+Dash layout for the interactive extraction GUI.
 
-The layout intentionally keeps visual styling in the shared CSS file. Dash
-components are annotated with IDs and CSS classes only, so the extraction GUI
-can share the same visual language as the rest of GONet Wizard.
+This module defines the component tree used by the extraction application: file
+selection, image display, region controls, extraction options, and the stores
+used by callbacks.  It is intentionally limited to structure and component IDs;
+visual presentation belongs in the shared CSS assets so the extraction GUI stays
+consistent with the rest of the GONet Wizard desktop interface.
+
+The layout reads the initial file list from the Flask server configuration that
+is prepared by :mod:`.extract_server` before the Dash app is launched.
+
+Attributes
+----------
+layout : :class:`dash.development.base_component.Component`
+    Root Dash component assigned to the extraction app.
 """
 
 import os
