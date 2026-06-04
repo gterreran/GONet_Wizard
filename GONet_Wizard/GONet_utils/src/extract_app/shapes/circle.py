@@ -64,9 +64,14 @@ class Circle(base.Shape):
         self.x0 = x0
         self.y0 = y0
         self.radius = radius
-        self.start_angle = base.normalize_angle_deg(start_angle)
-        self.end_angle = base.normalize_angle_deg(end_angle)
+        self.start_angle = start_angle
+        self.end_angle = end_angle
+
         self.validate()
+
+        self.start_angle = base.normalize_angle_deg(self.start_angle)
+        self.end_angle = base.normalize_angle_deg(self.end_angle)
+
 
     def validate(self) -> None:
         """
@@ -94,6 +99,7 @@ class Circle(base.Shape):
         self._validate_numeric(self.radius, "radius")
         self._validate_positive(self.radius, "radius")
         self.radius = float(self.radius)  # Convert to float if valid
+
 
     def get_extractor_field(self) -> dict:
         """

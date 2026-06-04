@@ -38,7 +38,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0", "twine>=4.0.2"]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+]
 docs = ["sphinx>=7.0", "sphinx-autodoc-typehints", "sphinx-rtd-theme", "myst-parser"]
 
 [project.urls]

@@ -65,9 +65,14 @@ class Annulus(base.Shape):
         self.y0 = y0
         self.inner_radius = inner_radius
         self.outer_radius = outer_radius
-        self.start_angle = base.normalize_angle_deg(start_angle)
-        self.end_angle = base.normalize_angle_deg(end_angle)
+        self.start_angle = start_angle
+        self.end_angle = end_angle
+
         self.validate()
+
+        self.start_angle = base.normalize_angle_deg(self.start_angle)
+        self.end_angle = base.normalize_angle_deg(self.end_angle)
+
 
     def validate(self) -> None:
         """
