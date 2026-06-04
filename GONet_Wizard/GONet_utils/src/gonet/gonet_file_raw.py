@@ -34,17 +34,24 @@ from GONet_Wizard.GONet_utils.src.gonet import config
 
 class GONetFileRaw(GONetFile):
     """
-    Specialized subclass for RAW GONet .jpg images (BGGR pattern).
+    In-memory representation of RAW GONet data with separate Bayer channels.
 
-    This class inherits from :class:`GONetFile` and adds support for handling
-    the two separate green channels present in the BGGR Bayer pattern used by
-    GONet cameras. It provides properties to access the individual green channels
-    as well as methods to load RAW files while preserving both green channels.
+    RAW GONet images use a BGGR mosaic with two distinct green samples.  This
+    subclass preserves those samples as ``green1`` and ``green2`` instead of
+    immediately averaging them into the processed ``green`` channel used by
+    :class:`~GONet_Wizard.GONet_utils.src.gonet.gonet_file.GONetFile`.
+
+    Instances may be stored in either compact quad representation ``(H, W)`` or
+    expanded Bayer-plane representation ``(2H, 2W)``.  The
+    :attr:`is_bayer_planes` flag records which representation is currently in
+    use, and conversion helpers move between the two forms.
 
     Attributes
     ----------
     CHANNELS : :class:`list` of :class:`str`
-        List of channel names replacing 'green' with 'green1' and 'green2'.
+        Raw channel names: ``["blue", "green1", "green2", "red"]``.
+    COLORS : :class:`dict`
+        Default plotting colors keyed by raw channel name.
     """
 
     CHANNELS = config.CHANNEL_NAMES_RAW

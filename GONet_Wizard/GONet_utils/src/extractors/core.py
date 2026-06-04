@@ -1,68 +1,34 @@
 """
 Core extractor framework
-=========================
+========================
 
-This module defines the abstract base class and fundamental data structures
-that underpin the GONet extraction framework. It provides the base
-:class:`~GONet_Wizard.GONet_utils.src.extractors.core.Extractor` interface,
-which all specialized extractors inherit from, as well as lightweight utilities
-for dependency management and structured output.
+This module defines the small contract used by every extractor in the GONet
+pixel-extraction pipeline.  Extractors are independent units that read a shared
+``raw`` input dictionary, optionally read and update a shared ``context``
+dictionary, and return a dictionary of extracted output fields.
 
-Overview
---------
-The extraction framework is designed to process raw GONet observations through
-a sequence of modular *extractors*. Each extractor is responsible for computing
-a specific subset of metadata or derived quantities (e.g., time, weather,
-astronomical parameters, or pixel-level statistics).
+The framework has two responsibilities:
 
-Extractors communicate through a shared *context* dictionary. To ensure they run
-in the correct order, each extractor declares two class attributes:
+- provide the abstract :class:`.Extractor` interface used by concrete metadata
+  and pixel-statistics extractors;
+- provide dependency ordering through :func:`.sort_extractors`, using the
+  :attr:`Extractor.USES` and :attr:`Extractor.PROVIDES` declarations.
 
-- **USES** – A list of context keys required by the extractor.
-- **PROVIDES** – A list of context keys created or updated by the extractor.
+Extractor outputs that contain one value per input file should include a
+``"files"`` key.  The runner and merge utilities use this key to align outputs
+from different extractors by filepath, even when an extractor skips a file.
 
-The function :func:`.sort_extractors` uses these declarations to perform a
-topological sort, producing a dependency-resolved execution order that guarantees
-all prerequisites are available before an extractor runs.
-
-The module also defines a small, strongly-typed dataclass,
-:class:`.extraction_output`, which encapsulates the results of circular aperture
-photometric extractions (total, mean, and standard deviation of pixel values,
-and the number of contributing pixels).
-
-Responsibilities
-----------------
-- Define the abstract :class:`.Extractor` interface shared by all modules in
-  ``GONet_Wizard.GONet_utils.src.gonet.extractors``.
-- Provide type-safe containers for pixel-level measurements.
-- Enable dependency-aware orchestration of extractor pipelines via
-  :func:`.sort_extractors`.
-
-**Functions**
-
-:func:`.sort_extractors`
-    Topologically sort extractors based on their declared `USES` and `PROVIDES`
-    dependencies, ensuring a valid and reproducible execution sequence.
-
-**Classes**
-
+Classes
+-------
 :class:`.Extractor`
-    Abstract base class for all extractors. Subclasses must implement
-    :meth:`.Extractor.extract`, declaring which context keys they use and provide.
-
+    Abstract base class for all extraction pipeline components.
 :class:`.extraction_output`
-    Lightweight dataclass representing the result of a circular aperture or
-    region-based pixel extraction, including basic summary statistics.
+    Dataclass containing pixel-statistics results for one masked region.
 
-Notes
------
-- The base :class:`.Extractor` class does not perform any data processing itself.
-  It exists solely to define a consistent interface and dependency contract.
-- Extractors that operate on individual files should also include a ``files``
-  field in their output to allow per-file alignment during merging.
-- Dependency resolution is deterministic; cycles or unsatisfied dependencies
-  raise a :class:`RuntimeError`.
-
+Functions
+---------
+:func:`.sort_extractors`
+    Topologically sort extractor instances from their declared dependencies.
 """
 
 

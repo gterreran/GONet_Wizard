@@ -1,40 +1,22 @@
 """
-Alignment and merging utilities
-===============================
+Per-file alignment and extractor-result merging
+===============================================
 
-This module provides utilities to *merge* per-extractor results into a single,
-canonically ordered accumulator while preserving **per-file alignment by filepath**.
-It implements the core logic used by the runner to combine outputs from multiple
-extractors that may succeed on different subsets of files.
+Extractors may produce outputs for all files, a subset of files, or no per-file
+outputs at all.  This module defines the merge rules used by the extraction
+runner to combine those outputs into a single accumulator without losing
+filepath alignment.
 
-Overview
---------
-- **Canonical file order:** The first per-file extractor to run establishes
-  ``data["files"]`` as the canonical filepath order. Subsequent merges align to it.
-- **Intersection-based alignment:** When a later extractor returns results for a
-  *subset* of files, the accumulator is trimmed to the **intersection** of filepaths
-  (inner join). All previously accumulated per-file columns are reindexed or dropped
-  to remain consistent.
-- **Deterministic behavior:** Intersections are computed deterministically; if there
-  is no overlap, the accumulator is reset to an empty per-file result set.
-
+The convention is simple: an extractor result that contains per-file values must
+also contain a ``"files"`` key listing the filepath associated with each row.
+The first per-file extractor establishes the canonical file order.  Later
+per-file extractors are inner-joined against that order, trimming previously
+stored per-file columns when necessary.
 
 Functions
 ---------
 :func:`.merge_extractor_into_data`
-    Merge a single extractor's results into the global data dictionary, enforcing
-    alignment by filepath via inner join against the canonical ``data["files"]``.
-
-:func:`._is_per_file`
-    Heuristic to detect whether a value is a per-file vector based on its length.
-
-:func:`._build_index`
-    Build a mapping from filepaths to their indices within a given list.
-
-:func:`._reindex`
-    Reorder a per-file vector from a source index mapping into a target filepath order.
-
-
+    Merge one extractor output dictionary into the accumulator.
 """
 
 import numpy as np
@@ -108,25 +90,28 @@ def merge_extractor_into_data(
     ext_results: Dict[str, Any],    # one extractor's output dict (includes "files" if per-file outputs)
 ) -> Dict[str, Any]:
     """
-    Merge a single extractor's results into the global `data`, enforcing alignment by filepath.
-
-    Behavior:
-
-        - If this is the first per-file extractor: sets data["files"] from ext_results["files"].
-        - Else: intersects file sets, trims existing per-file arrays, and reindexes new ones.
+    Merge one extractor result dictionary into an aligned accumulator.
 
     Parameters
     ----------
     data : :class:`dict`
-        Accumulated data dictionary. Must contain `data["files"]` if any prior per-file extractor has run.
+        Mutable accumulator containing fields collected from previous
+        extractors.  If a previous per-file extractor has run, it contains a
+        canonical ``"files"`` list.
     ext_results : :class:`dict`
-        Output from a single extractor. May contain `ext_results["files"]` if it has per-file outputs.
-    
+        Output from one extractor.  Per-file outputs must include a ``"files"``
+        key whose order matches all per-file vectors in ``ext_results``.
+
     Returns
     -------
     :class:`dict`
-        Updated `data` dictionary with merged extractor results.
-    
+        The same ``data`` object, updated in place and returned for convenience.
+
+    Notes
+    -----
+    Scalar/global fields are copied directly.  Per-file fields are aligned by
+    filepath.  When an extractor returns only a subset of the current canonical
+    file list, the accumulator is reduced to the intersection of filepaths.
     """
     # Separate scalars from per-file outputs for this extractor
     ext_files = ext_results.get("files", None)

@@ -1,29 +1,31 @@
 """
-Pixel extraction and photometric statistics
-===========================================
+Pixel extraction and masked-region statistics
+=============================================
 
-This module defines the :class:`.ExtractionValues` extractor and supporting
-functions for performing pixel-level aperture extractions on GONet image files.
+This module contains the extractor that performs the image-reading and
+pixel-statistics portion of the extraction workflow.  Shape parameters are
+converted into a :class:`~GONet_Wizard.GONet_utils.src.extract_app.shapes.base.Shape`,
+which produces a boolean mask for each image channel.  The selected pixels are
+then summarized with total counts, mean counts, standard deviation, and pixel
+count.
 
-It applies shape-defined masks (e.g., circles, annuli) to calibrated image
-channels and computes pixel statistics such as total counts, mean, standard
-deviation, and number of contributing pixels. The extractor runs in parallel
-across files for efficiency and returns per-file, per-channel measurements
-ready for downstream analysis or tabular export.
+The public :class:`.ExtractionValues` extractor processes many files in
+parallel.  The lower-level :func:`.process_single_file` helper performs the work
+for one image and is useful for testing or debugging the extraction behavior on
+a single file.
 
-**Functions**
-
+Functions
+---------
 :func:`.extract_counts_from_region`
-    Compute statistics for pixels selected by a mask.
-
+    Compute summary statistics for an image array and boolean mask.
 :func:`.process_single_file`
-    Process a single image file and extract pixel count statistics for specified regions.
+    Open one GONet file, remove overscan, build a shape mask, and extract
+    channel statistics.
 
-**Classes**
-
+Classes
+-------
 :class:`.ExtractionValues`
-    Performs pixel count extraction for specified regions in image files.
-    
+    Extractor implementation used by the pipeline runner.
 """
 
 
@@ -59,49 +61,36 @@ class ExtractionValues(Extractor):
 
     def extract(self, raw: Dict[str, Any], context: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
-        Extract pixel count statistics for specified regions in image files.
-
-        This method processes a list of image files using the specified channels and extraction
-        parameters. For each file, it applies a mask defined by the shape parameters and computes
-        statistics for the pixel values within the masked region.
+        Extract masked pixel statistics for all requested files and channels.
 
         Parameters
         ----------
         raw : :class:`dict`
-            A dictionary containing raw input data. Must include:
+            Pipeline input dictionary. Required keys are:
 
-            - `file_list` (:class:`list` of :class:`str`): List of file paths to process.
-            - `channels` (:class:`list` of :class:`str`): List of channels to process for each file.
-            - `extraction_parameters` (:class:`dict`): Parameters for the extraction process, including
-              shape definitions and other relevant settings.
-
+            ``"file_list"``
+                List of GONet image paths.
+            ``"channels"``
+                Channel names to extract from each image.
+            ``"extraction_parameters"``
+                Shape parameters accepted by
+                :meth:`GONet_Wizard.GONet_utils.src.extract_app.shapes.base.Shape.from_dict`.
         context : :class:`dict`
-            A shared dictionary for intermediate results. This extractor does not modify the context.
+            Shared pipeline context. This extractor does not require or modify
+            context entries.
 
         Returns
         -------
         :class:`tuple`
-            A tuple containing:
-
-            - A dictionary with extracted pixel count statistics for each file and channel, including:
-            - `total_counts` (:class:`float`): Sum of pixel values within the masked region.
-            - `mean_counts` (:class:`float`): Average of the pixel values within the masked region.
-            - `std` (:class:`float`): Standard deviation of the pixel values within the masked region.
-            - `npixels` (:class:`int`): Number of pixels within the masked region.
-            - The unchanged `context` dictionary.
-
-        Raises
-        ------
-        :class:`ValueError`
-            If the `file_list`, `channels`, or `extraction_parameters` keys are missing or invalid in the raw input.
+            ``(results, context)`` where ``results`` contains a ``"files"``
+            list, exposure times, and one nested statistics dictionary per
+            requested channel.  The returned ``context`` is unchanged.
 
         Notes
         -----
-        - The `extraction_parameters` dictionary must include a `shape` key specifying the type of shape.
-        - The :class:`~GONet_Wizard.GONet_utils.src.extract_app.shapes.base.Shape` framework is used to dynamically instantiate the appropriate shape subclass and generate
-          masks for pixel count extraction.
-        - The method uses multiprocessing to process files in parallel for improved performance.
-
+        Files that cannot be opened or processed are skipped by
+        :func:`.process_single_file`.  Downstream merging uses the returned
+        ``"files"`` list to keep surviving rows aligned with other extractors.
         """
         night_data = []
         with ProcessPoolExecutor(max_workers=12) as executor:
@@ -156,39 +145,30 @@ def extract_counts_from_region(data: np.ndarray | list, mask: np.ndarray) -> ext
 
 def process_single_file(gonet_file: str, channels: list, extraction_params: dict) -> dict:
     """
-    Process a single image file and extract pixel count statistics for specified regions.
-
-    This method applies a mask defined by the shape parameters to the GONet image file
-    (loaded as a :class:`~GONet_Wizard.GONet_utils.GONetFile` object) and computes
-    statistics for the pixel values within the masked region. The results are organized by
-    image channels.
+    Process one image file and return channel statistics for one shape.
 
     Parameters
     ----------
     gonet_file : :class:`str`
         Path to the image file to process.
     channels : :class:`list` of :class:`str`
-        List of channels to process for the image file (e.g., "red", "green", "blue").
+        Channel names to extract from the image.
     extraction_params : :class:`dict`
-        Parameters for the extraction process, including shape definitions and other relevant settings.
+        Shape parameters accepted by
+        :meth:`GONet_Wizard.GONet_utils.src.extract_app.shapes.base.Shape.from_dict`.
 
     Returns
     -------
-    :class:`dict`
-        A dictionary containing pixel count statistics for each channel. Each channel key maps to:
-
-        - `total_counts` (:class:`float`): Sum of pixel values within the masked region.
-        - `mean_counts` (:class:`float`): Average of the pixel values within the masked region.
-        - `std` (:class:`float`): Standard deviation of the pixel values within the masked region.
-        - `npixels` (:class:`int`): Number of pixels within the masked region.
+    :class:`dict` or :data:`None`
+        Per-file result dictionary, or ``None`` if the file cannot be loaded or
+        processed.  Successful results include the filepath, exposure time, and
+        one statistics dictionary per channel.  Each channel dictionary contains
+        ``total_counts``, ``mean_counts``, ``std``, and ``npixels`` fields.
 
     Notes
     -----
-    - The `extraction_params` dictionary must include a `shape` key specifying the type of shape.
-    - The :class:`~GONet_Wizard.GONet_utils.src.extract_app.shapes.base.Shape` framework is used to dynamically instantiate the appropriate shape subclass and generate
-        masks for pixel count extraction.
-    - The image file is processed for each channel, and overscan regions are removed before applying the mask.
-
+    The image is loaded with :meth:`GONetFile.from_file`, overscan is removed,
+    and the same shape mask is applied independently to each requested channel.
     """
     file_data = {}
 

@@ -1,36 +1,35 @@
 """
-Pipeline runner and public orchestration API
-============================================
+Pipeline runner and public extraction API
+=========================================
 
-This module wires together the individual extractor modules into a single,
-dependency-aware pipeline and exposes a stable entry point for batch
-extraction.
+This module provides the public orchestration entry point for the extraction
+subsystem.  The main function, :func:`.extract_all`, accepts a list of GONet
+image files, channel names, and shape/extraction parameters, then runs the
+configured extractor pipeline and returns one dictionary per retained file.
 
-Behavior
---------
-- Define the canonical list of extractors (:data:`ALL_EXTRACTORS`) in their
-  typical execution order.
-- Orchestrate dependency resolution and execution via
-  :func:`.extract_all`, invoking lightweight extractors sequentially and
-  dispatching the heavy pixel-level extractor in parallel.
-- Incrementally merge extractor outputs into a single accumulator using
-  filepath-based alignment (inner join) to ensure all per-file arrays remain
-  consistent even when some extractors drop files.
+The runner combines two kinds of extractors:
 
+- lightweight metadata extractors, such as file, time, astronomy, weather, and
+  shape metadata;
+- the heavier :class:`.ExtractionValues` extractor, which opens images and
+  computes masked pixel statistics.
 
-**Attributes**
+When :class:`.ExtractionValues` is present, it runs in a separate worker thread
+while the lightweight metadata extractors run sequentially.  The individual
+outputs are merged through :func:`.merge_extractor_into_data`, preserving
+filepath alignment via the ``"files"`` key.
 
+Attributes
+----------
 ALL_EXTRACTORS : :class:`list` of :class:`.Extractor`
-    List of all available extractors in the module, ordered by their typical usage.
+    Default extractor sequence used by :func:`.extract_all`.
 
-**Functions**
-
+Functions
+---------
 :func:`.extract_all`
-    Run all extractors in dependency order and collect extracted fields.
-
+    Run the extraction pipeline and return JSON-serializable row dictionaries.
 :func:`.convert_to_serializable`
-    Convert numpy objects to standard Python types for JSON serialization.
-
+    Convert NumPy scalar/array objects to plain Python values.
 """
 
 
@@ -61,42 +60,33 @@ ALL_EXTRACTORS = [
 
 def extract_all(file_list: List[str], channels: List[str], extraction_params: Dict[str, Any], extractors: List[Extractor] = ALL_EXTRACTORS) -> List[Dict[str, Any]]:
     """
-    Run all extractors in dependency order and collect extracted fields.
-
-    This function processes a list of extractors to extract structured information
-    from raw observational input. Extractors are executed in dependency order, ensuring
-    that required context keys are available before an extractor runs.
-
-    If the `ExtractionValues` extractor is included in the list, it is executed in parallel
-    with the other extractors, as it does not depend on their results. This parallelization
-    improves performance by allowing `ExtractionValues` to process files concurrently while
-    other extractors run sequentially.
+    Run the extraction pipeline and return one row dictionary per observation.
 
     Parameters
     ----------
-    file_list : :class:`list`
-        List of file paths to process.
-    channels : :class:`list`
-        List of channels to process for each file.
+    file_list : :class:`list` of :class:`str`
+        Input GONet image files.  These paths are also used as the alignment key
+        when merging per-file extractor outputs.
+    channels : :class:`list` of :class:`str`
+        Image channels to process, for example ``["red", "green", "blue"]``.
     extraction_params : :class:`dict`
-        Parameters for the extraction process.
+        Shape and extraction settings passed to the pixel-statistics extractor.
+        The dictionary must contain the shape fields required by
+        :meth:`GONet_Wizard.GONet_utils.src.extract_app.shapes.base.Shape.from_dict`.
     extractors : :class:`list` of :class:`.Extractor`, optional
-        Extractor instances to run. Defaults to ``ALL_EXTRACTORS``.
+        Extractor instances to execute. Defaults to :data:`ALL_EXTRACTORS`.
 
     Returns
     -------
     :class:`list` of :class:`dict`
-        A list of dictionaries, where each dictionary corresponds to an observation.
+        JSON-serializable row dictionaries.  Each row corresponds to one file
+        that survived all per-file extractor alignment steps.
 
     Notes
     -----
-    - Extractors are executed in dependency order based on their `USES` and `PROVIDES` attributes.
-    - If `ExtractionValues` is included in the extractor list, it is executed in parallel
-      using a separate thread, while the other extractors are executed sequentially.
-    - If `ExtractionValues` is not included, all extractors are executed sequentially.
-    - The final output is transformed into a list of dictionaries, where each dictionary
-      corresponds to a single observation and contains the extracted fields.
-
+    Extractors that emit a ``"files"`` key are merged by filepath.  If two
+    extractors return different file subsets, only the intersection is retained
+    so that all per-file columns stay aligned.
     """
 
     raw = {

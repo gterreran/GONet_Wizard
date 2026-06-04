@@ -1,30 +1,30 @@
 """
-This module provides the base framework and utility functions for defining and working
-with geometric shapes in extraction operations. It includes abstract classes, validation
-methods, and helper functions for creating and manipulating shapes such as circles,
-annuli, and SVG paths. Rectangular regions are represented as path shapes.
+Shape framework for interactive and scripted extraction regions
+===============================================================
 
-**Classes**
+This module defines the abstract :class:`.Shape` API used by both the extraction
+GUI and the command-line extraction pipeline.  Shape subclasses validate their
+own geometry, draw Plotly/Matplotlib representations, and create boolean masks
+that select pixels from an image channel.
 
-- :class:`IncompleteShapeError`
-    Exception raised when a required shape parameter is not defined.
+Shape objects can be constructed directly by their subclasses or indirectly via
+:meth:`Shape.from_dict`, which reads the ``"shape"`` key from an extraction
+parameter dictionary.  This is the path used by the extraction command and the
+interactive GUI when they pass user-selected regions to the extractor pipeline.
 
-- :class:`.Shape`
-    Abstract base class for geometric shapes used in extraction operations.
+Classes
+-------
+:class:`.IncompleteShapeError`
+    Raised when a required shape parameter is missing.
+:class:`.Shape`
+    Abstract base class and registry for all extraction-region shapes.
 
-**Functions**
-
-- :func:`.normalize_angle_deg`
-    Normalize an angle in degrees to the range [-180, 180], inclusive.
-
-- :func:`.build_arc_path`
-    Generate the SVG path string for a circular arc using straight line segments.
-
-**Attributes**
-
-- `plotly_shape`
-    Default Plotly styling for shapes.
-
+Functions
+---------
+:func:`.normalize_angle_deg`
+    Normalize angles to the ``[-180, 180]`` degree range.
+:func:`.build_arc_path`
+    Approximate a circular arc as an SVG path string.
 """
 
 from abc import ABC, abstractmethod

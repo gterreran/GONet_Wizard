@@ -58,18 +58,30 @@ from GONet_Wizard.GONet_utils.src.gonet import config
 
 class GONetFile:
     """
-    A class representing a GONet file.
+    In-memory representation of a processed three-channel GONet image.
 
-    This class provides methods for loading, interpreting, and processing GONet image data 
-    along with its associated metadata. It supports operations such as reading binary formats, 
-    extracting image channels, and converting pixel data into structured arrays.
+    A :class:`GONetFile` stores blue, green, and red image channels together
+    with parsed metadata and a :class:`~GONet_Wizard.GONet_utils.src.gonet.filetypes.FileType`.
+    The constructor accepts already-loaded arrays; most users should create
+    instances with :meth:`from_file`, which dispatches to the appropriate parser
+    for supported GONet file formats.
+
+    Channel arrays are converted to ``float64`` during initialization so that
+    arithmetic, dark/overscan correction, normalization, and stacking operations
+    do not silently overflow fixed-width integer image data.
 
     Attributes
     ----------
-    CHANNELS : list
-        A list of channel names for the GONet file (e.g., ['blue', 'green', 'red']).
-    COLORS : dict
-        A mapping of channel names to their corresponding color codes (e.g., {'blue': 'b', 'green': 'g', 'red': 'r'}).
+    CHANNELS : :class:`list` of :class:`str`
+        Canonical processed-channel names: ``["blue", "green", "red"]``.
+    COLORS : :class:`dict`
+        Default plotting colors keyed by channel name.
+
+    Notes
+    -----
+    Arithmetic operators act channel-by-channel and return new image objects.
+    Operations between two :class:`GONetFile` instances require matching channel
+    shapes.
     """
 
     CHANNELS = config.CHANNEL_NAMES_PROCESSED
