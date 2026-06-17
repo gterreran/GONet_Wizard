@@ -7,6 +7,13 @@ computes extraction statistics, handles freehand drawing and path saving/loading
 and manages the state of shape-specific components. It also registers a
 client-side callback for JSON downloads of the drawn region.
 
+The shape-control logic is intentionally split into two callbacks: one callback
+updates only the sidebar labels, placeholders, and visibility classes, while a
+separate callback updates Plotly drawing mode and graph configuration. Keeping
+these concerns separate makes the parameter controls react immediately when the
+selected shape changes and avoids coupling simple UI label updates to figure
+configuration changes.
+
 **Functions**
 
 - :func:`load_gonet_file`:
@@ -19,8 +26,12 @@ client-side callback for JSON downloads of the drawn region.
     Update the heatmap figure based on the selected channel and binning option.
 
 - :func:`update_shape_options`:
-    Updates visibility and labels of shape-specific input fields based on selected shape.
-    Also updates the figure drawing settings based on the shape selected.
+    Updates the visible sidebar controls, labels, placeholders, and CSS classes
+    based on the selected extraction shape.
+
+- :func:`update_shape_drawing_mode`:
+    Updates the Plotly drag mode and drawing-toolbar configuration based on the
+    selected extraction shape.
 
 - :func:`catch_drawn_path`:
     Captures the path of a freehand-drawn region and updates the figure.
@@ -76,8 +87,7 @@ def load_gonet_file(selected_file):
     Load the GONet file for the selected file.
 
     The GONet file is loaded server-side, for faster access.
-    This is the only callback in the module without `prevent_initial_call=True`,
-    meaning it runs automatically when the app loads. This ensures that the
+    This callback runs automatically when the app loads. This ensures that the
     file is loaded properly and spawns all other necessary initializing
     callbacks.
 
@@ -235,94 +245,65 @@ def update_figure_heatmap(_, selected_channel, bin, gof, fig):
 
     return fig, ''
 
-
 @app.callback(
-    Output("gonet-image", "figure", allow_duplicate=True),
-    Output("gonet-image", "config"),
     Output("shape-options", "className"),
     Output("freehand-options", "className"),
-    Output("fov-buttons-container", "className"),
     Output("shape-extra-parameters", "children"),
     Output("shape-parameter1", "placeholder"),
     Output("shape-parameter2-container", "className"),
     Output("shape-parameter2", "placeholder"),
-    Output("config-done-dummy-div", "children", allow_duplicate=True),
     #---------------------
-    Input("heatmap-ready-control", "children"),
     Input("shape-selector", "value"),
-    #---------------------
-    State("gonet-image", "figure"),
-    State("gonet-image", "config"),
-    prevent_initial_call=True
 )
-def update_shape_options(_, selected_shape, fig, config):
+def update_shape_options(selected_shape):
     """
-    Update visibility and labels of shape-specific input fields based on selected shape.
-    Also update the figure drawing settings based on the shape selected.
+    Update visible shape-specific controls when the selected shape changes.
 
-    This callback adjusts the visibility of input fields and buttons related to
-    shape parameters depending on the user's selection in the shape dropdown.
-    It ensures that only relevant inputs are shown for the chosen shape type.
+    This callback is responsible only for the sidebar control state. It switches
+    between the geometric-parameter panel and the freehand-drawing panel, updates
+    the label for the shape-specific parameter row, and controls whether the
+    second shape parameter is visible.
 
-    This callback also updates the `gonet-image` component's configuration and dragmode
-    based on whether the selected shape is freehand or not.
-
-    To guarantee the correct sequence of callbacks, this callback waits on the
-    :func:`.update_figure_heatmap` callback to complete before executing, by listening to
-    changes to the `heatmap-ready-control` component.
+    The callback uses CSS class names rather than inline style dictionaries
+    because the extraction GUI presentation is centralized in the shared static
+    stylesheet. In particular, the second parameter is hidden by applying the
+    ``hidden`` class to the parameter container, not to the input itself. This
+    keeps both the layout and the callback aligned with the current styled
+    extraction UI.
 
     Parameters
     ----------
-    _ : :class:`str` or :class:`NoneType`
-        Dummy Div triggered by :func:`.update_figure_heatmap` when the figure is
-        ready (ignored).
     selected_shape : :class:`str`
-        The currently selected shape type from the dropdown. Possible values are
-        "circle", "rectangle", "annulus", and "freehand".
-    fig : :class:`dict`
-        Current Plotly figure dictionary for the ``gonet-image`` component.
-    config : :class:`dict`
-        Current Plotly configuration dictionary for the ``gonet-image`` component.
+        The extraction shape selected by the ``shape-selector`` radio items.
+        Expected values are ``"circle"``, ``"rectangle"``, ``"annulus"``, and
+        ``"freehand"``.
 
     Returns
     -------
     tuple
         A tuple containing:
 
-        - :class:`dict` or :data:`dash.no_update`: Updated figure object.
-        - :class:`dict` or :data:`dash.no_update`: Updated figure configuration object.
-        - :class:`str`: CSS class for the shape options container (to show/hide it).
-        - :class:`str`: CSS class for the freehand options container (to show/hide it).
-        - :class:`str`: CSS class for the FOV buttons container (to show/hide it).
-        - :class:`str` or :data:`dash.no_update`: Label text for extra parameters.
-        - :class:`str` or :data:`dash.no_update`: Placeholder text for parameter 1 input.
-        - :class:`str` or :data:`dash.no_update`: CSS class for parameter 2 input (to show/hide it).
-        - :class:`str` or :data:`dash.no_update`: Placeholder text for parameter 2 input.
-        - :class:`str`: An empty string to update the `config-done-dummy-div` component,
-          which serves as control for the extraction-params component.
+        - :class:`str`: CSS classes for the geometric shape-options panel.
+        - :class:`str`: CSS classes for the freehand-options panel.
+        - :class:`str`: Label text for the shape-specific parameter row.
+        - :class:`str`: Placeholder text for the first shape parameter input.
+        - :class:`str`: CSS classes for the second shape parameter container.
+        - :class:`str`: Placeholder text for the second shape parameter input.
 
+    Notes
+    -----
+    The visibility behavior is:
+
+    - ``circle`` shows one parameter, interpreted as radius.
+    - ``rectangle`` shows two parameters, interpreted as side lengths.
+    - ``annulus`` shows two parameters, interpreted as inner and outer radius.
+    - ``freehand`` hides the geometric parameter panel and shows the drawing
+      controls instead.
+
+    This callback is intentionally independent from
+    :func:`update_shape_drawing_mode`, so that basic parameter-label updates do
+    not depend on Plotly graph configuration updates.
     """
-
-    # Making a copy of the item we started with
-    figure_in = fig['layout']['dragmode']
-
-    if selected_shape == 'freehand':
-        config["modeBarButtonsToAdd"] = ["drawclosedpath"]
-        fig['layout']['dragmode'] = 'drawclosedpath'
-    else:
-        config["modeBarButtonsToAdd"] = []
-        fig['layout']['dragmode'] = 'zoom'
-
-    # Checking if the dragmode changed. If not,
-    # neither has the config
-    if figure_in == fig['layout']['dragmode']:
-        fig = no_update
-        config = no_update
-
-    output_shape_extra_parameters = no_update
-    output_shape_parameter1_placeholder = no_update
-    output_shape_parameter2_style = no_update
-    output_shape_parameter2_placeholder = no_update
 
     if selected_shape == "freehand":
         output_shape_options = "extract-options-panel hidden"
@@ -332,26 +313,118 @@ def update_shape_options(_, selected_shape, fig, config):
         output_freehand_options = "extract-freehand-options hidden"
 
     if selected_shape == "circle":
-        output_fov_buttons_container = "extract-button-row extract-fov-buttons"
-    else:
-        output_fov_buttons_container = "extract-button-row extract-fov-buttons hidden"
-    
-    if selected_shape == "circle":
         output_shape_extra_parameters = "Radius:"
         output_shape_parameter1_placeholder = "radius"
-        output_shape_parameter2_style = "extract-half hidden"
+        output_shape_parameter2_container_class = "extract-half hidden"
+        output_shape_parameter2_placeholder = ""
+
     elif selected_shape == "rectangle":
         output_shape_extra_parameters = "Side1, Side2:"
         output_shape_parameter1_placeholder = "side 1"
+        output_shape_parameter2_container_class = "extract-half"
         output_shape_parameter2_placeholder = "side 2"
-        output_shape_parameter2_style = "extract-half"
+
     elif selected_shape == "annulus":
         output_shape_extra_parameters = "Inner Radius, Outer Radius:"
         output_shape_parameter1_placeholder = "inner radius"
+        output_shape_parameter2_container_class = "extract-half"
         output_shape_parameter2_placeholder = "outer radius"
-        output_shape_parameter2_style = "extract-half"
 
-    return fig, config, output_shape_options, output_freehand_options, output_fov_buttons_container, output_shape_extra_parameters, output_shape_parameter1_placeholder, output_shape_parameter2_style, output_shape_parameter2_placeholder, ''
+    else:
+        output_shape_extra_parameters = "Parameters"
+        output_shape_parameter1_placeholder = ""
+        output_shape_parameter2_container_class = "extract-half hidden"
+        output_shape_parameter2_placeholder = ""
+
+    return (
+        output_shape_options,
+        output_freehand_options,
+        output_shape_extra_parameters,
+        output_shape_parameter1_placeholder,
+        output_shape_parameter2_container_class,
+        output_shape_parameter2_placeholder,
+    )
+
+
+@app.callback(
+    Output("gonet-image", "figure", allow_duplicate=True),
+    Output("gonet-image", "config"),
+    Output("config-done-dummy-div", "children", allow_duplicate=True),
+    #---------------------
+    Input("heatmap-ready-control", "children"),
+    Input("shape-selector", "value"),
+    #---------------------
+    State("gonet-image", "figure"),
+    State("gonet-image", "config"),
+    prevent_initial_call=True,
+)
+def update_shape_drawing_mode(_, selected_shape, fig, config):
+    """
+    Update Plotly drawing mode and graph configuration for the selected shape.
+
+    This callback controls the interactive behavior of the image graph. For
+    geometric shapes, the graph stays in normal zoom mode. For freehand
+    extraction, the Plotly closed-path drawing tool is enabled and the graph
+    drag mode is switched to ``"drawclosedpath"``.
+
+    The callback also updates ``config-done-dummy-div`` as a synchronization
+    signal for downstream extraction-parameter updates. This keeps parameter
+    recomputation ordered after graph configuration changes when the app first
+    loads or when the selected shape changes.
+
+    Parameters
+    ----------
+    _ : :class:`str` or :data:`None`
+        Dummy value from ``heatmap-ready-control``. The value itself is ignored;
+        the input is used to ensure the image figure has been initialized before
+        drawing-mode configuration is applied.
+    selected_shape : :class:`str`
+        The extraction shape selected by the ``shape-selector`` radio items.
+        Expected values are ``"circle"``, ``"rectangle"``, ``"annulus"``, and
+        ``"freehand"``.
+    fig : :class:`dict` or :data:`None`
+        Current Plotly figure dictionary for the ``gonet-image`` graph.
+    config : :class:`dict` or :data:`None`
+        Current Plotly graph configuration dictionary.
+
+    Returns
+    -------
+    tuple
+        A tuple containing:
+
+        - :class:`dict` or :data:`dash.no_update`: Updated Plotly figure, or
+          :data:`dash.no_update` when the drag mode did not change.
+        - :class:`dict` or :data:`dash.no_update`: Updated Plotly graph config,
+          or :data:`dash.no_update` when the configuration did not change.
+        - :class:`str`: Dummy synchronization value used by callbacks that
+          recompute extraction parameters.
+
+    Notes
+    -----
+    The callback avoids unnecessary graph updates when the requested drag mode
+    is already active. This is especially useful when switching among geometric
+    shapes, since circle, rectangle, and annulus all use Plotly zoom mode.
+    """
+
+    if fig is None:
+        return no_update, no_update, selected_shape
+
+    config = dict(config or {})
+    layout = fig.setdefault("layout", {})
+    previous_dragmode = layout.get("dragmode")
+
+    if selected_shape == "freehand":
+        config["modeBarButtonsToAdd"] = ["drawclosedpath"]
+        layout["dragmode"] = "drawclosedpath"
+    else:
+        config["modeBarButtonsToAdd"] = []
+        layout["dragmode"] = "zoom"
+
+    if previous_dragmode == layout["dragmode"]:
+        fig = no_update
+        config = no_update
+
+    return fig, config, ''
 
 
 @app.callback(

@@ -1034,3 +1034,69 @@ table.meta-table tr:nth-child(even) td.meta-val {
     background-color: #aa2222;
     color: white;
 }
+
+/* ---------------------------------- */
+/* Extraction GUI scroll-safe sidebar */
+/* ---------------------------------- */
+
+.extract-gui,
+.extract-main {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+}
+
+.extract-main {
+    overflow: hidden;
+}
+
+.extract-sidebar {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-bottom: 0;
+    box-sizing: border-box;
+    scrollbar-gutter: stable;
+}
+
+/* Do not let sidebar sections shrink and clip their contents. */
+.extract-sidebar > .extract-section,
+.extract-sidebar > .extract-action-bar {
+    flex-shrink: 0;
+}
+
+.extract-stats-section {
+    flex: 1 0 auto;
+    min-height: auto;
+    overflow: visible;
+    padding-bottom: 14px;
+}
+
+/*
+   Keep the action bar in normal document flow.
+   Sticky looked nice, but it can cover the previous section while scrolling.
+*/
+.extract-action-bar {
+    position: static;
+    bottom: auto;
+    z-index: auto;
+    display: flex;
+    flex: 0 0 auto;
+    gap: 10px;
+    padding: 10px 12px 18px;
+    border-top: 1px solid #444;
+    background-color: #1f1f1f;
+    box-shadow: none;
+    box-sizing: border-box;
+}
+
+.extract-action-bar button {
+    flex: 1;
+    min-height: 38px;
+    padding: 9px 16px;
+}

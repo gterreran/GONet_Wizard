@@ -88,7 +88,7 @@ layout = dcc.Loading(
             dcc.Store(
                 id="extraction-params",
                 data={
-                    "shape": None,
+                    "shape": "circle",
                     "x0": None,
                     "y0": None,
                     "param1": None,
@@ -221,7 +221,7 @@ layout = dcc.Loading(
                                                 ],
                                             ),
                                             html.Label(
-                                                "Parameters",
+                                                "Radius:",
                                                 id="shape-extra-parameters",
                                                 className="extract-label",
                                             ),
@@ -233,17 +233,17 @@ layout = dcc.Loading(
                                                         children=dcc.Input(
                                                             id="shape-parameter1",
                                                             type="number",
-                                                            placeholder="Side 1",
+                                                            placeholder="radius",
                                                             debounce=True,
                                                         ),
                                                     ),
                                                     html.Div(
                                                         id="shape-parameter2-container",
-                                                        className="extract-half",
+                                                        className="extract-half hidden",
                                                         children=dcc.Input(
                                                             id="shape-parameter2",
                                                             type="number",
-                                                            placeholder="Side 2",
+                                                            placeholder="",
                                                             debounce=True,
                                                         ),
                                                     ),
