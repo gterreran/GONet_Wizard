@@ -28,7 +28,6 @@ can arise from working with fixed-width integer types.
 
 From the :class:`GONetFile`, :class:`~GONet_Wizard.GONet_utils.src.gonet.gonet_file_raw.GONetFileRaw` class is derived, which keeps the
 2 green channels separate and has basic functionality to work in the raw Bayer-plane format.
-For more info regarding how the raw data is parsed, see :doc:`../raw_data`.
 
 **Classes**
 

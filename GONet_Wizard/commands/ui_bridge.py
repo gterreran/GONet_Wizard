@@ -71,7 +71,7 @@ class WindowRequest:
     ----------
     key : :class:`str`
         Window identity key used by the window manager registry.
-    spec : :class:`.WindowSpec`
+    spec : :class:`~GONet_Wizard.ui.windows.WindowSpec`
         Window specification (title/url/size).
     publish : :class:`.PublishRequest`, optional
         If provided, publish preview HTML before opening/focusing the window.

@@ -62,7 +62,6 @@ This ensures compatibility with Dash's output constraints and avoids runtime err
 import json
 
 from dash import no_update, ctx, html
-from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State, ALL, MATCH
 
 from GONet_Wizard.GONet_dashboard.src.server import app
