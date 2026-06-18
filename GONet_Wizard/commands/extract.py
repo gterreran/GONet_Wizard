@@ -60,7 +60,7 @@ COMMAND = CommandSpec(
     args=[
         {
             "flags": ["filenames"],
-            "nargs": "*",
+            "nargs": "+",
             "action": ExpandFilenames,
             "help": (
                 "GONet file(s) to extract [.jpg, .tiff]. "
