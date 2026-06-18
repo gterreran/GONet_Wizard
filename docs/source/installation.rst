@@ -93,76 +93,76 @@ You do not need to run ``setup.py`` directly. It exists only for compatibility a
 
 ----
 
-Required environment variables
-------------------------------
+.. Required environment variables
+.. ------------------------------
 
-Some functionality—particularly within the dashboard and remote connection tools—requires certain environment variables to be defined.
+.. Some functionality—particularly within the dashboard and remote connection tools—requires certain environment variables to be defined.
 
-At a minimum, you should define:
+.. At a minimum, you should define:
 
-- ``GONET_ROOT`` – path to the local GONet data
-- ``ROOT_EXT`` – optional path to the extended image archive
-- ``GONET_USER`` – remote SSH user (default is ``pi``)
-- ``GONET_PASSWORD`` – SSH password for the GONet unit
+.. - ``GONET_ROOT`` – path to the local GONet data
+.. - ``ROOT_EXT`` – optional path to the extended image archive
+.. - ``GONET_USER`` – remote SSH user (default is ``pi``)
+.. - ``GONET_PASSWORD`` – SSH password for the GONet unit
 
-If one of these variables is not defined but is essential for the functionality you are trying to use, **you will be prompted to provide it at runtime**. However, note that variables set this way are only valid for the current session and will not persist.
+.. If one of these variables is not defined but is essential for the functionality you are trying to use, **you will be prompted to provide it at runtime**. However, note that variables set this way are only valid for the current session and will not persist.
 
-To avoid repeated prompts, it is recommended to set these variables persistently by one of the following methods:
+.. To avoid repeated prompts, it is recommended to set these variables persistently by one of the following methods:
 
-**Option 1: Define in a `.env` file**
+.. **Option 1: Define in a `.env` file**
 
-Create a file named `.env` in your project root and add:
+.. Create a file named `.env` in your project root and add:
 
-.. code-block:: ini
+.. .. code-block:: ini
 
-    GONET_ROOT=/path/to/gonet/data
-    GONET_USER=pi
-    GONET_PASSWORD=your_password
+..     GONET_ROOT=/path/to/gonet/data
+..     GONET_USER=pi
+..     GONET_PASSWORD=your_password
 
-This file will be automatically loaded if `python-dotenv` is installed (it is included in GONet Wizard’s dependencies).
+.. This file will be automatically loaded if `python-dotenv` is installed (it is included in GONet Wizard’s dependencies).
 
-**Option 2: Export directly in your shell**
+.. **Option 2: Export directly in your shell**
 
-.. code-block:: bash
+.. .. code-block:: bash
 
-    export GONET_ROOT=/path/to/gonet/data
-    export GONET_PASSWORD=your_password
+..     export GONET_ROOT=/path/to/gonet/data
+..     export GONET_PASSWORD=your_password
 
-Add these lines to your `.bashrc`, `.zshrc`, or equivalent to make them persistent across sessions.
+.. Add these lines to your `.bashrc`, `.zshrc`, or equivalent to make them persistent across sessions.
 
-**Option 3: Add to a conda environment**
+.. **Option 3: Add to a conda environment**
 
-If using a conda environment, you can add environment variables by editing the `env` file or manually setting them:
+.. If using a conda environment, you can add environment variables by editing the `env` file or manually setting them:
 
-To make the variables persist in your environment:
+.. To make the variables persist in your environment:
 
-.. code-block:: bash
+.. .. code-block:: bash
 
-    conda env config vars set GONET_ROOT=/path/to/gonet/data
-    conda env config vars set GONET_PASSWORD=your_password
+..     conda env config vars set GONET_ROOT=/path/to/gonet/data
+..     conda env config vars set GONET_PASSWORD=your_password
 
-You must deactivate and reactivate the environment to apply the changes:
+.. You must deactivate and reactivate the environment to apply the changes:
 
-.. code-block:: bash
+.. .. code-block:: bash
 
-    conda deactivate
-    conda activate gonet-env
+..     conda deactivate
+..     conda activate gonet-env
 
-----
+.. ----
 
-Future PyPI Installation
-------------------------
+.. Future PyPI Installation
+.. ------------------------
 
-GONet Wizard is not yet available on PyPI, but in future releases you will be able to install it using:
+.. GONet Wizard is not yet available on PyPI, but in future releases you will be able to install it using:
 
-.. code-block:: bash
+.. .. code-block:: bash
 
-    pip install GONet_Wizard
+..     pip install GONet_Wizard
 
-Stay tuned for announcements on the GitHub page:
-https://github.com/gterreran/GONet_Wizard
+.. Stay tuned for announcements on the GitHub page:
+.. https://github.com/gterreran/GONet_Wizard
 
-----
+.. ----
 
 Installation tips for Windows Users
 -----------------------------------
@@ -223,7 +223,7 @@ You are now ready to run any GONet Wizard command from the command line, e.g.:
 
 .. code-block:: bash
 
-    GONet_Wizard dashboard
+    GONet_Wizard gui
 
 ----
 

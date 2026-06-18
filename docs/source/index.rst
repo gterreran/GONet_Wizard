@@ -2,57 +2,107 @@
 GONet Wizard
 ============
 
-.. image:: https://img.shields.io/github/v/tag/gterreran/GONet_Wizard?label=version&color=blue
-   :target: https://github.com/gterreran/GONet_Wizard/tags
-   :alt: GitHub latest tag
+GONet Wizard is a command-line and graphical toolkit for working with GONet
+camera data. It includes utilities for inspecting GONet images, reading
+metadata, extracting measurements from regions of interest, building derived
+array products, and launching interactive GUI workflows.
 
-.. automodule:: GONet_Wizard
-   :members:
-   :undoc-members:
-   :show-inheritance:
+The documentation is organized by reader need. Start with the User Guide for
+concepts, the Tools section for task-oriented explanations, the GUI Guide or
+CLI Reference for concrete usage, and the Developer Notes or API Reference for
+implementation details.
 
-See the :doc:`installation` page for details on how to install the package.
+Documentation Layers
+--------------------
 
-See the :doc:`CLI <cli>` page a description on how to use some of the functionalities from the command line.
+The documentation is organized so that each section has a distinct role.
 
-The following packages are included in the GONet Wizard:
+.. list-table::
+   :header-rows: 1
+   :widths: 25 50 25
 
-- :mod:`GONet_Wizard.GONet_dashboard`
-- :mod:`GONet_Wizard.GONet_utils`
-- :mod:`GONet_Wizard.commands`
+   * - Section
+     - Use it for
+     - Typical reader
+   * - :doc:`User Guide <user_guide/index>`
+     - Core concepts: GONet cameras, GONet images, channels, and file objects.
+     - New users
+   * - :doc:`Tools guide <tools/index>`
+     - Task-oriented descriptions of what each tool does.
+     - Users planning an analysis
+   * - :doc:`GUI Guide <gui_guide/index>`
+     - Step-by-step instructions for each graphical form.
+     - GUI users
+   * - :doc:`CLI Reference <cli_reference/index>`
+     - Terminal syntax, options, and examples.
+     - CLI users and automation
+   * - :doc:`Developer Notes <developer_notes/index>`
+     - Architecture, extension points, and contributor workflows.
+     - Contributors
+   * - :doc:`API Reference <api_reference/index>`
+     - Generated module, class, and function reference.
+     - Developers needing code details
 
-Each module is documented in its own section below.
+Where to Start
+--------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 35 65
+
+   * - If you want to...
+     - Go to...
+   * - Learn what GONet Wizard is and how GONet files are structured
+     - :doc:`User Guide <user_guide/index>`
+   * - Understand what each tool does
+     - :doc:`Tools guide <tools/index>`
+   * - Use the graphical interface
+     - :doc:`GUI Guide <gui_guide/index>`
+   * - Run commands from the terminal
+     - :doc:`CLI Reference <cli_reference/index>`
+   * - Install the package
+     - :doc:`installation guide <installation>`
+   * - Understand the internal architecture
+     - :doc:`Developer Notes <developer_notes/index>`
+   * - Look up modules, classes, and functions
+     - :doc:`API Reference <api_reference/index>`
+
+User Documentation
+------------------
 
 .. toctree::
-   :maxdepth: 3
-   :caption: Contents:
+   :maxdepth: 2
+   :caption: User Documentation
 
    installation
-   cli
-   settings
-   GONet_dashboard/index
-   GONet_utils/index
-   commands/index
-   ui/index
-   gui/index
-   branding
-   _version
+   user_guide/index
+   tools/index
+   gui_guide/index
+   cli_reference/index
+
+Developer and Reference Documentation
+-------------------------------------
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Developer and Reference Documentation
+
+   developer_notes/index
+   api_reference/index
    Changelog <https://github.com/gterreran/GONet_Wizard/blob/master/CHANGELOG.md>
 
-
 Versioning
-==========
+----------
 
-The GONet Wizard project uses **Git-based versioning** powered by `setuptools_scm <https://github.com/pypa/setuptools_scm>`_.
-The version is defined by :mod:`_version` and can be retrieved accessing the ``__version__`` attribute of the :mod:`GONet_Wizard` package or by running:
+The package version can be retrieved from the command line:
 
 .. code-block:: bash
 
    GONet_Wizard --version
 
-Changelog
-=========
+or from Python:
 
-The full `changelong <https://github.com/gterreran/GONet_Wizard/blob/master/CHANGELOG.md>`_ is available on GitHub:
+.. code-block:: python
 
-The project uses `git-changelog <https://github.com/pawamoy/git-changelog>`_ to automatically generate a structured changelog from the commit history and Git tags.
+   import GONet_Wizard
+   print(GONet_Wizard.__version__)

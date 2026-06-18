@@ -1,0 +1,602 @@
+Extractor Architecture
+======================
+
+The extraction framework is responsible for converting GONet observations
+into structured records through a collection of independent extractor
+components.
+
+Each extractor contributes a specific subset of information, such as file
+metadata, timestamps, weather conditions, astronomical quantities, geometry
+parameters, or pixel-value measurements.
+
+The final extraction record is assembled by combining the outputs of all
+participating extractors.
+
+This architecture makes it easy to:
+
+* Extend the extraction system.
+* Add new output quantities.
+* Reuse extraction logic.
+* Keep extraction code modular and maintainable.
+
+See also:
+
+* :doc:`extraction tool guide <../tools/extract_measurements>`
+* :doc:`extraction API reference <../api_reference/extraction>`
+
+
+Key Code Paths
+--------------
+
+The extraction architecture is implemented across the extractor package and the
+interactive extraction app.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - File or module
+     - Role
+   * - ``GONet_Wizard/GONet_utils/src/extractors/core.py``
+     - Base extractor abstractions and dependency declarations.
+   * - ``GONet_Wizard/GONet_utils/src/extractors/runner.py``
+     - Orchestrates extractor execution.
+   * - ``GONet_Wizard/GONet_utils/src/extractors/merge.py``
+     - Combines extractor result dictionaries into output records.
+   * - ``GONet_Wizard/GONet_utils/src/extractors/file_info.py``
+     - Reads file-level metadata and provides shared observation context.
+   * - ``GONet_Wizard/GONet_utils/src/extractors/time_info.py``
+     - Adds UTC/local time and MJD fields.
+   * - ``GONet_Wizard/GONet_utils/src/extractors/weather_info.py``
+     - Adds weather fields when available.
+   * - ``GONet_Wizard/GONet_utils/src/extractors/astro_info.py``
+     - Adds solar and lunar quantities.
+   * - ``GONet_Wizard/GONet_utils/src/extractors/extraction_values.py``
+     - Computes channel statistics inside the selected region.
+   * - ``GONet_Wizard/GONet_utils/src/extract_app/shapes/``
+     - Defines geometric region classes used by extraction.
+
+Important concepts include ``USES``, ``PROVIDES``, ``raw``, ``context``,
+extractor result dictionaries, and the final merged JSON/CSV record.
+
+For generated API documentation, see :doc:`extraction API reference <../api_reference/extraction>`.
+
+Overview
+--------
+
+An extraction begins with:
+
+* One or more GONet observations.
+* Extraction configuration parameters.
+* A collection of extractors.
+
+Depending on the selected extractors, an extraction region may or may not
+be required.
+
+Each extractor computes a specific subset of the final output.
+
+Conceptually, the extraction pipeline is:
+
+.. code-block:: text
+
+   GONetFile
+        +
+   Extraction Region
+        |
+        v
+
+   FileInfo
+    │
+    └── provides "time"
+            │
+            ├── TimeInfo
+            ├── WeatherInfo
+            └── AstroInfo
+
+    ShapeInfo
+    ExtractionValues
+
+        |
+        v
+
+   Merged Output Dictionary
+
+        |
+        +--> JSON Output
+        |
+        +--> CSV Output
+
+The execution order is determined from declared dependencies rather than
+hard-coded sequencing.
+
+For example, the astronomical, weather, and time extractors all require a
+valid observation time. That time is provided by the file-information
+extractor, so the file-information extractor must execute first.
+
+Once the time information is available in the shared context, the dependent
+extractors may execute.
+
+The final extraction record is produced by merging the output dictionaries
+returned by each extractor.
+
+Metadata vs Region-Based Extractors
+-----------------------------------
+
+Not every extractor requires an extraction region.
+
+Many extractors operate exclusively on image metadata and can produce useful
+results without examining any pixels. Examples include the file-information,
+time, weather, and astronomical extractors.
+
+Only a subset of extractors, such as the extraction-values extractor,
+require a geometric region in order to compute pixel-based measurements.
+
+The extraction framework therefore supports both metadata-only extraction
+and region-based measurement workflows.
+
+Why Extractors?
+---------------
+
+The extractor framework was designed to separate independent concerns that
+would otherwise accumulate inside a single monolithic extraction routine.
+
+For example:
+
+* Time conversion logic belongs in the time extractor.
+* Weather retrieval belongs in the weather extractor.
+* Astronomical calculations belong in the astronomical extractor.
+* Pixel statistics belong in the extraction-values extractor.
+
+By isolating these responsibilities, individual components can be developed,
+tested, and extended independently.
+
+Context-Based Execution
+-----------------------
+
+The extraction framework is built around two shared data structures:
+
+``raw``
+   Input information supplied to the extraction pipeline.
+
+``context``
+   Intermediate information generated by extractors and shared with other
+   extractors.
+
+Every extractor receives both objects:
+
+.. code-block:: python
+
+   extract(raw, context)
+
+and returns:
+
+.. code-block:: python
+
+   results, context
+
+The ``results`` dictionary contributes fields to the final extraction output,
+while the ``context`` dictionary allows extractors to exchange intermediate
+information.
+
+This design allows extractors to remain largely independent while still
+supporting complex workflows involving shared computations.
+
+Dependency Example
+~~~~~~~~~~~~~~~~~~
+
+The standard extraction pipeline contains several extractors that depend on
+observation timestamps.
+
+Conceptually:
+
+.. code-block:: text
+
+   FileInfo
+      |
+      +--> provides "time"
+                |
+                +--> TimeInfo
+                +--> WeatherInfo
+                +--> AstroInfo
+
+The ``FileInfo`` extractor reads timestamps from the image files and stores
+them in the shared context.
+
+The ``TimeInfo`` extractor uses those timestamps to generate UTC, local time,
+and Modified Julian Date fields.
+
+The ``WeatherInfo`` extractor uses the same timestamps to retrieve matching
+weather records.
+
+The ``AstroInfo`` extractor uses the same timestamps to compute solar and
+lunar information.
+
+Without the shared ``time`` context value, none of these extractors could
+operate.
+
+Design Philosophy
+-----------------
+
+The extraction framework follows a composition-based design.
+
+Rather than creating a single monolithic extractor responsible for every
+output field, the framework divides responsibilities among specialized
+components.
+
+Each extractor is responsible for one logical category of information.
+
+Benefits of this design include:
+
+* Simpler code.
+* Easier testing.
+* Better separation of concerns.
+* Straightforward extension of the extraction system.
+
+Extractor Dependencies
+----------------------
+
+Extractors may depend on information generated by other extractors.
+
+Dependencies are declared through two class attributes:
+
+``USES``
+   Context keys required by the extractor.
+
+``PROVIDES``
+   Context keys generated by the extractor.
+
+For example:
+
+.. code-block:: python
+
+   class TimeInfo(Extractor):
+
+       USES = ["time"]
+       PROVIDES = []
+
+An extractor may only run once all of its required ``USES`` keys are
+available in the shared context.
+
+Likewise, extractors that generate intermediate context values declare those
+values through ``PROVIDES``.
+
+These declarations allow the extraction framework to automatically determine
+a valid execution order.
+
+.. note::
+
+   The shared ``time`` value is the most common dependency in the standard
+   pipeline, but the dependency mechanism is not limited to timestamps.
+
+   The dependency mechanism is intentionally generic. The framework does not
+   contain any special handling for timestamps or weather information. Any
+   extractor may declare context dependencies, and the dependency resolver will
+   incorporate them into the execution graph automatically.
+
+   Any extractor may provide context values that can be reused by other
+   extractors. The framework resolves these relationships automatically using
+   the declared ``USES`` and ``PROVIDES`` fields.
+
+Automatic Dependency Resolution
+-------------------------------
+
+The extraction framework does not rely on a manually maintained execution
+order.
+
+Instead, extractors are topologically sorted according to their declared
+``USES`` and ``PROVIDES`` relationships.
+
+This ensures that:
+
+* Required context values exist before they are used.
+* New extractors can be added without manually restructuring the pipeline.
+* Dependency errors can be detected automatically.
+
+As a result, the extractor list describes *what* each extractor needs and
+provides, while the framework determines *when* it should execute.
+
+Standard Extractors
+-------------------
+
+The following extractors are included with GONet Wizard.
+
+File Information Extractor
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Module:
+
+.. code-block:: text
+
+   extractors/file_info.py
+
+Purpose:
+
+* Filename information.
+* Camera identifier.
+* Unix timestamps.
+
+Typical fields:
+
+* ``filename``
+* ``camera``
+* ``unix_time``
+
+Shape Information Extractor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Module:
+
+.. code-block:: text
+
+   extractors/shape_info.py
+
+Purpose:
+
+Stores the parameters describing the extraction geometry.
+
+Typical fields:
+
+* ``shape``
+* ``x0``
+* ``y0``
+* ``radius``
+* ``inner_radius``
+* ``outer_radius``
+* ``start_angle``
+* ``end_angle``
+
+Time Information Extractor
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Module:
+
+.. code-block:: text
+
+   extractors/time_info.py
+
+Purpose:
+
+Converts image timestamps into a variety of useful representations.
+
+Typical fields:
+
+* ``night``
+* ``date_utc``
+* ``date_local``
+* ``mjd``
+* ``hours_utc``
+* ``hours_local``
+* ``float_hours_utc``
+* ``float_hours_local``
+
+Weather Information Extractor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Module:
+
+.. code-block:: text
+
+   extractors/weather_info.py
+
+Purpose:
+
+Retrieves environmental information associated with the observation.
+
+Typical fields:
+
+* ``temperature``
+* ``dew_point``
+* ``wind_speed``
+* ``pressure``
+* ``humidity``
+* ``condition_code``
+
+Astronomical Information Extractor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Module:
+
+.. code-block:: text
+
+   extractors/astro_info.py
+
+Purpose:
+
+Computes astronomical quantities associated with the observation.
+
+Typical fields:
+
+* ``sunaltaz``
+* ``moonaltaz``
+* ``moon_illumination``
+
+Extraction Values Extractor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Module:
+
+.. code-block:: text
+
+   extractors/extraction_values.py
+
+Purpose:
+
+Performs the actual pixel-value measurements within the extraction region.
+
+Typical fields:
+
+* ``total_counts``
+* ``mean_counts``
+* ``std``
+* ``npixels``
+
+Output Assembly
+---------------
+
+Each extractor returns a dictionary containing its contribution to the final
+record.
+
+Conceptually:
+
+.. code-block:: python
+
+   {
+       "temperature": 27.9,
+       "humidity": 54.0,
+   }
+
+or
+
+.. code-block:: python
+
+   {
+       "red": {
+           "total_counts": ...,
+           "mean_counts": ...,
+       }
+   }
+
+The extraction runner combines these dictionaries into a single output record.
+
+The resulting record is then written to either JSON or CSV format.
+
+Output Composition
+~~~~~~~~~~~~~~~~~~
+
+Each extractor contributes a subset of the final output record.
+
+For example:
+
+.. code-block:: text
+
+   FileInfo
+      -> filename, camera, unix_time
+
+   TimeInfo
+      -> date_utc, date_local, mjd
+
+   WeatherInfo
+      -> temperature, humidity, pressure
+
+   ExtractionValues
+      -> red, green, blue statistics
+
+The extraction runner merges these contributions into a single dictionary,
+which is then written to JSON or CSV output.
+
+Extractors generally do not modify fields produced by other extractors.
+Instead, they contribute additional information to the growing output record.
+
+Results vs Context
+~~~~~~~~~~~~~~~~~~
+
+A useful way to think about the framework is to distinguish between
+information intended for the final output and information intended only for
+intermediate computation.
+
+``results``
+   Quantities that will appear in the final extraction record.
+
+``context``
+   Intermediate quantities shared between extractors but not necessarily
+   written to the output.
+
+For example, a timestamp may be stored in the context and reused by several
+extractors, while the final UTC string, local time, and Modified Julian Date
+are written to the results.
+
+JSON vs CSV
+~~~~~~~~~~~
+
+JSON preserves the full hierarchical structure of the extraction results.
+
+Example:
+
+.. code-block:: text
+
+   red
+     ├── total_counts
+     ├── mean_counts
+     ├── std
+     └── npixels
+
+CSV output flattens nested structures into columns.
+
+Example:
+
+.. code-block:: text
+
+   red_total_counts
+   red_mean_counts
+   red_std
+   red_npixels
+
+The two formats contain the same information but are optimized for different
+use cases.
+
+Minimal Extractor Skeleton
+--------------------------
+
+A new extractor should normally look like this:
+
+.. code-block:: python
+
+   from GONet_Wizard.GONet_utils.src.extractors.core import Extractor
+
+
+   class MyExtractor(Extractor):
+       USES = ["time"]
+       PROVIDES = ["my_context_key"]
+
+       def extract(self, raw, context):
+           results = {
+               "my_output_field": "...",
+           }
+
+           context["my_context_key"] = "..."
+
+           return results, context
+
+The runner uses ``USES`` and ``PROVIDES`` to determine when the extractor can
+run. The returned ``results`` are merged into the final JSON/CSV output, while
+``context`` carries intermediate values for later extractors.
+
+Adding New Extractors
+---------------------
+
+The framework is intentionally designed to be extensible.
+
+A typical extractor defines:
+
+* The context keys it requires through ``USES``.
+* The context keys it generates through ``PROVIDES``.
+* An ``extract()`` method that computes its results.
+
+When possible, extractors should:
+
+* Have a single responsibility.
+* Avoid depending on unrelated extractors.
+* Communicate through the shared context rather than direct coupling.
+* Return deterministic outputs for identical inputs.
+
+Following these guidelines helps preserve the modular nature of the
+framework and keeps dependency graphs easy to understand.
+
+In general, new extractors should focus on a single responsibility and
+contribute additional fields to the merged output record.
+
+Keeping extractors independent makes the extraction framework easier to test,
+maintain, and extend.
+
+Relationship with the API Reference
+-----------------------------------
+
+This page describes the architecture of the extraction framework.
+
+For implementation details and class documentation, see:
+
+* :doc:`extraction API reference <../api_reference/extraction>`
+
+For user-facing extraction workflows, see:
+
+* :doc:`extraction tool guide <../tools/extract_measurements>`

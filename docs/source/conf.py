@@ -1,7 +1,6 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../../'))
-from typing import Callable, Any
 from GONet_Wizard._version import __version__  
 
 version = __version__
@@ -32,7 +31,7 @@ source_suffix = {
 
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',  # For Google-style docstrings
+    'sphinx.ext.napoleon',  # NumPy/Sphinx-style docstrings
     'sphinx.ext.viewcode',  # To include links to source code
     'sphinx.ext.intersphinx', # Enables linking to external docs
     'sphinx_autodoc_typehints',  
@@ -40,9 +39,21 @@ extensions = [
     'myst_parser',
 ]
 
-exclude_patterns = []
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
-typehints = 'signature'
+# -- Autodoc / Napoleon ------------------------------------------------------
+
+napoleon_google_docstring = False
+napoleon_numpy_docstring = True
+napoleon_use_param = True
+napoleon_use_rtype = False
+
+autodoc_default_options = {
+    'members': True,
+    'show-inheritance': True,
+    'member-order': 'bysource',
+}
+
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -66,7 +77,6 @@ extlinks = {
 }
 
 autodoc_typehints = 'signature'
-autodoc_member_order = 'bysource'
 
 html_theme_options = {
     "navigation_depth": 2,  # Required for function-level sidebar nesting

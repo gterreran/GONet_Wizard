@@ -1,1 +1,0 @@
-.. automodule:: GONet_Wizard.GONet_utils.src.extractors.weather_info

@@ -1,1 +1,0 @@
-.. automodule:: GONet_Wizard.commands.show.io
