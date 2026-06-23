@@ -21,4 +21,4 @@ import GONet_Wizard.settings as settings
 server = Flask('GONet_dashboard')
 
 #: The Dash app instance.
-app = Dash(server=server, assets_folder=settings.STATIC)
+app = Dash(server=server, assets_folder=str(settings.STATIC))

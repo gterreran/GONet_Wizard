@@ -25,8 +25,9 @@ Classes
 """
 
 import yaml
-from pathlib import Path
 from typing import List, Dict, Any
+
+from GONet_Wizard.resources import data_file
 
 class Field:
     """
@@ -94,8 +95,8 @@ class Field:
         self.field_type = field_type  # 'env' or 'chn'
         self.load: Dict[str, Any] = extras.get("load", {}) or {}
 
-# Path to YAML file relative to this script
-DATA_SPEC_PATH = Path(__file__).parent / "data_spec.yaml"
+# Path to YAML file shipped with the package.
+DATA_SPEC_PATH = data_file("data_spec.yaml", must_exist=True)
 
 # Load and instantiate Field objects
 with open(DATA_SPEC_PATH, "r", encoding="utf-8") as f:

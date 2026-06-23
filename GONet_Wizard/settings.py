@@ -60,12 +60,13 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Optional
 
 from dotenv import load_dotenv
 
 from GONet_Wizard.logging_utils import get_logger
+from GONet_Wizard.resources import package_root, static_dir, template_dir
+from GONet_Wizard.paths import cache_dir, config_dir, data_dir, log_dir, temp_dir
 
 logger = get_logger(__name__)
 
@@ -115,11 +116,20 @@ class EnvVar:
         return val
 
 
-# Absolute path to the GONet_Wizard/ root directory
-ROOT = Path(__file__).resolve().parent
+# Absolute path to the GONet_Wizard package resource root.
+# This may point inside a frozen desktop bundle when packaged.
+ROOT = package_root()
 
-# Absolute path to the shared static folder
-STATIC = ROOT / "static"
+# Absolute paths to package-shipped UI resources.
+STATIC = static_dir()
+TEMPLATES = template_dir()
+
+# Platform-aware user-writable locations for packaged desktop builds.
+USER_DATA_DIR = data_dir(create=False)
+USER_CONFIG_DIR = config_dir(create=False)
+USER_CACHE_DIR = cache_dir(create=False)
+USER_LOG_DIR = log_dir(create=False)
+USER_TEMP_DIR = temp_dir(create=False)
 
 # GONet variables
 GONET_USER = EnvVar("GONET_USER", "pi")

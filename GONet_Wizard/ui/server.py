@@ -22,6 +22,7 @@ The server is managed as a process singleton using module-level state:
 - ``_app`` holds the :class:`flask.Flask` instance
 - ``_server_thread`` holds the background thread running the server
 - ``_server_port`` stores the configured port
+- ``_server_lock`` serializes startup so callers never open windows early
 
 Functions
 ---------
@@ -29,6 +30,8 @@ Functions
     Create and configure the unified Flask application.
 :func:`ensure_server_running`
     Start the Flask server thread if needed and return the active port.
+:func:`wait_for_server`
+    Block until the local Flask server answers its health endpoint.
 :func:`get_app`
     Return the singleton Flask app instance, creating it if needed.
 :func:`get_server_port`
@@ -40,6 +43,8 @@ from __future__ import annotations
 
 import threading
 import time
+import urllib.error
+import urllib.request
 from typing import Optional
 
 from flask import Flask
@@ -50,6 +55,9 @@ from GONet_Wizard import settings
 _server_thread: Optional[threading.Thread] = None
 _server_port: int = 5050
 _app: Optional[Flask] = None
+_server_lock = threading.Lock()
+_HEALTH_PATH = "/health"
+_HEALTH_BODY = "ok"
 
 
 def create_app() -> Flask:
@@ -72,9 +80,14 @@ def create_app() -> Flask:
     """
     app = Flask(
         "GONetWizardUI",
-        template_folder=str(settings.ROOT / "gui" / "templates"),
-        static_folder=settings.STATIC,
+        template_folder=str(settings.TEMPLATES),
+        static_folder=str(settings.STATIC),
     )
+
+    @app.get(_HEALTH_PATH)
+    def health_check():
+        """Return a minimal readiness response for desktop startup checks."""
+        return _HEALTH_BODY, 200, {"Content-Type": "text/plain; charset=utf-8"}
 
     # Register the launcher routes as a blueprint
     try:
@@ -91,6 +104,66 @@ def create_app() -> Flask:
         raise RuntimeError("Failed to register preview blueprint.") from e
 
     return app
+
+
+def wait_for_server(
+    host: str,
+    port: int,
+    *,
+    path: str = _HEALTH_PATH,
+    timeout: float = 10.0,
+    poll_interval: float = 0.1,
+) -> None:
+    """
+    Block until the unified UI server answers its health endpoint.
+
+    The desktop bundle starts Flask in a background thread before creating the
+    pywebview window. Frozen apps can take slightly longer to bind and serve
+    their first request, so probing the HTTP health endpoint avoids opening a
+    blank webview against a server that is not ready yet.
+
+    Parameters
+    ----------
+    host : :class:`str`
+        Hostname or IP address to probe, usually ``"127.0.0.1"``.
+    port : :class:`int`
+        TCP port used by the unified UI server.
+    path : :class:`str`, optional
+        Health endpoint path. Defaults to ``"/health"``.
+    timeout : :class:`float`, optional
+        Maximum time to wait in seconds. Defaults to ``10.0``.
+    poll_interval : :class:`float`, optional
+        Time between readiness checks in seconds. Defaults to ``0.1``.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    RuntimeError
+        If the health endpoint does not respond before ``timeout`` expires.
+    """
+    url = f"http://{host}:{port}{path}"
+    deadline = time.monotonic() + timeout
+    last_error: BaseException | None = None
+
+    while time.monotonic() < deadline:
+        try:
+            with urllib.request.urlopen(url, timeout=min(1.0, poll_interval)) as response:
+                body = response.read().decode("utf-8", errors="replace").strip()
+                if response.status == 200 and body == _HEALTH_BODY:
+                    return
+        except (OSError, urllib.error.URLError) as exc:
+            last_error = exc
+
+        time.sleep(poll_interval)
+
+    detail = f" Last error: {last_error}" if last_error is not None else ""
+    raise RuntimeError(
+        f"Unified UI server did not become ready at {url!r} "
+        f"within {timeout:.1f}s.{detail}"
+    )
 
 
 def ensure_server_running(*, port: int = 5050) -> int:
@@ -118,31 +191,44 @@ def ensure_server_running(*, port: int = 5050) -> int:
     """
     global _server_thread, _server_port, _app
 
-    if _server_thread is not None and _server_thread.is_alive():
+    with _server_lock:
+        if _server_thread is not None and _server_thread.is_alive():
+            return _server_port
+
+        _server_port = port
+        _app = create_app()
+
+        def _run() -> None:
+            # threaded=True allows concurrent requests from multiple windows
+            _app.run(
+                host="127.0.0.1",
+                port=_server_port,
+                debug=False,
+                threaded=True,
+                use_reloader=False,
+            )
+
+        try:
+            _server_thread = threading.Thread(target=_run, daemon=True)
+            _server_thread.start()
+        except Exception as e:
+            _server_thread = None
+            _app = None
+            raise RuntimeError("Failed to start unified UI server thread.") from e
+
+        try:
+            wait_for_server("127.0.0.1", _server_port, timeout=15.0)
+        except RuntimeError as e:
+            if _server_thread is not None and not _server_thread.is_alive():
+                _server_thread = None
+                _app = None
+                raise RuntimeError(
+                    "Unified UI server exited before it became ready. "
+                    "The requested port may already be in use."
+                ) from e
+            raise
+
         return _server_port
-
-    _server_port = port
-    _app = create_app()
-
-    def _run() -> None:
-        # threaded=True allows concurrent requests from multiple windows
-        _app.run(
-            host="127.0.0.1",
-            port=_server_port,
-            debug=False,
-            threaded=True,
-            use_reloader=False,
-        )
-
-    try:
-        _server_thread = threading.Thread(target=_run, daemon=True)
-        _server_thread.start()
-    except Exception as e:
-        raise RuntimeError("Failed to start unified UI server thread.") from e
-
-    # Give it a moment to bind the port
-    time.sleep(0.25)
-    return _server_port
 
 
 def get_app() -> Flask:

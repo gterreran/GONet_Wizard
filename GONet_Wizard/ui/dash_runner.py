@@ -38,6 +38,7 @@ Functions
 
 from __future__ import annotations
 
+from queue import Empty, Queue
 import socket
 import threading
 import time
@@ -107,9 +108,14 @@ class _RunnerState:
         Background thread running the Dash server.
     port : :class:`int`
         Port bound by the server.
+    startup_errors : :class:`queue.Queue`
+        Queue used to report startup exceptions from the background thread to
+        the caller waiting for the port to open.
     """
+
     thread: threading.Thread
     port: int
+    startup_errors: Queue[BaseException]
 
 
 # Global registry: (app_key, port) -> running thread
@@ -141,7 +147,49 @@ def _suppress_startup_noise() -> None:
         pass
 
 
-def _run_dash_server(spec: DashLaunchSpec, *, debug: bool, port: int) -> None:
+def _raise_startup_error(
+    startup_errors: Queue[BaseException] | None,
+    *,
+    app_key: str | None = None,
+) -> None:
+    """
+    Raise the first queued Dash startup exception, if one is available.
+
+    Parameters
+    ----------
+    startup_errors : :class:`queue.Queue` or None
+        Queue populated by the Dash server thread when startup fails.
+    app_key : :class:`str`, optional
+        Human-readable app key included in the raised message.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    RuntimeError
+        If a startup exception has been reported by the background thread.
+    """
+    if startup_errors is None:
+        return
+
+    try:
+        exc = startup_errors.get_nowait()
+    except Empty:
+        return
+
+    label = f" {app_key!r}" if app_key else ""
+    raise RuntimeError(f"Dash server{label} failed during startup: {exc}") from exc
+
+
+def _run_dash_server(
+    spec: DashLaunchSpec,
+    *,
+    debug: bool,
+    port: int,
+    startup_errors: Queue[BaseException] | None = None,
+) -> None:
     """
     Configure and run the Dash server (blocking).
 
@@ -153,31 +201,46 @@ def _run_dash_server(spec: DashLaunchSpec, *, debug: bool, port: int) -> None:
         Whether to run in Dash debug mode.
     port : :class:`int`
         Port to bind to on localhost.
+    startup_errors : :class:`queue.Queue`, optional
+        Queue used to report exceptions to the launching thread while it waits
+        for the server port to become available.
 
     Returns
     -------
     None
     """
-    if not debug:
-        _suppress_startup_noise()
+    try:
+        if not debug:
+            _suppress_startup_noise()
 
-    spec.configure(spec.app)
-    spec.app.layout = spec.layout(spec.app)
+        spec.configure(spec.app)
+        spec.app.layout = spec.layout(spec.app)
 
-    if spec.index_string is not None:
-        spec.app.index_string = spec.index_string()
+        if spec.index_string is not None:
+            spec.app.index_string = spec.index_string()
 
-    spec.register_callbacks()
+        spec.register_callbacks()
 
-    spec.app.run_server(port=port, debug=debug, use_reloader=False)
+        spec.app.run_server(
+            host="127.0.0.1",
+            port=port,
+            debug=debug,
+            use_reloader=False,
+        )
+    except BaseException as exc:
+        if startup_errors is not None:
+            startup_errors.put(exc)
+        raise
 
 
 def wait_for_port(
     host: str,
     port: int,
     *,
-    timeout: float = 10.0,
-    poll_interval: float = 0.05,
+    timeout: float = 30.0,
+    poll_interval: float = 0.1,
+    startup_errors: Queue[BaseException] | None = None,
+    app_key: str | None = None,
 ) -> None:
     """
     Block until a TCP port is accepting connections.
@@ -189,9 +252,16 @@ def wait_for_port(
     port : :class:`int`
         TCP port number.
     timeout : :class:`float`, optional
-        Maximum time to wait in seconds. Defaults to ``10.0``.
+        Maximum time to wait in seconds. Defaults to ``30.0``. Frozen desktop
+        apps can take longer than source-mode runs to import, configure, and
+        bind Dash apps.
     poll_interval : :class:`float`, optional
-        Time between connection attempts in seconds. Defaults to ``0.05``.
+        Time between connection attempts in seconds. Defaults to ``0.1``.
+    startup_errors : :class:`queue.Queue`, optional
+        Queue populated by the background server thread if startup fails before
+        the port opens.
+    app_key : :class:`str`, optional
+        App key included in startup error messages.
 
     Returns
     -------
@@ -200,11 +270,14 @@ def wait_for_port(
     Raises
     ------
     RuntimeError
-        If the port does not open within ``timeout`` seconds.
+        If the port does not open within ``timeout`` seconds, or if the Dash
+        server reports a startup exception before the port opens.
     """
     deadline = time.monotonic() + timeout
 
     while time.monotonic() < deadline:
+        _raise_startup_error(startup_errors, app_key=app_key)
+
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.settimeout(poll_interval)
             try:
@@ -213,6 +286,7 @@ def wait_for_port(
             except (ConnectionRefusedError, OSError):
                 time.sleep(poll_interval)
 
+    _raise_startup_error(startup_errors, app_key=app_key)
     raise RuntimeError(
         f"Dash server did not open port {host}:{port} within {timeout:.1f}s"
     )
@@ -227,6 +301,7 @@ def ensure_dash_running(
     *,
     debug: bool,
     port: int = 8050,
+    startup_timeout: float = 30.0,
 ) -> str:
     """
     Ensure a Dash server is running for the given spec and port, and return its URL.
@@ -241,11 +316,19 @@ def ensure_dash_running(
         Whether to run Dash in debug mode.
     port : :class:`int`, optional
         Port to bind to on localhost. Defaults to ``8050``.
+    startup_timeout : :class:`float`, optional
+        Maximum time to wait for the server port to open. Defaults to ``30.0``.
 
     Returns
     -------
     :class:`str`
         Local URL for the running server (e.g., ``"http://127.0.0.1:8050"``).
+
+    Raises
+    ------
+    RuntimeError
+        If the server fails during startup or does not open its port before the
+        timeout expires.
     """
     key = (spec.app_key, port)
 
@@ -253,15 +336,37 @@ def ensure_dash_running(
     if existing is not None and existing.thread.is_alive():
         return f"http://127.0.0.1:{port}"
 
+    startup_errors: Queue[BaseException] = Queue()
+
     t = threading.Thread(
         target=_run_dash_server,
-        kwargs={"spec": spec, "debug": debug, "port": port},
+        kwargs={
+            "spec": spec,
+            "debug": debug,
+            "port": port,
+            "startup_errors": startup_errors,
+        },
         daemon=True,
     )
     t.start()
 
-    _RUNNERS[key] = _RunnerState(thread=t, port=port)
+    _RUNNERS[key] = _RunnerState(
+        thread=t,
+        port=port,
+        startup_errors=startup_errors,
+    )
 
-    wait_for_port("127.0.0.1", port, timeout=10.0)
+    try:
+        wait_for_port(
+            "127.0.0.1",
+            port,
+            timeout=startup_timeout,
+            startup_errors=startup_errors,
+            app_key=spec.app_key,
+        )
+    except RuntimeError:
+        if not t.is_alive():
+            _RUNNERS.pop(key, None)
+        raise
 
     return f"http://127.0.0.1:{port}"

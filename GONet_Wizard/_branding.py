@@ -34,29 +34,38 @@ Notes
 
 from __future__ import annotations
 
-import sys, platform, webview
+import platform, sys, webview
 from pathlib import Path
+
+from GONet_Wizard.resources import logo_path, resource_path
 
 _ICON_SET = False  # process-wide guard
 
 
-def _resource_path(*rel_parts: str) -> str:
+def _resource_path(*parts: str) -> str:
     """
-    Build an absolute path to a resource shipped with the package.
+    Return a package resource path using the legacy branding helper contract.
+
+    This compatibility wrapper preserves the historical behavior used by the
+    branding tests: when PyInstaller exposes ``sys._MEIPASS``, paths are
+    resolved directly below that directory. New production code should prefer
+    :func:`GONet_Wizard.resources.resource_path` and the more specific helpers
+    in :mod:`GONet_Wizard.resources`.
 
     Parameters
     ----------
-    rel_parts : :class:`str`
-        One or more path segments relative to this file's directory (or the
-        PyInstaller `_MEIPASS` temp directory if present).
+    *parts : str
+        Resource path segments to append to the package or bundle root.
 
     Returns
     -------
-    :class:`str`
+    str
         Absolute filesystem path to the requested resource.
     """
-    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
-    return str(base.joinpath(*rel_parts))
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass is not None:
+        return str(Path(meipass).joinpath(*parts))
+    return str(resource_path(*parts))
 
 
 def _default_icon_path() -> str:
@@ -76,9 +85,8 @@ def _default_icon_path() -> str:
         Absolute filesystem path to the icon file.
     """
     if platform.system() == "Darwin":
-        return _resource_path("static", "img", "logo", "GONet_Wizard.icns")
-    else:
-        return _resource_path("static", "img", "logo", "GONet_Wizard.ico")
+        return str(logo_path("GONet_Wizard.icns"))
+    return str(logo_path("GONet_Wizard.ico"))
 
 
 def set_dock_icon_once(path: str | None = None) -> None:

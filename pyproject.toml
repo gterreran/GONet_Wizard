@@ -44,6 +44,7 @@ dev = [
     "ruff",
 ]
 docs = ["sphinx>=7.0", "sphinx-autodoc-typehints", "sphinx-rtd-theme", "myst-parser"]
+build = ["pyinstaller>=6.0"]
 
 [project.urls]
 Homepage = "https://github.com/gterreran/GONet_Wizard"
@@ -52,9 +53,20 @@ Issues = "https://github.com/gterreran/GONet_Wizard/issues"
 
 [project.scripts]
 GONet_Wizard = "GONet_Wizard.__main__:main"
+gonet-wizard = "GONet_Wizard.__main__:main"
+
+[project.gui-scripts]
+GONet_Wizard_GUI = "GONet_Wizard.desktop:main"
+gonet-wizard-gui = "GONet_Wizard.desktop:main"
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["GONet_Wizard*"]
+exclude = ["build_tools*", "docs*", "tests*"]
+namespaces = false
 
 [tool.setuptools.package-data]
 GONet_Wizard = [
