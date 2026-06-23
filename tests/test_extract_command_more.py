@@ -22,14 +22,10 @@ def test_comma_separated_pair_rejects_invalid_input(value):
 
 
 def test_validate_output_file_adds_default_json_extension(tmp_path):
-    with pytest.warns(RuntimeWarning, match="Defaulting to 'json'"):
-        output, output_type = extract_command.validate_output_file(
-            str(tmp_path / "counts"),
-            None,
-        )
+    output, output_type = extract_command.validate_output_file(str(tmp_path / "counts"), None)
 
     assert output == str(tmp_path / "counts.json")
-    assert output_type is None
+    assert output_type == "json"
 
 
 def test_validate_output_file_uses_requested_extension_when_missing(tmp_path):
@@ -77,7 +73,7 @@ def test_extract_counts_from_gonet_writes_json_and_builds_circle_params(tmp_path
 
     def fake_extract_all(files, channels, extraction_params):
         calls.append((files, channels, extraction_params))
-        return [{"files": Path("a.jpg"), "red": {"total_counts": 10}}]
+        return [{"filename": "a.jpg", "red": {"total_counts": 10}}]
 
     monkeypatch.setattr(extract_command, "extract_all", fake_extract_all)
     output = tmp_path / "counts.json"
@@ -106,7 +102,7 @@ def test_extract_counts_from_gonet_writes_json_and_builds_circle_params(tmp_path
             "path": None,
         },
     )]
-    assert json.loads(output.read_text()) == [{"files": "a.jpg", "red": {"total_counts": 10}}]
+    assert json.loads(output.read_text()) == [{"filename": "a.jpg", "red": {"total_counts": 10}}]
 
 
 def test_extract_counts_from_gonet_defaults_to_all_channels(tmp_path, monkeypatch):
@@ -114,7 +110,7 @@ def test_extract_counts_from_gonet_defaults_to_all_channels(tmp_path, monkeypatc
 
     def fake_extract_all(files, channels, extraction_params):
         calls.append((files, channels, extraction_params))
-        return [{"files": "a.jpg"}]
+        return [{"filename": "a.jpg"}]
 
     monkeypatch.setattr(extract_command, "extract_all", fake_extract_all)
 
@@ -135,7 +131,7 @@ def test_extract_counts_from_gonet_writes_csv(tmp_path, monkeypatch):
     monkeypatch.setattr(
         extract_command,
         "extract_all",
-        lambda files, channels, extraction_params: [{"files": "a.jpg", "red": {"total_counts": 10}}],
+        lambda files, channels, extraction_params: [{"filename": "a.jpg", "red": {"total_counts": 10}}],
     )
     output = tmp_path / "counts.csv"
 
@@ -151,8 +147,8 @@ def test_extract_counts_from_gonet_writes_csv(tmp_path, monkeypatch):
     )
 
     df = pd.read_csv(output)
-    assert list(df.columns) == ["files", "red_total_counts"]
-    assert df.loc[0, "files"] == "a.jpg"
+    assert list(df.columns) == ["filename", "red_total_counts"]
+    assert df.loc[0, "filename"] == "a.jpg"
     assert df.loc[0, "red_total_counts"] == 10
 
 

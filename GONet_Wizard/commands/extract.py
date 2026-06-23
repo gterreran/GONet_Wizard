@@ -167,7 +167,8 @@ def validate_output_file(output: str, output_type: str) -> Union[str, str]:
                 "The wanted extension for the output file is not specified. Defaulting to 'json'.",
                 RuntimeWarning,
             )
-            output = f'{output}.json'
+            output_type = "json"
+            output = f'{output}.{output_type}'
         else:
             output = f'{output}.{output_type}'
     else:

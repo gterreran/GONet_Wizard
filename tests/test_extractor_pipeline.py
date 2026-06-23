@@ -97,7 +97,7 @@ def test_run_extractors_merges_results_into_records():
         "first",
         [],
         ["first_done"],
-        {"files": ["a", "b"], "x": np.array([1, 2])},
+        {"files": ["a", "b"], "filename": ["a", "b"], "x": np.array([1, 2])},
     )
     second = DummyExtractor(
         "second",
@@ -113,4 +113,4 @@ def test_run_extractors_merges_results_into_records():
         extractors=[second, first],
     )
 
-    assert records == [{"files": "b", "x": 2, "y": 20, "global": "same"}]
+    assert records == [{"filename": "b", "x": 2, "y": 20, "global": "same"}]
