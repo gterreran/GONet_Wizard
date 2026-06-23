@@ -3,6 +3,15 @@ name: Build macOS DMG
 on:
   workflow_dispatch:
   push:
+    branches:
+      - packaging
+    paths:
+      - ".github/workflows/package-macos.yml"
+      - "build_tools/**"
+      - "GONet_Wizard/**"
+      - "pyproject.toml"
+      - ".gitignore"
+      - "tests/**"
     tags:
       - "v*"
 
