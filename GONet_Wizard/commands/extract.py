@@ -406,9 +406,6 @@ def extract_counts_from_GONet(
     logger.info("Extracting %s", shape)
     logger.info("Channels: %s", ", ".join(channels))
     out_epoch_list = extract_all(files, channels, extraction_params)
-    
-    for epoch in out_epoch_list:
-        epoch["files"] = str(epoch["files"])  # ensure filepaths are strings for JSON serialization
 
     if output_type == "csv":
         import pandas as pd

@@ -12,9 +12,7 @@ Usage
 
 .. code-block:: bash
 
-   GONet_Wizard dashboard [-h] [--debug] [--show_images_preview]
-                          [--images_path IMAGES_PATH] [--port PORT]
-                          input [input ...]
+   GONet_Wizard dashboard [-h] [--debug] [--port PORT] input [input ...]
 
 Arguments
 ---------
@@ -30,14 +28,6 @@ Options
 
 ``--debug``
    Run the dashboard in debug mode with more verbose logging.
-
-``--show_images_preview``
-   Show image previews in the dashboard.
-
-``--images_path IMAGES_PATH``
-   Path to the directory containing GONet images used for previews.
-
-   The default is the current directory.
 
 ``--port PORT``
    Port for the Dash server.
@@ -56,12 +46,6 @@ Launch the dashboard from specific files:
 .. code-block:: bash
 
    GONet_Wizard dashboard extraction_1.json extraction_2.json
-
-Launch the dashboard with image previews:
-
-.. code-block:: bash
-
-   GONet_Wizard dashboard results/ --show_images_preview --images_path images/
 
 Launch the dashboard on a custom port:
 

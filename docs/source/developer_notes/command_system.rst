@@ -566,9 +566,10 @@ operation directly or launch a richer interactive interface.
 
 ``commands/run_dashboard.py`` defines the ``dashboard`` command.
 
-The handler expands and filters JSON/CSV inputs, prepares optional image
-preview paths, starts or reuses the Dash dashboard server, and returns a
-``WindowRequest`` pointing to the dashboard URL.
+The handler expands and filters JSON/CSV inputs, starts or reuses the Dash
+dashboard server, and returns a ``WindowRequest`` pointing to the dashboard URL.
+Image previews are resolved later by the dashboard from the full ``filename``
+paths stored in the loaded extraction products.
 
 This is a good example of a command that launches an external interactive app
 through the shared UI runtime.

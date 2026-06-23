@@ -102,14 +102,12 @@ place_holder_GONet = {
     }
 }
 
-def layout(show_images_preview: bool, all_columns: list) -> dcc.Loading:
+def layout(all_columns: list) -> dcc.Loading:
     """
     Construct the full Dash app layout.
 
     Parameters
     ----------
-    show_images_preview : bool
-        Whether to include the GONet image preview panel.
     all_columns : list
         List of all available columns for dropdown selections.
     
@@ -119,11 +117,6 @@ def layout(show_images_preview: bool, all_columns: list) -> dcc.Loading:
         The complete layout tree for the Dash app.
     
     """
-
-    if show_images_preview:
-        gonet_display_style = {"display": "block"}
-    else:
-        gonet_display_style = {"display": "none"}
 
     layout = dcc.Loading(
         id="loading-wrapper",
@@ -195,7 +188,7 @@ def layout(show_images_preview: bool, all_columns: list) -> dcc.Loading:
                     ])
                 ]),
                 html.Div(id='gonet-image-container',children = [
-                    dcc.Graph(id="gonet-image", figure= place_holder_GONet, style=gonet_display_style),
+                    dcc.Graph(id="gonet-image", figure=place_holder_GONet),
                     html.Table(id="info-table")
                 ])
             ]),

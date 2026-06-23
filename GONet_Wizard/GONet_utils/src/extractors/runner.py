@@ -131,6 +131,10 @@ def extract_all(file_list: List[str], channels: List[str], extraction_params: Di
     num_observations = lengths[0] if lengths else 0
     final_data = [{} for _ in range(num_observations)]
 
+    # Remove the "files" key from the final output if it exists, since it's only used for alignment
+    if "files" in data:
+        del data["files"]
+
     for key, value in data.items():
         if isinstance(value, (list, np.ndarray)):
             # Distribute list/array values across the final dictionaries

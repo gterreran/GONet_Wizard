@@ -6,23 +6,4 @@
 {% set help = "Pick a folder containing JSON/CSV files. This maps to --input." %}
 {% include "components/path_picker.html" %}
 
-<div class="form-group">
-  <label class="check">
-    <input type="checkbox" name="show_images_preview" data-cache="1">
-    <span>Show image previews in the dashboard</span>
-  </label>
-  <div class="form-help">
-    If enabled, the dashboard will try to show image thumbnails (needs an images directory).
-  </div>
-</div>
-
-{# Images path: even if previews are off, we still store it, matching CLI behavior #}
-{% set input_id = "dashboard-images-path" %}
-{% set name = "images_path" %}
-{% set label = "Images directory" %}
-{% set placeholder = "e.g. /data/images (or leave as .)" %}
-{% set pick_mode = "folder" %}
-{% set help = "Directory containing images used for preview thumbnails." %}
-{% include "components/path_picker.html" %}
-
 <button type="submit">Launch dashboard</button>

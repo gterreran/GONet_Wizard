@@ -29,6 +29,7 @@ import pandas as pd
 from pathlib import Path
 
 from GONet_Wizard.GONet_utils import GONetFile, DATA_SPEC
+from GONet_Wizard.GONet_utils.src.extract_app.shapes import base as shape_base
 from GONet_Wizard.GONet_dashboard.src import env
 from GONet_Wizard.GONet_dashboard.src.server import app
 
@@ -934,48 +935,210 @@ class FigureWrapper:
         return out_dict
 
 
+    @staticmethod
+    def _image_message_figure(message: str) -> dict:
+        """
+        Build a lightweight figure used when an image preview cannot be shown.
+
+        Parameters
+        ----------
+        message : :class:`str`
+            Message to display in the image-preview panel.
+
+        Returns
+        -------
+        :class:`dict`
+            Plotly-compatible figure dictionary containing a centered message.
+        """
+        return {
+            "data": [],
+            "layout": {
+                "xaxis": {"visible": False},
+                "yaxis": {"visible": False},
+                "annotations": [
+                    {
+                        "text": message,
+                        "xref": "paper",
+                        "yref": "paper",
+                        "x": 0.5,
+                        "y": 0.5,
+                        "showarrow": False,
+                        "font": {"size": 18, "color": env.TEXT_COLOR},
+                        "align": "center",
+                    }
+                ],
+                "paper_bgcolor": env.BG_COLOR,
+                "plot_bgcolor": env.BG_COLOR,
+                "font": {"color": env.TEXT_COLOR},
+                "margin": {"l": 10, "r": 10, "t": 10, "b": 10},
+            },
+        }
+
+
+    @staticmethod
+    def _is_missing(value) -> bool:
+        """
+        Return whether a dashboard row value should be treated as missing.
+
+        Dashboard data come from pandas rows, so missing values may be ``None``,
+        ``NaN``, or ``NaT``.  This helper avoids calling :func:`pandas.isna` in
+        contexts where it can return an array-like object.
+        """
+        if value is None:
+            return True
+        try:
+            return bool(pd.isna(value))
+        except (TypeError, ValueError):
+            return False
+
+    @classmethod
+    def _first_row_value(cls, row: pd.Series, *keys: str, default=None):
+        """
+        Return the first non-missing value from a row among several possible keys.
+
+        Extraction products store user-facing geometry fields such as
+        ``radius`` or ``inner_radius``.  The shape classes consume the internal
+        ``param1``/``param2`` convention.  Accepting both names keeps the
+        dashboard compatible with current and older products.
+        """
+        for key in keys:
+            if key not in row:
+                continue
+            value = row.get(key)
+            if not cls._is_missing(value):
+                return value
+        return default
+
+    @classmethod
+    def _shape_params_from_row(cls, row: pd.Series) -> dict | None:
+        """
+        Convert a dashboard row into parameters accepted by ``Shape.from_dict``.
+
+        The extraction JSON stores the public output field names, while the
+        shape framework expects ``param1`` and ``param2`` for shape-specific
+        dimensions.  This method performs only that small translation and then
+        delegates all geometry construction to the shared shape classes.
+        """
+        raw_shape = row.get("shape") if "shape" in row else None
+        if cls._is_missing(raw_shape):
+            return None
+
+        shape_name = str(raw_shape).strip().lower()
+        if not shape_name or shape_name in {"none", "nan", "nat"}:
+            return None
+
+        params = {
+            "shape": shape_name,
+            "x0": cls._first_row_value(row, "x0"),
+            "y0": cls._first_row_value(row, "y0"),
+            "start_angle": cls._first_row_value(row, "start_angle", default=-180),
+            "end_angle": cls._first_row_value(row, "end_angle", default=180),
+        }
+
+        if shape_name == "circle":
+            params["param1"] = cls._first_row_value(row, "radius", "param1")
+
+        elif shape_name == "annulus":
+            params["param1"] = cls._first_row_value(row, "inner_radius", "param1")
+            params["param2"] = cls._first_row_value(row, "outer_radius", "param2")
+
+        elif shape_name == "rectangle":
+            params["param1"] = cls._first_row_value(row, "side1", "param1")
+            params["param2"] = cls._first_row_value(row, "side2", "param2")
+
+        elif shape_name in {"path", "freehand"}:
+            params["path"] = cls._first_row_value(row, "path")
+
+        return params
+
+    def _shape_overlay_from_row(self, row: pd.Series) -> list[dict]:
+        """
+        Build Plotly layout shapes for the extraction geometry in a row.
+
+        Missing or invalid geometry should never break image preview.  If the
+        dashboard cannot reconstruct the shape, it returns no overlay and leaves
+        the selected image visible.
+        """
+        params = self._shape_params_from_row(row)
+        if params is None:
+            return []
+
+        try:
+            shape = shape_base.Shape.from_dict(params)
+            return shape.draw()
+        except shape_base.IncompleteShapeError:
+            return []
+        except Exception as exc:
+            warnings.warn(
+                f"Could not draw extraction overlay for selected dashboard row: {exc}",
+                UserWarning,
+            )
+            return []
+
     def gonet_image(self, clickdata: dict) -> dict | None:
         """
-        Render the GONet image for the clicked point using self.all_data (pandas DataFrame).
+        Render the GONet image associated with the clicked dashboard point.
+
+        The dashboard expects the loaded extraction products to contain a
+        ``filename`` field storing the full path to the extracted GONet image.
+        This method reads that path from ``self.all_data`` and loads the image
+        directly, without requiring a separate image-directory setting.
+
+        If the file is missing or cannot be read, a non-breaking placeholder
+        figure is returned instead of raising an exception.
         """
-        # Basic env checks
-        if env.GONET_IMAGES_PATH is None:
-            warnings.warn("Image path not configured (env.GONET_IMAGES_PATH is None).", UserWarning)
-            return None
-        if not env.GONET_IMAGES_PATH.exists():
-            warnings.warn(f"Image folder does not exist: {env.GONET_IMAGES_PATH}", UserWarning)
-            return None
         if not clickdata or "points" not in clickdata or not clickdata["points"]:
             return None
 
-        # Which trace was clicked -> which channel trace we’re in
+        # Which trace was clicked -> which channel trace we are in.  General
+        # (channel-independent) traces use ``gen``; in that case, choose a real
+        # channel from the selected epoch below.
         plot_index = clickdata["points"][0]["curveNumber"]
-        channel = self.fig["data"][plot_index].get("channel")
+        clicked_channel = self.fig["data"][plot_index].get("channel")
 
-        # Locate the row for (epoch_idx == big_point_idx) & (channel == channel)
-        df = self.all_data  # pandas DataFrame
-        mask = (df["epoch_idx"] == self.big_point_idx) & (df["channel"] == channel)
-        if not mask.any():
-            warnings.warn(f"No data row for epoch_idx={self.big_point_idx}, channel={channel}", UserWarning)
-            return None
+        df = self.all_data
+        epoch_mask = df["epoch_idx"] == self.big_point_idx
+        if not epoch_mask.any():
+            warnings.warn(f"No data row for epoch_idx={self.big_point_idx}", UserWarning)
+            return self._image_message_figure("Image preview unavailable<br>No matching dashboard row")
 
-        row = df.loc[mask].iloc[0]
+        epoch_rows = df.loc[epoch_mask]
 
-        # Resolve image path:  <GONET_IMAGES_PATH>/<night>/Horizontal/<filename>
-        night = str(row.get("night"))
-        fname = Path(str(row.get("filename")))
-        filename = env.GONET_IMAGES_PATH / night / "Horizontal" / fname
+        if clicked_channel in env.CHANNELS:
+            channel_rows = epoch_rows.loc[epoch_rows["channel"] == clicked_channel]
+        else:
+            channel_rows = pd.DataFrame()
+
+        if channel_rows.empty:
+            # Prefer green for generic points because it is the default channel
+            # in the dashboard UI, then fall back to the first available row.
+            green_rows = epoch_rows.loc[epoch_rows["channel"] == "green"]
+            row = (green_rows if not green_rows.empty else epoch_rows).iloc[0]
+            channel = str(row.get("channel", "green"))
+        else:
+            row = channel_rows.iloc[0]
+            channel = str(clicked_channel)
+
+        raw_filename = row.get("filename")
+        if raw_filename is None or pd.isna(raw_filename) or str(raw_filename).strip() == "":
+            warnings.warn("Selected dashboard row has no filename field.", UserWarning)
+            return self._image_message_figure("File not found<br>No filename stored for this point")
+
+        filename = Path(str(raw_filename)).expanduser()
 
         if not filename.exists():
-            warnings.warn(f"Image not found at resolved path: {filename}", UserWarning)
-            return None
+            warnings.warn(f"Image not found: {filename}", UserWarning)
+            return self._image_message_figure(f"File not found<br>{filename}")
 
-        # Load image and build figure
-        go = GONetFile.from_file(filename)
         try:
-            img = go.get_channel(channel)
-        finally:
-            del go  # free ASAP
+            go = GONetFile.from_file(filename)
+            try:
+                img = go.get_channel(channel)
+            finally:
+                del go  # free ASAP
+        except Exception as exc:
+            warnings.warn(f"Could not load image preview from {filename}: {exc}", UserWarning)
+            return self._image_message_figure(f"File not found or unreadable<br>{filename}")
 
         outfig = {
             "data": [
@@ -995,39 +1158,14 @@ class FigureWrapper:
             },
         }
 
-        # Center marker
-        cx = float(row["center_x"])
-        cy = float(row["center_y"])
-        outfig["data"].append({
-            "x": [cx],
-            "y": [cy],
-            "type": "scatter",
-            "mode": "markers",
-            "marker": {"color": "rgba(0, 0, 0, 1)", "symbol": "circle"},
-            "hoverinfo": "skip",
-            "showlegend": False,
-        })
-
-        # Circular aperture overlay
-        r = float(row["extraction_radius"])
-        ang = np.linspace(0, 2 * np.pi, 25)
-        c_x = (cx + r * np.cos(ang)).tolist()
-        c_y = (cy + r * np.sin(ang)).tolist()
-
-        outfig["data"].append({
-            "x": c_x,
-            "y": c_y,
-            "type": "scatter",
-            "mode": "lines",
-            "marker": {"color": "rgba(0, 0, 0, 1)", "symbol": "circle"},
-            "hoverinfo": "skip",
-            "showlegend": False,
-        })
+        # Optional geometry overlay.  The extraction app already owns shape
+        # construction and Plotly drawing through the shared Shape framework, so
+        # the dashboard only adapts the selected row into Shape.from_dict input.
+        overlay_shapes = self._shape_overlay_from_row(row)
+        for i in range(len(overlay_shapes)):
+            overlay_shapes[i]["line"] = {"color": "black"}
+        if overlay_shapes:
+            outfig["layout"]["shapes"] = overlay_shapes
 
         return outfig
 
-
-
-# if 'range' in fig['layout']['xaxis']:
-#     xaxis_range = fig['layout']['xaxis']['range']
-#     yaxis_range = fig['layout']['yaxis']['range']

@@ -64,17 +64,6 @@ COMMAND = CommandSpec(
             "help": "Run the dashboard in debug mode (more verbose logging).",
         },
         {
-            "flags": ["--show_images_preview"],
-            "action": "store_true",
-            "default": False,
-            "help": "Show image previews in the dashboard.",
-        },
-        {
-            "flags": ["--images_path"],
-            "default": ".",
-            "help": "Path to GONet images directory. Default is current directory.",
-        },
-        {
             "flags": ["--port"],
             "type": int,
             "default": 8050,
@@ -97,7 +86,7 @@ def cli_handler(args: argparse.Namespace):
     ----------
     args : :class:`argparse.Namespace`
         Parsed command-line arguments. Expected attributes include ``input``,
-        ``images_path``, ``show_images_preview``, ``debug``, and ``port``.
+        ``debug``, and ``port``.
 
     Returns
     -------
@@ -117,13 +106,10 @@ def cli_handler(args: argparse.Namespace):
     else:
         inputs = expand_inputs(args.input)
 
-    images_path = expand_inputs([getattr(args, "images_path", ".") or "."])
     inputs = filter_by_ext(inputs, [".json", ".csv"])
 
     url = ensure_dashboard_running(
         input_files=[str(p) for p in inputs],
-        show_images_preview=bool(args.show_images_preview),
-        images_path=[str(p) for p in images_path],
         debug=bool(args.debug),
         port=int(args.port),
     )

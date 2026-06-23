@@ -37,11 +37,7 @@ from GONet_Wizard.GONet_dashboard.src.hood.loaders import load_data
 from GONet_Wizard.ui.dash_runner import DashLaunchSpec, ensure_dash_running
 
 
-def _configure_dashboard(
-    input_files: List[str],
-    show_images_preview: bool,
-    images_path: List[str],
-) -> None:
+def _configure_dashboard(input_files: List[str]) -> None:
     """
     Populate the Dash server configuration with dashboard data and metadata.
 
@@ -53,11 +49,6 @@ def _configure_dashboard(
     ----------
     input_files : :class:`list` of :class:`str`
         Paths to input JSON/CSV files to load into the dashboard.
-    show_images_preview : :class:`bool`
-        Whether image previews should be enabled in the UI.
-    images_path : :class:`list` of :class:`str`
-        Paths to directories containing GONet images.
-
     Returns
     -------
     None
@@ -68,8 +59,6 @@ def _configure_dashboard(
         data=data,
         base_columns=base_columns,
         channel_columns=channel_columns,
-        show_images_preview=show_images_preview,
-        images_path=images_path,
     )
 
     # Precompute dropdown options shared across multiple callbacks
@@ -97,7 +86,7 @@ def _layout(_app):
     from GONet_Wizard.GONet_dashboard.src.layout import layout
 
     cfg = _app.server.config
-    return layout(cfg["show_images_preview"], cfg["all_columns"])
+    return layout(cfg["all_columns"])
 
 
 def _register_callbacks() -> None:
@@ -150,8 +139,6 @@ def _index_string() -> str:
 
 def ensure_dashboard_running(
     input_files: List[str],
-    show_images_preview: bool,
-    images_path: List[str],
     debug: bool,
     port: int = 8050,
 ) -> str:
@@ -166,10 +153,6 @@ def ensure_dashboard_running(
     ----------
     input_files : :class:`list` of :class:`str`
         Paths to input JSON/CSV files to load into the dashboard.
-    show_images_preview : :class:`bool`
-        Whether image previews should be enabled in the UI.
-    images_path : :class:`list` of :class:`str`
-        Paths to directories containing GONet images.
     debug : :class:`bool`
         Whether to run Dash in debug mode.
     port : :class:`int`, optional
@@ -183,11 +166,7 @@ def ensure_dashboard_running(
     spec = DashLaunchSpec(
         app=app,
         app_key="gonet-dashboard",
-        configure=lambda _app: _configure_dashboard(
-            input_files,
-            show_images_preview,
-            images_path,
-        ),
+        configure=lambda _app: _configure_dashboard(input_files),
         layout=_layout,
         register_callbacks=_register_callbacks,
         index_string=_index_string,

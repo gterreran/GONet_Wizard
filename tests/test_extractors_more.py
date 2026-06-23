@@ -26,7 +26,7 @@ def test_file_info_extracts_filename_camera_unix_time_and_context_time():
     results, context = FileInfo().extract({"file_list": files}, {})
 
     assert results["files"] == files
-    assert results[DATA_SPEC["filename"].key] == ["11_1700000000.jpg", "12_1700003600.tiff"]
+    assert results[DATA_SPEC["filename"].key] == files
     assert results[DATA_SPEC["camera"].key] == [11, 12]
     assert results[DATA_SPEC["unix_time"].key] == [1700000000, 1700003600]
     np.testing.assert_array_equal(context["time"].unix.astype(int), [1700000000, 1700003600])

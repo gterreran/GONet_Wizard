@@ -197,13 +197,12 @@ def update_main_plot(x_label, y_label, active_filters, channels, show_filtered_p
         info_dictionary = fig.get_data_point_info()
         info_table = [html.Tr([html.Td(el), html.Td(info_dictionary[el])]) for el in info_dictionary]
 
-        if not app.server.config.get("show_images_preview"):
+        # Attempt to render the corresponding image.  The dashboard reads the
+        # full image path from the selected row's ``filename`` field, so no
+        # separate image directory is required.
+        gonet_fig = fig.gonet_image(clickdata)
+        if gonet_fig is None:
             gonet_fig = no_update
-        else:
-            # Attempt to render the corresponding image
-            gonet_fig = fig.gonet_image(clickdata)
-            if gonet_fig is None:
-                gonet_fig = no_update
 
     return fig.to_dict(), formatted_stats_table, gonet_fig, info_table
             
@@ -388,55 +387,54 @@ def update_secondary_filters_value(label):
     Input({"type": "second-filter-operator", "index": ALL}, 'value'),
     Input({"type": "second-filter-value", "index": ALL}, 'value'),
     #---------------------
+    State({"type": "filter-switch", "index": ALL}, 'id'),
+    State({"type": "filter-dropdown", "index": ALL}, 'id'),
     State({"type": "filter-dropdown", "index": ALL}, 'value'),
-    State({"type": "second-filter-dropdown", "index": ALL}, 'value'),
-    State({"type": "second-filter-value", "index": ALL}, 'id'),
+    State({"type": "filter-operator", "index": ALL}, 'id'),
+    State({"type": "filter-value", "index": ALL}, 'id'),
     State({"type": "filter-selection-data", "index": ALL}, 'id'),
+    State({"type": "second-filter-dropdown", "index": ALL}, 'id'),
+    State({"type": "second-filter-dropdown", "index": ALL}, 'value'),
+    State({"type": "second-filter-operator", "index": ALL}, 'id'),
+    State({"type": "second-filter-value", "index": ALL}, 'id'),
     State("active-filters",'data'),
     #---------------------
     prevent_initial_call=True
 )
-def update_filters(_, switches, ops, values, selections, second_ops, second_values, labels, second_labels, second_ids, selections_ids, filters_before):
+def update_filters(
+    _,
+    switches,
+    ops,
+    values,
+    selections,
+    second_ops,
+    second_values,
+    switch_ids,
+    label_ids,
+    labels,
+    op_ids,
+    value_ids,
+    selection_ids,
+    second_label_ids,
+    second_labels,
+    second_op_ids,
+    second_value_ids,
+    filters_before,
+):
     """
-    Assemble and update the active filters list based on user-defined filter inputs.
+    Assemble and update the active filters list from the current filter UI state.
 
-    This function collects the current state of all active filters, including their
-    labels, operators, and values, and constructs a list of active filters. If a
-    secondary (OR) filter is present, it is added as a nested dictionary.
+    The dashboard has two filter types:
 
-    This function is also triggered at load up. Since initially ``active_filters``
-    is ``None``, when triggered the `show-filtered-data-switch` is reset to default
-    status. 
+    - ordinary value filters, which have a ``filter-value`` component;
+    - selection filters, which store selected ``epoch_idx`` values in a
+      ``filter-selection-data`` store and therefore do not have a
+      ``filter-value`` component.
 
-    Parameters
-    ----------
-    switches : :class:`list` of :class:`bool`
-        States of the main filter switches indicating whether each filter is active.
-    ops : :class:`list` of :class:`str`
-        Comparison operators for each main filter (e.g., '>', '<=', '==').
-    values : :class:`list`
-        Values selected or entered for each main filter.
-    selections : :class:`list`
-        Lasso or box selection data used to override value-based filters.
-    second_ops : :class:`list` of :class:`str`
-        Comparison operators for each secondary filter.
-    second_values : :class:`list`
-        Values selected or entered for each secondary filter.
-    labels : :class:`list` of :class:`str`
-        Labels (field names) selected for each main filter.
-    second_labels : :class:`list` of :class:`str`
-        Labels selected for each secondary filter.
-    second_ids : :class:`list` of :class:`dict`
-        IDs of the secondary filter value fields, containing the filter index.
-    selections_ids : :class:`list` of :class:`dict`
-        IDs of the selection-based filters, containing the filter index.
-    filters_before : :class:`list` of :class:`dict`
-        Previously active filters, used to check whether an update is necessary.
-
-    Returns
-    -------
-    :class:`list` of :class:`dict` or :class:`dash.no_update`
-        Updated list of active filters, or `no_update` if unchanged.
+    Because those two filter types do not expose the same pattern-matching
+    components, this callback aligns all inputs by their component ``index`` IDs
+    rather than by list position. That makes mixed value filters and selection
+    filters safe to add, remove, toggle, and combine.
     """
 
     def activate_show_filters(active_filters):
@@ -445,34 +443,72 @@ def update_filters(_, switches, ops, values, selections, second_ops, second_valu
         else:
             return True, True
 
-    active_filters=[]
-    for i,s in enumerate(switches):
-        value = None
-        for k, id in enumerate(selections_ids):
-            if i == id['index']:
-                value = selections[k]
-                values.insert(i, None)
-                break
-        if not value:
-            value = values[i]
+    def has_value(value):
+        """Return True when a filter value should be considered present."""
+        if value is None:
+            return False
+        if isinstance(value, str) and value == "":
+            return False
+        if isinstance(value, (list, tuple, set)) and len(value) == 0:
+            return False
+        return True
 
-        label = labels[i]
-        op = ops[i]
+    def index_from_id(id_):
+        """Extract the pattern-matching index from a Dash component ID."""
+        return id_.get("index") if isinstance(id_, dict) else None
 
-        if s and label is not None and value is not None:
-            # converting date filters to unix time for an easier comparison
+    def map_by_index(ids, vals):
+        """Build an index -> value mapping from aligned Dash ALL inputs."""
+        out = {}
+        for id_, val in zip(ids or [], vals or []):
+            idx = index_from_id(id_)
+            if idx is not None:
+                out[idx] = val
+        return out
+
+    label_by_index = map_by_index(label_ids, labels)
+    op_by_index = map_by_index(op_ids, ops)
+    value_by_index = map_by_index(value_ids, values)
+    selection_by_index = map_by_index(selection_ids, selections)
+    second_label_by_index = map_by_index(second_label_ids, second_labels)
+    second_op_by_index = map_by_index(second_op_ids, second_ops)
+    second_value_by_index = map_by_index(second_value_ids, second_values)
+
+    active_filters = []
+
+    for switch_id, switch_on in zip(switch_ids or [], switches or []):
+        idx = index_from_id(switch_id)
+        if idx is None:
+            continue
+
+        label = label_by_index.get(idx)
+        op = op_by_index.get(idx)
+
+        if idx in selection_by_index:
+            value = selection_by_index.get(idx)
+        else:
+            value = value_by_index.get(idx)
+
+        if switch_on and label is not None and op is not None and has_value(value):
+            # Convert date/time filters to the internal numeric quantities used
+            # by the loaded dataframe. Selection filters keep the ``Selection``
+            # label and epoch-index list unchanged.
             label, value = utils.parse_date_time(label, value)
 
             active_filters.append({'label': label, 'operator': op, 'value': value})
-            for j,id in enumerate(second_ids):
 
-                second_label = second_labels[j]
-                second_op = second_ops[j]
-                second_value = second_values[j]
+            if idx in second_label_by_index:
+                second_label = second_label_by_index.get(idx)
+                second_op = second_op_by_index.get(idx)
+                second_value = second_value_by_index.get(idx)
 
-                if id['index'] == i and second_label is not None and second_value is not None:
+                if second_label is not None and second_op is not None and has_value(second_value):
                     second_label, second_value = utils.parse_date_time(second_label, second_value)
-                    active_filters[-1]['secondary'] = {'label': second_label, 'operator': second_op, 'value': second_value}
+                    active_filters[-1]['secondary'] = {
+                        'label': second_label,
+                        'operator': second_op,
+                        'value': second_value,
+                    }
 
     if filters_before != active_filters:
         return active_filters, *activate_show_filters(active_filters)
@@ -807,17 +843,17 @@ def add_selection_filter(_, filter_div, relayout_data, figure):
     """
     Create and add a new filter based on the current selection region in the plot.
 
-    This function checks if a valid lasso or box selection exists in the plot's ``relayoutData``.
-    If so, it generates a new filter corresponding to the selected data points and appends it
-    to the list of existing filters. The selection is then removed from the plot layout to avoid
-    reprocessing.
+    Plotly stores lasso/box selections as point positions within each trace. The
+    dashboard filters data using ``epoch_idx`` values, so this callback converts
+    selected trace positions into the corresponding epoch indices before storing
+    the selection filter.
 
     Parameters
     ----------
     _ : :class:`Any`
         Placeholder for the button click triggering the addition of a selection-based filter.
     filter_div : :class:`list`
-        Existing list of `Dash <https://dash.plotly.com/>`_ filter components displayed in the UI.
+        Existing list of filter components displayed in the UI.
     relayout_data : :class:`dict`
         Plotly relayout data containing information about lasso/box selections.
     figure : :class:`dict`
@@ -830,8 +866,36 @@ def add_selection_filter(_, filter_div, relayout_data, figure):
     relayoutData : :class:`dict`
         An empty dictionary to reset plot selection state.
     figure : :class:`dict`
-        The updated figure with the selection metadata removed.
+        The updated figure with selection metadata removed.
     """
+
+    def selected_epoch_indices(fig):
+        """Collect selected epoch indices from every selected trace."""
+        selected = []
+        for trace in fig.get('data', []):
+            if trace.get('big_point'):
+                continue
+
+            selected_points = trace.get('selectedpoints')
+            if selected_points is None:
+                continue
+
+            epoch_idx = trace.get('epoch_idx', [])
+            for point_number in selected_points:
+                try:
+                    epoch_value = epoch_idx[int(point_number)]
+                except (TypeError, ValueError, IndexError):
+                    continue
+
+                # Make numpy scalar values JSON-serializable while preserving
+                # string-like ids if they ever appear.
+                if hasattr(epoch_value, 'item'):
+                    epoch_value = epoch_value.item()
+                selected.append(epoch_value)
+
+        # Deduplicate while preserving order. A lasso can select the same epoch
+        # in multiple channel traces.
+        return list(dict.fromkeys(selected))
 
     if not relayout_data or 'selections' not in relayout_data:
         return no_update, no_update, no_update
@@ -840,14 +904,22 @@ def add_selection_filter(_, filter_div, relayout_data, figure):
     if not isinstance(selection, list) or len(selection) == 0 or not isinstance(selection[0], dict) or 'path' not in selection[0]:
         return no_update, no_update, no_update
 
+    selected_epochs = selected_epoch_indices(figure)
+    if len(selected_epochs) == 0:
+        return no_update, no_update, no_update
 
-    del figure['layout']['selections']
+    # Remove the visual selection outline and trace-level selectedpoints so the
+    # plot returns to a neutral state after the selection filter is created.
+    figure.get('layout', {}).pop('selections', None)
+    for trace in figure.get('data', []):
+        trace.pop('selectedpoints', None)
 
     n_filter = len(filter_div)
-    new_empty_filter = utils.new_selection_filter(n_filter, figure['data'][0]['selectedpoints'])
+    new_empty_filter = utils.new_selection_filter(n_filter, selected_epochs)
     filter_div.append(new_empty_filter)
 
     return filter_div, {}, figure
+
 
 @app.callback(
     Output("exit-button", "disabled"),  # dummy output

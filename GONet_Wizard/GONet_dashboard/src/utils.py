@@ -385,76 +385,78 @@ def new_empty_second_filter(idx: int, labels: list) -> list:
 
 def new_selection_filter(idx: int, selected_indexes: list) -> html.Div:
     """
-    Create a `Dash <https://dash.plotly.com/>`_ component for a selection-based filter using manually selected points.
+    Create a Dash component for a selection-based filter.
 
-    This function generates a filter UI tied to a lasso or box selection on the plot.
-    It includes a toggle switch, a dropdown preset to the selection label, a hidden
-    data store with the selected indices, and a dropdown to choose inclusion or exclusion.
+    Selection filters are created from lasso/box-selected plot points. The
+    stored values are ``epoch_idx`` identifiers, not Plotly trace point
+    positions.
 
-    Parameters
-    ----------
-    idx : :class:`int`
-        The index of the filter, used to generate unique component IDs.
-    selected_indexes : :class:`list`
-        A list of data indices representing the points included in the selection.
-
-    Returns
-    -------
-    :class:`dash.html.Div`
-        A :dashdoc:`Dash Div <dash-html-components/div>` component containing the selection-based filter UI.
+    The component IDs intentionally use the same key schema as ordinary value
+    filters: ``{"type": ..., "index": <stable-index>}``. Keeping the ID keys
+    consistent is important because Dash pattern-matching callbacks only receive
+    components that match the requested ID schema. A previous implementation put
+    an additional ``uuid`` key on the switch ID, which meant toggling a
+    selection filter did not reliably trigger the shared ``update_filters``
+    callback.
     """
+
+    row_uuid = str(uuid.uuid4())
+    index = f"{idx}|{row_uuid}"
+    label = f"Selection {idx}"
 
     new_filter = html.Div(
         className="custom-filter-container",
-        id = {"type":'custom-filter-container', "index":idx},
+        id={"type": "custom-filter-container", "index": index},
         children=[
             html.Div(
                 className="first-filter-container",
-                id = {"type":'first-filter-container',"index":idx},
+                id={"type": "first-filter-container", "index": index},
                 children=[
                     html.Div(
-                        className = 'switch-container',
-                        id = {"type":'filter-switch-container', "index":idx},
-                        children = daq.BooleanSwitch(
-                            className='switch',
-                            id={"type":'filter-switch', "index":idx, "uuid": str(uuid.uuid4())},
-                            on=False
+                        className="switch-container",
+                        id={"type": "filter-switch-container", "index": index},
+                        children=daq.BooleanSwitch(
+                            className="switch",
+                            id={"type": "filter-switch", "index": index},
+                            on=False,
                         ),
                     ),
                     dcc.Dropdown(
                         className="custom-filter-dropdown",
-                        id={"type":'filter-dropdown', "index":idx},
-                        options=[f'Selection {idx}'],
-                        value=f'Selection {idx}'
+                        id={"type": "filter-dropdown", "index": index},
+                        options=[label],
+                        value=label,
+                        clearable=False,
                     ),
                     dcc.Store(
-                        id={"type":'filter-selection-data', "index": idx},
-                        data = selected_indexes
+                        id={"type": "filter-selection-data", "index": index},
+                        data=selected_indexes,
                     ),
                     dcc.Dropdown(
                         className="custom-filter-operator",
-                        id={"type":'filter-operator', "index":idx},
-                        options=['in', 'out'],
-                        value = 'in'
+                        id={"type": "filter-operator", "index": index},
+                        options=["in", "out"],
+                        value="in",
+                        clearable=False,
                     ),
-                ]
+                ],
             ),
             html.Div(
                 className="remove-filter-container",
-                id={"type": "remove-filter-container", "index": idx},
+                id={"type": "remove-filter-container", "index": index},
                 children=[
                     html.Button(
-                        id={"type": "remove-filter", "index": idx},
+                        id={"type": "remove-filter", "index": index},
                         className="remove-filter-button",
                         n_clicks=0,
                         children=html.Img(
                             src="/assets/img/icons/trash.svg",
-                            className="remove-filter-icon"
-                        )
+                            className="remove-filter-icon",
+                        ),
                     )
-                ]
-            )
-        ]
+                ],
+            ),
+        ],
     )
 
     return new_filter

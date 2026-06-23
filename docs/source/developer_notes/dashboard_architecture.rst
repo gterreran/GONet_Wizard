@@ -54,7 +54,6 @@ At a high level, that command:
 
 #. Expands input paths.
 #. Filters inputs to supported data products.
-#. Resolves the optional image-preview path.
 #. Starts or reuses the Dash dashboard server.
 #. Returns a ``WindowRequest`` for the managed dashboard window.
 
@@ -119,6 +118,36 @@ For example, extraction outputs may contain values such as red, green, or blue
 The dashboard represents these as plottable quantities with optional channel
 selection. When the selected quantity depends on channel, the channel checkboxes
 control which channel-specific series are displayed.
+
+Image Preview Model
+-------------------
+
+When the user clicks a point in the dashboard, the main plotting callback asks
+``FigureWrapper.gonet_image()`` to render an image preview for that selected
+observation.
+
+The preview path is resolved directly from the selected row's ``filename``
+field. Extraction JSON products are expected to store the full path of the
+source GONet image in that field.
+
+This removes the older requirement for users to provide a separate image
+folder when launching the dashboard.
+
+If the path is missing, does not exist, or cannot be opened, the dashboard
+returns a small placeholder figure with a ``File not found`` message instead of
+raising a breaking callback error.
+
+Relevant code path:
+
+.. code-block:: text
+
+   callbacks.update_main_plot()
+        |
+        v
+   FigureWrapper.gonet_image()
+        |
+        v
+   GONetFile.from_file(filename)
 
 Filtering Model
 ---------------

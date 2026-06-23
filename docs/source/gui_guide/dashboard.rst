@@ -58,27 +58,13 @@ automatically.
 Image Previews
 --------------
 
-The dashboard can optionally show image thumbnails alongside loaded data
-products.
+The dashboard can show the GONet image associated with a selected plotted
+point.
 
-Show Image Previews
-~~~~~~~~~~~~~~~~~~~
-
-Enable **Show image previews in the dashboard** to allow the dashboard to
-display image thumbnails.
-
-When this option is enabled, an images directory should also be provided.
-
-Images Directory
-~~~~~~~~~~~~~~~~
-
-The **Images directory** field defines the folder containing images used for
-preview thumbnails.
-
-This can be useful when dashboard rows or plotted points need to be visually
-associated with the original GONet observations.
-
-If image previews are not needed, leave this option disabled.
+No separate images directory is required. The dashboard reads the full image
+path from the ``filename`` field stored in the loaded extraction JSON products.
+If the file cannot be found or opened, the dashboard displays a non-breaking
+``File not found`` message in the image-preview area.
 
 Launching the Dashboard
 -----------------------
@@ -86,8 +72,6 @@ Launching the Dashboard
 To launch the dashboard:
 
 #. Select a data directory containing JSON or CSV files.
-#. Optionally enable image previews.
-#. If image previews are enabled, select the images directory.
 #. Click **Launch dashboard**.
 
 The dashboard opens in a dedicated window.

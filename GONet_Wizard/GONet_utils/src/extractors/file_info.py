@@ -95,12 +95,16 @@ class FileInfo(Extractor):
         """
         file_list: List[str] = raw["file_list"]
 
-        # Extract only the filename (without the path) before splitting
-        filenames = [Path(f).name for f in file_list]
+        # Use basenames for parsing camera/timestamp tokens, but preserve the
+        # original path in the public ``filename`` output.  The dashboard uses
+        # this full path to load image previews directly from extraction JSON
+        # products without requiring a separate image-directory argument.
+        basenames = [Path(f).name for f in file_list]
+        filenames = [str(Path(f).expanduser()) for f in file_list]
 
-        # Extract metadata from the filenames
-        camera = [int(f.split('_')[0]) for f in filenames]
-        unix_times = [int(f.split('_')[-1].split('.')[0]) for f in filenames]
+        # Extract metadata from the basenames
+        camera = [int(f.split('_')[0]) for f in basenames]
+        unix_times = [int(f.split('_')[-1].split('.')[0]) for f in basenames]
 
         # Update the context with the time information
         context["time"] = Time(unix_times, format="unix")
