@@ -2,16 +2,19 @@ name: Build macOS DMG
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Optional version label for the DMG, e.g. 0.3.0-test"
+        required: false
+        default: ""
+        type: string
+      force_pyinstaller:
+        description: "Force a fresh PyInstaller build before creating the DMG"
+        required: true
+        default: true
+        type: boolean
+
   push:
-    branches:
-      - packaging
-    paths:
-      - ".github/workflows/package-macos.yml"
-      - "build_tools/**"
-      - "GONet_Wizard/**"
-      - "pyproject.toml"
-      - ".gitignore"
-      - "tests/**"
     tags:
       - "v*"
 
@@ -41,8 +44,23 @@ jobs:
           python -m pip install -e ".[build]"
 
       - name: Build unsigned macOS DMG
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          FORCE_PYINSTALLER: ${{ inputs.force_pyinstaller }}
         run: |
-          build_tools/macos/build_dmg.sh --force-pyinstaller
+          ARGS=()
+
+          if [[ "${FORCE_PYINSTALLER:-true}" == "true" ]]; then
+            ARGS+=(--force-pyinstaller)
+          else
+            ARGS+=(--skip-pyinstaller)
+          fi
+
+          if [[ -n "${REQUESTED_VERSION:-}" ]]; then
+            ARGS+=(--version "${REQUESTED_VERSION}")
+          fi
+
+          build_tools/macos/build_dmg.sh "${ARGS[@]}"
 
       - name: Create checksums
         run: |
@@ -70,4 +88,5 @@ jobs:
               --draft \
               --title "GONet Wizard ${TAG_NAME}" \
               --notes "Draft release created automatically from ${TAG_NAME}."
+
           gh release upload "${TAG_NAME}" dist/*.dmg dist/SHA256SUMS-macOS.txt --clobber
