@@ -30,6 +30,10 @@ Architecture Map
      - How the dashboard loads extraction products, discovers fields, filters data, and exports subsets.
    * - :doc:`contributor workflows developer notes <contributor_workflows>`
      - Practical recipes for adding commands, GUI forms, Dash tools, and extractors.
+   * - :doc:`desktop packaging developer notes <packaging>`
+     - How the desktop entry point, resource paths, PyInstaller specs, and macOS DMG wrapper fit together.
+   * - :doc:`release workflow developer notes <release_workflow>`
+     - How to build, test, and publish large installer artifacts without committing them to git.
 
 .. toctree::
    :maxdepth: 2
@@ -40,6 +44,8 @@ Architecture Map
    extractor_architecture
    dashboard_architecture
    contributor_workflows
+   packaging
+   release_workflow
 
 Recommended Reading Order
 -------------------------
@@ -52,6 +58,8 @@ For contributors, the most useful path is usually:
 #. :doc:`extractor architecture developer notes <extractor_architecture>` — understand how extraction outputs are assembled.
 #. :doc:`dashboard architecture developer notes <dashboard_architecture>` — understand the lightweight dashboard data/plot/filter/export flow.
 #. :doc:`contributor workflows developer notes <contributor_workflows>` — use the practical recipes when adding features.
+#. :doc:`desktop packaging developer notes <packaging>` — review packaging rules when changing resource paths, GUI startup, or build scripts.
+#. :doc:`release workflow developer notes <release_workflow>` — review release cadence and artifact handling before publishing installers.
 
 The dashboard is intentionally treated as a more standalone subsystem, but a
 lightweight architecture note is included for contributors who need to work on
