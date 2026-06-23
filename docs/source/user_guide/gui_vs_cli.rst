@@ -21,6 +21,32 @@ This means that the GUI is not a simplified fork of the code and the CLI is not
 a separate backend. Both interfaces call into the same command definitions,
 loaders, file models, extraction utilities, plotting logic, and output writers.
 
+Installation paths
+------------------
+
+The GUI and CLI share code, but they can be installed through different user
+paths. This distinction is important.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 35 35
+
+   * - Installation path
+     - What the user launches
+     - CLI availability
+   * - Desktop installer or DMG
+     - A double-click ``GONet Wizard`` app.
+     - Does not install ``GONet_Wizard`` or ``gonet-wizard`` shell commands.
+   * - Python package installation
+     - Terminal commands such as ``GONet_Wizard show`` and
+       ``GONet_Wizard gui``.
+     - Installs the public CLI entry points, assuming the Python script
+       directory is on ``PATH``.
+
+Use the desktop installer when you want to avoid the terminal entirely. Use the
+Python package installation when you want command-line tools, scripting, or a
+development environment. See :doc:`../installation` for installation details.
+
 When to use the GUI
 -------------------
 

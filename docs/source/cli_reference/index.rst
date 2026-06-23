@@ -15,6 +15,13 @@ For a conceptual overview of the available tools, see :doc:`Tools guide <../tool
 For implementation details about how commands are declared and dispatched, see
 :doc:`command-system developer notes <../developer_notes/command_system>`.
 
+.. important::
+
+   The desktop installer/DMG is a GUI-first distribution path and does not add
+   command-line entry points to your shell. To use this CLI reference, install
+   the Python package with ``pip`` or ``pipx`` so that ``GONet_Wizard`` and
+   ``gonet-wizard`` are available from the terminal.
+
 Basic Usage
 -----------
 

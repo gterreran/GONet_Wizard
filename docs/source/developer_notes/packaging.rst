@@ -53,6 +53,21 @@ GONet Wizard supports two complementary entry points.
 The desktop entry point lives in ``GONet_Wizard/desktop.py``. It exists so
 packagers can target a GUI-first executable without changing the terminal CLI.
 
+Distribution Boundary
+---------------------
+
+The macOS DMG currently distributes the GUI app only. It should not silently
+modify shell startup files, create symlinks in ``/usr/local/bin``, or add CLI
+commands to the user's ``PATH``. The user-facing expectation is:
+
+* desktop installer or DMG: double-click GUI app;
+* Python package installation: ``GONet_Wizard`` / ``gonet-wizard`` terminal commands.
+
+This boundary keeps the desktop distribution safe for non-technical users while
+preserving the full CLI for users who intentionally install the Python package.
+If a future release adds a frozen CLI artifact, document it as a separate
+artifact or an explicit opt-in installer step.
+
 Key Packaging Code Paths
 ------------------------
 

@@ -172,6 +172,21 @@ For the current project stage, GitHub-only distribution is appropriate:
 This keeps distribution simple while still allowing repeatable builds and a
 clear release history.
 
+User-Facing Install Paths
+-------------------------
+
+Release notes and README instructions should keep the installation paths clear:
+
+* the desktop installer or DMG is for GUI users and does not install CLI
+  commands;
+* the Python package installation is for CLI users, scripted workflows, and
+  developers.
+
+A release can contain the desktop DMG without changing the command-line
+installation story. If a future release publishes a frozen CLI executable, ship
+it as a clearly named separate artifact and document how users should add it to
+``PATH``.
+
 macOS Signing Status
 --------------------
 

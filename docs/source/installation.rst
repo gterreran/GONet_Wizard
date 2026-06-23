@@ -10,6 +10,52 @@ This guide walks you through setting up the environment and installing the packa
 
 ----
 
+Choosing an installation path
+-----------------------------
+
+GONet Wizard can be used as a double-click desktop application, as a Python
+command-line package, or both. Choose the installation path that matches how you
+plan to work.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 28 36 36
+
+   * - Installation path
+     - Best for
+     - What it provides
+   * - Desktop installer or DMG
+     - Users who want to open the graphical interface without using a terminal.
+     - A double-click ``GONet Wizard`` app that opens the GUI launcher. It does
+       not add ``GONet_Wizard`` or ``gonet-wizard`` commands to your shell
+       ``PATH``.
+   * - Python package installation with ``pip`` or ``pipx``
+     - CLI users, scripted workflows, developers, and users who want both the
+       terminal commands and the GUI command.
+     - The ``GONet_Wizard`` and ``gonet-wizard`` command-line entry points. The
+       GUI can also be started from the terminal with ``GONet_Wizard gui``.
+
+.. important::
+
+   Installing the desktop app is not the same as installing the Python command
+   line package. The desktop app is meant to hide the terminal for GUI users. If
+   you want terminal commands, install the Python package as described below.
+
+Desktop app installation
+------------------------
+
+Desktop installers are distributed through the GitHub Releases page when a
+packaged build is available. On macOS, the current packaging path produces a
+drag-and-drop DMG containing ``GONet Wizard.app``. After dragging the app to
+``Applications``, launch it by double-clicking the icon.
+
+The desktop app opens the GUI launcher. It does not install command-line entry
+points, modify shell startup files, or add anything to ``PATH``.
+
+Early macOS DMGs may be unsigned. If macOS blocks the app on first launch, see
+the release notes and the ``README-FIRST.txt`` file included in the DMG for the
+expected Gatekeeper behavior.
+
 Creating a Python environment
 -----------------------------
 
