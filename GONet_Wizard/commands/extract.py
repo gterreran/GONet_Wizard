@@ -450,6 +450,17 @@ def cli_handler(args: argparse.Namespace):
     files = args.filenames or [Path(".")]
     files = filter_by_ext(files, [".jpg", ".jpeg", ".tiff", ".tif"])
 
+    if not any([args.red, args.green, args.blue]):
+        channels = ["red", "green", "blue"]
+    else:
+        channels = []
+        if args.red:
+            channels.append("red")
+        if args.green:
+            channels.append("green")
+        if args.blue:
+            channels.append("blue")
+
     if args.shape in {None, "interactive"}:
         from GONet_Wizard.GONet_utils.src.extract_app.extract_gui import (
             ensure_extraction_gui_running,
@@ -461,6 +472,9 @@ def cli_handler(args: argparse.Namespace):
             data_files=[str(p) for p in files],
             debug=bool(args.debug),
             port=int(args.port),
+            channels=channels,
+            output=args.output,
+            output_type=args.output_type,
         )
 
         return WindowRequest(

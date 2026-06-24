@@ -65,10 +65,12 @@ configuration changes.
 """
 
 import os
+import json
 from dash import Input, Output, State, ctx, no_update
 from dash_extensions.enrich import Serverside
 from GONet_Wizard.GONet_utils import GONetFile
 from GONet_Wizard.GONet_utils.src.extractors.extraction_values import extract_counts_from_region
+from GONet_Wizard.GONet_utils.src.extractors import extract_all
 from GONet_Wizard.GONet_utils.src.extractors.core import extraction_output
 from GONet_Wizard.GONet_dashboard.src.load_save_callbacks import register_json_download, load_json
 from GONet_Wizard.GONet_utils.src.extract_app.extract_server import app
@@ -472,9 +474,14 @@ def catch_drawn_path(relayout_data, reset_button, fig):
     """
 
     if ctx.triggered_id == "freehand-reset-button":
-        del fig["layout"]['shapes']
-        fig['data'][1]['z'] = []
+        fig.setdefault("layout", {}).pop("shapes", None)
+        if len(fig.get("data", [])) > 1:
+            fig["data"][1]['z'] = []
         return None, fig
+
+    if relayout_data is None:
+        return no_update, no_update
+
     if 'shapes' in relayout_data:
         if len(fig['layout']['shapes']) > 1:
             fig['layout']['shapes'].pop(0)
@@ -546,21 +553,22 @@ def activate_deactivate_freehand_buttons(path):
     Input("shape-parameter2", "value"),
     Input("shape-sector-start", "value"),
     Input("shape-sector-end", "value"),
+    Input("drawn-path", "data"),
     #---------------------
     State("shape-selector", "value"),
-    State("drawn-path", "data"),
     State("gonet_file", "data"),
     State("channel-selector", "value"),
     State("mask", "data"),
     State("error-banner", "className"),
     prevent_initial_call=True
 )
-def update_extraction_params(_, center_x, center_y, param1, param2, start_angle, end_angle, selected_shape, path, gof, channel, masked_figure, error_banner_class):
+def update_extraction_params(_, center_x, center_y, param1, param2, start_angle, end_angle, path, selected_shape, gof, channel, masked_figure, error_banner_class):
     """
     Update extraction parameters based on user inputs.
 
     This callback updates the `extraction-params` store with the current values
-    of the shape parameters entered by the user. The updated extraction parameters
+    of the shape parameters entered by the user or with the latest freehand path.
+    The updated extraction parameters
     are then used to generate the mask for the selected shape, which is stored
     in the `mask` component. Using this mask, the extracted values are computed
     and stored in the `extracted-values` component.
@@ -631,7 +639,7 @@ def update_extraction_params(_, center_x, center_y, param1, param2, start_angle,
         'path': path
     }
 
-    masked_figure_initial = masked_figure[:]
+    masked_figure_initial = list(masked_figure or [])
 
     data = gof.get_channel(channel)
 
@@ -706,14 +714,19 @@ def update_drawn_figure_and_extraction_values(extraction_params, fig, mask, extr
 
     """ 
 
+    if extracted_values is None:
+        extracted_values = extraction_output(0, 0, 0, 0)
+
     try:
         shape = base.Shape.from_dict(extraction_params)
     except base.IncompleteShapeError:
-        del fig["layout"]["shapes"]
-        fig["data"][1]['z'] = []
+        fig.setdefault("layout", {}).pop("shapes", None)
+        if len(fig.get("data", [])) > 1:
+            fig["data"][1]['z'] = []
     else:
-        fig["layout"]["shapes"] = shape.draw()
-        fig["data"][1]['z'] = mask
+        fig.setdefault("layout", {})["shapes"] = shape.draw()
+        if len(fig.get("data", [])) > 1:
+            fig["data"][1]['z'] = mask
 
     return fig, f"{extracted_values.total_counts}", f"{extracted_values.mean_counts:.2f}", f"{extracted_values.std:.2f}", f"{extracted_values.npixels}"
 
@@ -799,18 +812,59 @@ def load_path(contents):
     return '', load_json(contents)
 
 
+
+def _write_interactive_extraction_output(extraction_params):
+    """
+    Run the extraction selected in the GUI and write the requested output file.
+
+    The integrated extraction GUI is launched asynchronously by the shared UI
+    runtime, so there is no longer a caller waiting for ``extraction_params`` to
+    be returned after the window closes.  The Extract button therefore performs
+    the actual extraction before requesting the window to close.
+    """
+    from GONet_Wizard.commands.extract import validate_output_file
+
+    files = app.server.config.get("data_files") or []
+    channels = app.server.config.get("channels") or ["red", "green", "blue"]
+    output = app.server.config.get("output")
+    output_type = app.server.config.get("output_type")
+
+    shape = extraction_params.get("shape")
+    if output is None:
+        if output_type is None:
+            output_type = "json"
+        output = f"extraction_{shape}.{output_type}"
+
+    output, output_type = validate_output_file(output, output_type)
+    out_epoch_list = extract_all(files, channels, extraction_params)
+
+    if output_type == "csv":
+        import pandas as pd
+
+        df = pd.json_normalize(out_epoch_list, sep="_")
+        df.to_csv(output, index=False)
+    else:
+        with open(output, "w") as f:
+            json.dump(out_epoch_list, f, indent=4)
+
+    return output
+
+
 @app.callback(
     Output("exit-button", "n_clicks"),
+    Output("error-banner", "children", allow_duplicate=True),
+    Output("error-banner", "className", allow_duplicate=True),
     #---------------------
     Input("extract-button", "n_clicks"),
     #---------------------
     State("extraction-params", "data"),
     State("drawn-path", "data"),
+    State("shape-selector", "value"),
     State("exit-button", "n_clicks"),
     #---------------------
     prevent_initial_call=True
 )
-def extraction_button(_, extraction_params, path, n):
+def extraction_button(_, extraction_params, path, selected_shape, n):
     """
     Store extraction parameters and programmatically trigger the exit button.
 
@@ -831,21 +885,44 @@ def extraction_button(_, extraction_params, path, n):
     path : :class:`str` or :data:`NoneType`
         The path of the freehand-drawn region, if applicable. If `None`, no freehand
         region is used.
+    selected_shape : :class:`str`
+        Current value of the shape selector. Used to keep freehand extraction
+        parameters synchronized with the drawn path.
     n : :class:`int` or :data:`None`
         The current number of clicks on the "Exit" button.
 
     Returns
     -------
-    :class:`int`
-        The updated click count for the "Exit" button, incremented by one
-        from its current value (or set to 1 if it was previously ``None``),
-        which triggers any callbacks listening to the exit event.
+    tuple
+        A tuple containing the updated exit click count and the error-banner
+        contents/classes.  On success, the click count is incremented so the
+        window closes.  On failure, the window remains open and the error banner
+        reports the extraction error.
     """
 
-    extraction_params['path'] = path
+    extraction_params = dict(extraction_params or {})
+
+    # The path store is the authoritative source for freehand geometry.  Use
+    # the current shape selector as a guard against a stale extraction-params
+    # store when the user clicks Extract immediately after drawing.
+    if selected_shape == "freehand":
+        extraction_params["shape"] = "freehand"
+        extraction_params["path"] = path
+    else:
+        extraction_params["path"] = path
+
+    try:
+        # Validate the shape before starting the full extraction.  This gives a
+        # user-facing error rather than silently closing the window with no
+        # output when parameters are incomplete or invalid.
+        base.Shape.from_dict(extraction_params)
+        output = _write_interactive_extraction_output(extraction_params)
+    except Exception as e:
+        return no_update, f"Extraction failed: {e}", "extract-error-banner is-visible"
 
     app.server.config["extraction_params"] = extraction_params
-    return 1 if n is None else n+1
+    app.server.config["last_output"] = output
+    return 1 if n is None else n + 1, "", "extract-error-banner"
 
 
 @app.callback(

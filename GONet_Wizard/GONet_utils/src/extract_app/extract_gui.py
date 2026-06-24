@@ -30,12 +30,17 @@ Functions
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from GONet_Wizard.GONet_utils.src.extract_app.extract_server import app
 from GONet_Wizard.ui.dash_runner import DashLaunchSpec, ensure_dash_running
 
-def _configure_extract_gui(data_files: List[str]) -> None:
+def _configure_extract_gui(
+    data_files: List[str],
+    channels: Optional[List[str]] = None,
+    output: Optional[str] = None,
+    output_type: Optional[str] = None,
+) -> None:
     """
     Populate the Dash server configuration for the extraction GUI.
 
@@ -46,12 +51,25 @@ def _configure_extract_gui(data_files: List[str]) -> None:
     ----------
     data_files : :class:`list` of :class:`str`
         Paths to GONet image files to be used for extraction.
+    channels : :class:`list` of :class:`str`, optional
+        Channels to extract when the user clicks the Extract button.  If not
+        provided, all standard GONet channels are extracted.
+    output : :class:`str`, optional
+        Output path requested by the caller.  If not provided, the extraction
+        callback writes the usual ``extraction_<shape>.json`` file.
+    output_type : :class:`str`, optional
+        Requested output type, either ``"json"`` or ``"csv"``.
 
     Returns
     -------
     None
     """
-    app.server.config.update(data_files=data_files)
+    app.server.config.update(
+        data_files=data_files,
+        channels=channels or ["red", "green", "blue"],
+        output=output,
+        output_type=output_type,
+    )
 
 
 def _layout(_app):
@@ -94,6 +112,9 @@ def ensure_extraction_gui_running(
     data_files: List[str],
     debug: bool,
     port: int = 8051,
+    channels: Optional[List[str]] = None,
+    output: Optional[str] = None,
+    output_type: Optional[str] = None,
 ) -> str:
     """
     Ensure the extraction GUI Dash server is running and return its URL.
@@ -111,6 +132,14 @@ def ensure_extraction_gui_running(
         Whether to run Dash in debug mode.
     port : :class:`int`, optional
         Localhost port to bind the Dash server to.
+    channels : :class:`list` of :class:`str`, optional
+        Channels to extract when the user clicks the Extract button.  If not
+        provided, all standard GONet channels are extracted.
+    output : :class:`str`, optional
+        Output path requested by the caller.  If not provided, the extraction
+        callback writes the usual ``extraction_<shape>.json`` file.
+    output_type : :class:`str`, optional
+        Requested output type, either ``"json"`` or ``"csv"``.
 
     Returns
     -------
@@ -121,7 +150,12 @@ def ensure_extraction_gui_running(
     spec = DashLaunchSpec(
         app=app,
         app_key="extract-gui",
-        configure=lambda _app: _configure_extract_gui(data_files),
+        configure=lambda _app: _configure_extract_gui(
+            data_files,
+            channels=channels,
+            output=output,
+            output_type=output_type,
+        ),
         layout=_layout,
         register_callbacks=_register_callbacks,
     )
