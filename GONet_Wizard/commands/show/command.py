@@ -74,7 +74,7 @@ COMMAND = CommandSpec(
             "nargs": "+",
             "action": ExpandFilenames,
             "help": (
-                "GONet file(s) to plot [.jpg, .tiff]. "
+                "GONet file(s) to plot [.jpg, .tif, .tiff]. "
                 "`*` wildcards and comma-separated lists are supported."
             ),
         },
@@ -190,7 +190,7 @@ def cli_handler(args: argparse.Namespace) -> Optional[str]:
     :class:`ValueError`
         If no channels are selected.
     """
-    files = filter_by_ext(args.filenames, [".jpg", ".tiff"])
+    files = filter_by_ext(args.filenames, [".jpg", ".tif", ".tiff"])
 
     blue = bool(getattr(args, "blue", False))
     green = bool(getattr(args, "green", False))

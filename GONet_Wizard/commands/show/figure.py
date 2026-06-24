@@ -56,7 +56,7 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from GONet_Wizard.GONet_utils import GONetFileRaw
+from GONet_Wizard.GONet_utils import GONetFile, GONetFileRaw
 from .layout import (
     add_file_row_frames,
     add_panel_title_pills,
@@ -139,6 +139,58 @@ def auto_vmin_vmax(
     return vmin, vmax
 
 
+def _load_gonet_file_for_show(path: Path) -> Union[GONetFile, GONetFileRaw]:
+    """
+    Load a GONet file with the representation best suited for display.
+
+    RAW JPEG files are loaded as :class:`GONetFileRaw` so the two Bayer green
+    channels can be inspected separately. TIFF products are already processed
+    three-channel files, so they are loaded as :class:`GONetFile`.
+
+    Parameters
+    ----------
+    path : :class:`pathlib.Path`
+        File to load.
+
+    Returns
+    -------
+    :class:`GONetFile` or :class:`GONetFileRaw`
+        Loaded image object.
+    """
+    if path.suffix.lower() in {".tif", ".tiff"}:
+        return GONetFile.from_file(str(path))
+    return GONetFileRaw.from_file(str(path))
+
+
+def _channel_for_loaded_file(gof: Union[GONetFile, GONetFileRaw], channel: str) -> str:
+    """
+    Resolve a requested display channel for the loaded file representation.
+
+    RAW JPEG files support ``green1`` and ``green2``. Processed TIFF files only
+    support the averaged ``green`` channel. When a RAW-style green channel is
+    requested for a TIFF file, fall back to ``green`` so TIFF display does not
+    fail or show a placeholder.
+
+    Parameters
+    ----------
+    gof : :class:`GONetFile` or :class:`GONetFileRaw`
+        Loaded image object.
+    channel : :class:`str`
+        Requested channel name.
+
+    Returns
+    -------
+    :class:`str`
+        Channel name to request from ``gof``.
+    """
+    available = set(getattr(gof, "CHANNELS", []))
+    if channel in available:
+        return channel
+    if channel in {"green1", "green2"} and "green" in available:
+        return "green"
+    return channel
+
+
 def _load_files(
     files: Sequence[Union[str, Path]],
     *,
@@ -176,11 +228,12 @@ def _load_files(
         bounds: dict = {}
 
         try:
-            gof = GONetFileRaw.from_file(str(path))
+            gof = _load_gonet_file_for_show(path)
             meta = gof.meta or {}
 
             for ch in channels:
-                arr = np.asarray(gof.get_channel(ch)).astype(np.float32, copy=False)
+                source_channel = _channel_for_loaded_file(gof, ch)
+                arr = np.asarray(gof.get_channel(source_channel)).astype(np.float32, copy=False)
                 data[ch] = arr
                 bounds[ch] = auto_vmin_vmax(
                     arr,
@@ -292,12 +345,10 @@ def build_show_figure(
     if not channels:
         raise ValueError("No channels selected.")
 
-    # We are loading the file as GONetFileRaw here
-    # so we need to replace the green channel with either
-    # of the green1/green2 channels if green is requested
-    if "green" in channels:
-        channels.remove("green")
-        channels.append("green1")
+    # Display the requested processed green channel as the first RAW green plane
+    # for JPEG files. TIFF files are loaded as processed GONetFile objects, and
+    # _channel_for_loaded_file falls back from green1/green2 to green for them.
+    channels = ["green1" if ch == "green" else ch for ch in channels]
 
     loaded = _load_files(
         files,
