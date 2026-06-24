@@ -22,7 +22,8 @@ def test_comma_separated_pair_rejects_invalid_input(value):
 
 
 def test_validate_output_file_adds_default_json_extension(tmp_path):
-    output, output_type = extract_command.validate_output_file(str(tmp_path / "counts"), None)
+    with pytest.warns(RuntimeWarning, match="Defaulting to 'json'"):
+        output, output_type = extract_command.validate_output_file(str(tmp_path / "counts"), None)
 
     assert output == str(tmp_path / "counts.json")
     assert output_type == "json"
@@ -236,7 +237,27 @@ def test_cli_handler_interactive_returns_window_request(monkeypatch, tmp_path):
     import types
 
     fake_gui = types.ModuleType("GONet_Wizard.GONet_utils.src.extract_app.extract_gui")
-    fake_gui.ensure_extraction_gui_running = lambda data_files, debug, port: "http://127.0.0.1:8051"
+    launch_calls = []
+
+    def fake_ensure_extraction_gui_running(
+        data_files,
+        debug,
+        port,
+        channels=None,
+        output=None,
+        output_type=None,
+    ):
+        launch_calls.append({
+            "data_files": data_files,
+            "debug": debug,
+            "port": port,
+            "channels": channels,
+            "output": output,
+            "output_type": output_type,
+        })
+        return "http://127.0.0.1:8051"
+
+    fake_gui.ensure_extraction_gui_running = fake_ensure_extraction_gui_running
     monkeypatch.setitem(sys.modules, fake_gui.__name__, fake_gui)
     monkeypatch.setattr(extract_command, "filter_by_ext", lambda values, exts: values)
 
@@ -262,3 +283,11 @@ def test_cli_handler_interactive_returns_window_request(monkeypatch, tmp_path):
 
     assert result.key == "extract-gui"
     assert result.spec.url == "http://127.0.0.1:8051"
+    assert launch_calls == [{
+        "data_files": [str(tmp_path / "a.jpg")],
+        "debug": True,
+        "port": 8051,
+        "channels": ["red", "green", "blue"],
+        "output": None,
+        "output_type": None,
+    }]
