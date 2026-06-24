@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from astropy.time import Time
+from pathlib import Path
 
 from GONet_Wizard.GONet_utils import DATA_SPEC
 from GONet_Wizard.GONet_utils.src.extractors.astro_info import AstroInfo
@@ -26,7 +27,9 @@ def test_file_info_extracts_filename_camera_unix_time_and_context_time():
     results, context = FileInfo().extract({"file_list": files}, {})
 
     assert results["files"] == files
-    assert results[DATA_SPEC["filename"].key] == files
+    assert [Path(p) for p in results[DATA_SPEC["filename"].key]] == [
+        Path(p) for p in files
+    ]
     assert results[DATA_SPEC["camera"].key] == [11, 12]
     assert results[DATA_SPEC["unix_time"].key] == [1700000000, 1700003600]
     np.testing.assert_array_equal(context["time"].unix.astype(int), [1700000000, 1700003600])

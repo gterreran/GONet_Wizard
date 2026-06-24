@@ -35,8 +35,10 @@ GONet Wizard has two installation paths, depending on how you want to use it.
 Downloadable desktop installers from the
 `GitHub Releases page <https://github.com/gterreran/GONet_Wizard/releases>`_
 are intended for users who want to launch GONet Wizard by double-clicking the
-application icon. The desktop app opens the graphical launcher and does not
-install the command-line tools into your shell ``PATH``.
+application icon. On macOS this is distributed as a DMG; on Windows this is
+distributed as a Setup.exe installer when a Windows build is available. The
+desktop app opens the graphical launcher and does not install the command-line
+tools into your shell ``PATH``.
 
 **Python package for CLI users**
 

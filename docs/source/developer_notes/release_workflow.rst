@@ -81,6 +81,16 @@ Then open the generated DMG, drag ``GONet Wizard.app`` to ``Applications`` or a
 temporary test folder, and run the smoke test from
 :doc:`desktop packaging developer notes <packaging>`.
 
+For Windows:
+
+.. code-block:: powershell
+
+   pytest
+   powershell -ExecutionPolicy Bypass -File build_tools\windows\build_installer.ps1 -ForcePyInstaller
+
+Then run the generated ``Setup.exe``, launch GONet Wizard from the Start Menu,
+run the same GUI smoke test, uninstall, and reinstall once.
+
 Manual GitHub Actions Build
 ---------------------------
 
@@ -115,12 +125,11 @@ A typical release should contain:
    GONet-Wizard-X.Y.Z-macOS-arm64-unsigned.dmg
    SHA256SUMS.txt
 
-When Windows packaging is added, the same release can also contain the Windows
-installer:
+The same release can also contain the Windows installer:
 
 .. code-block:: text
 
-   GONet-Wizard-X.Y.Z-Windows-x64-Setup.exe
+   GONet-Wizard-X.Y.Z-Windows-x64-unsigned-Setup.exe
 
 Versioned Artifact Names
 ------------------------
@@ -224,16 +233,17 @@ produces and tests a universal binary.
 Windows Release Path
 --------------------
 
-Windows packaging should follow the same release model:
+Windows packaging follows the same release model:
 
-* validate the frozen executable on Windows;
-* wrap it with an installer script, likely Inno Setup;
+* validate the source checkout on Windows;
+* validate the raw PyInstaller executable on Windows;
+* wrap the frozen GUI app with the Inno Setup script in ``build_tools/windows``;
 * account for the WebView2 runtime expectation;
 * upload the installer to GitHub Releases;
 * avoid committing generated ``.exe`` files to git.
 
-A Windows GitHub Actions workflow can be added after the Windows PyInstaller and
-installer path has been validated on a Windows machine or Windows runner.
+A Windows GitHub Actions workflow should be added only after the local Inno
+Setup installer path has been validated on a Windows machine.
 
 Release Checklist
 -----------------

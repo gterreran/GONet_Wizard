@@ -45,16 +45,22 @@ Desktop app installation
 ------------------------
 
 Desktop installers are distributed through the GitHub Releases page when a
-packaged build is available. On macOS, the current packaging path produces a
-drag-and-drop DMG containing ``GONet Wizard.app``. After dragging the app to
-``Applications``, launch it by double-clicking the icon.
+packaged build is available.
+
+On macOS, the packaging path produces a drag-and-drop DMG containing
+``GONet Wizard.app``. After dragging the app to ``Applications``, launch it by
+double-clicking the icon.
+
+On Windows, the packaging path produces a ``Setup.exe`` installer. The installer
+adds a Start Menu shortcut and can optionally add a Desktop shortcut. It is a
+GUI installer only: it does not install terminal commands or modify ``PATH``.
 
 The desktop app opens the GUI launcher. It does not install command-line entry
 points, modify shell startup files, or add anything to ``PATH``.
 
-Early macOS DMGs may be unsigned. If macOS blocks the app on first launch, see
-the release notes and the ``README-FIRST.txt`` file included in the DMG for the
-expected Gatekeeper behavior.
+Early macOS DMGs and Windows installers may be unsigned. If your operating
+system blocks the app on first launch, see the release notes and any README file
+included with the release artifact for expected unsigned-build behavior.
 
 Creating a Python environment
 -----------------------------
@@ -210,8 +216,12 @@ You do not need to run ``setup.py`` directly. It exists only for compatibility a
 
 .. ----
 
-Installation tips for Windows Users
------------------------------------
+Python package installation tips for Windows users
+--------------------------------------------------
+
+The Windows desktop installer does not require Python or Git. This section is
+only for users who want to install the Python package so they can use the CLI
+commands or develop the project locally.
 
 Before installing the GONet Wizard package, ensure that you have both Python and Git installed and accessible from your terminal or command prompt.
 
