@@ -94,15 +94,27 @@ run the same GUI smoke test, uninstall, and reinstall once.
 Manual GitHub Actions Build
 ---------------------------
 
-The macOS workflow is designed to be runnable manually from the GitHub Actions
-tab. A manual run should:
+The macOS and Windows packaging workflows are designed to be runnable manually
+from the GitHub Actions tab. A manual run should:
 
-* build the unsigned macOS DMG on a GitHub-hosted macOS runner;
-* generate a SHA-256 checksum file;
+* build the unsigned platform installer on a GitHub-hosted runner;
+* generate or include a SHA-256 checksum file;
 * upload a short-lived Actions artifact for testing.
 
 Use manual workflow runs for candidate builds that should be tested before a
 tagged release exists.
+
+For Windows test builds, the workflow installs Inno Setup on the runner and then
+runs ``build_tools/windows/build_installer.ps1``. After the workflow exists on
+the selected branch, a manual Windows build can also be triggered from the
+GitHub CLI:
+
+.. code-block:: bash
+
+   gh workflow run package-windows.yml \
+     --ref windows-installer \
+     -f version=0.0.0-windows-test \
+     -f force_pyinstaller=true
 
 Tagged Release Build
 --------------------
@@ -118,18 +130,14 @@ The packaging workflow should build the release artifact and upload it to a
 draft GitHub Release for that tag. Keeping the release as a draft provides a
 final review step before users see the installer.
 
-A typical release should contain:
+A typical release can contain platform-specific artifacts such as:
 
 .. code-block:: text
 
    GONet-Wizard-X.Y.Z-macOS-arm64-unsigned.dmg
-   SHA256SUMS.txt
-
-The same release can also contain the Windows installer:
-
-.. code-block:: text
-
+   SHA256SUMS-macOS.txt
    GONet-Wizard-X.Y.Z-Windows-x64-unsigned-Setup.exe
+   SHA256SUMS-Windows.txt
 
 Versioned Artifact Names
 ------------------------
@@ -242,8 +250,9 @@ Windows packaging follows the same release model:
 * upload the installer to GitHub Releases;
 * avoid committing generated ``.exe`` files to git.
 
-A Windows GitHub Actions workflow should be added only after the local Inno
-Setup installer path has been validated on a Windows machine.
+The Windows GitHub Actions workflow should use the same local build script as
+the validated Windows machine path. This keeps local installer testing and
+release automation aligned.
 
 Release Checklist
 -----------------

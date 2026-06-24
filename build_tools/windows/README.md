@@ -96,6 +96,28 @@ After building `Setup.exe`, test like a user would:
 6. Uninstall from Windows Settings.
 7. Reinstall and repeat a basic launch test.
 
+
+## GitHub Actions build
+
+After the local installer path has been validated on Windows, the same build can
+be run from GitHub Actions with the ``package-windows.yml`` workflow. The
+workflow installs Python 3.10, installs the package with the ``build`` extra,
+installs Inno Setup, runs this build script, uploads a short-lived Actions
+artifact, and uploads release assets when a ``v*`` tag is pushed.
+
+For a manual test build from the GitHub CLI, after the workflow exists on the
+selected branch:
+
+```powershell
+gh workflow run package-windows.yml `
+  --ref windows-installer `
+  -f version=0.0.0-windows-test `
+  -f force_pyinstaller=true
+```
+
+For tagged releases, the workflow creates or updates a draft GitHub Release and
+uploads both the unsigned Windows installer and ``SHA256SUMS-Windows.txt``.
+
 ## WebView2 note
 
 The Windows GUI uses PyWebView. On modern Windows machines, the Microsoft Edge

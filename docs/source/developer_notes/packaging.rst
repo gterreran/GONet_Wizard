@@ -297,6 +297,11 @@ The Windows installer creates a Start Menu shortcut and offers an optional
 Desktop shortcut. It does not add ``GONet_Wizard`` or ``gonet-wizard`` commands
 to ``PATH``. The Python package remains the supported CLI installation path.
 
+The GitHub Actions Windows workflow uses the same PowerShell wrapper. Keep
+``build_tools/windows/build_installer.ps1`` as the single source of truth for
+installer creation so local Windows builds and CI release builds behave the same
+way.
+
 .. note::
 
    The Windows GUI uses PyWebView. Modern Windows machines usually already have
