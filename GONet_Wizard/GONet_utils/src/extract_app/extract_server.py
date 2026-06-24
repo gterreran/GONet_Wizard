@@ -33,20 +33,51 @@ app : :class:`dash_extensions.enrich.DashProxy`
 
 from flask import Flask
 from dash_extensions.enrich import DashProxy, ServersideOutputTransform
-from pathlib import Path
+
+try:
+    from dash_extensions.enrich import FileSystemBackend
+except ImportError:  # pragma: no cover - compatibility with older dash-extensions
+    try:
+        from dash_extensions.enrich import FileSystemStore as FileSystemBackend
+    except ImportError:  # pragma: no cover
+        FileSystemBackend = None
+
 import shutil, atexit, signal, os
 
 import GONet_Wizard.settings as settings
 from GONet_Wizard.logging_utils import get_logger
+from GONet_Wizard.paths import cache_dir
 
 logger = get_logger(__name__)
 
-# Default FS backend folder used by dash-extensions when no backend is provided
-# (created in the current working directory). We’ll clean it proactively.
-CACHE_DIRS = [
-    Path(__file__).resolve().parent / "file_system_backend",  # common case
-    Path.cwd() / "file_system_backend",                       # safety if CWD differs
-]
+# Default filesystem backend folder used by dash-extensions when no backend
+# is provided. Store it under the user cache directory instead of the package
+# directory so frozen/installed applications never write into their install tree.
+CACHE_DIR = cache_dir("dash", "extract_gui", "file_system_backend")
+CACHE_DIRS = [CACHE_DIR]
+
+
+def _serverside_output_transform() -> ServersideOutputTransform:
+    """
+    Build a server-side output transform using a user-writable cache directory.
+
+    Returns
+    -------
+    dash_extensions.enrich.ServersideOutputTransform
+        Transform configured to store temporary server-side callback payloads
+        outside the package/install directory whenever the installed
+        dash-extensions version exposes a filesystem backend class.
+    """
+    if FileSystemBackend is None:
+        return ServersideOutputTransform()
+
+    backend = FileSystemBackend(cache_dir=str(CACHE_DIR))
+
+    try:
+        return ServersideOutputTransform(backends=[backend])
+    except TypeError:  # pragma: no cover - older dash-extensions API
+        return ServersideOutputTransform(backend=backend)
+
 
 def _clear_cache_dirs() -> None:
     """
@@ -72,8 +103,8 @@ server = Flask("GONet Wizard extraction GUI")
 app = DashProxy(
     __name__,
     server=server,
-    assets_folder=settings.STATIC,
-    transforms=[ServersideOutputTransform()],
+    assets_folder=str(settings.STATIC),
+    transforms=[_serverside_output_transform()],
 )
 
 app.index_string = """

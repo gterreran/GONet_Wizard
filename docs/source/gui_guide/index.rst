@@ -11,6 +11,13 @@ For terminal usage, see :doc:`CLI Reference <../cli_reference/index>`. For imple
 details, see :doc:`GUI architecture developer notes <../developer_notes/gui_architecture>` and
 :doc:`UI runtime developer notes <../developer_notes/ui_runtime>`.
 
+.. note::
+
+   The downloadable desktop app is intended for GUI use. It opens the graphical
+   launcher without requiring a terminal, but it does not install the
+   ``GONet_Wizard`` or ``gonet-wizard`` command-line tools. Install the Python
+   package if you also want terminal commands.
+
 GUI Pages
 ---------
 

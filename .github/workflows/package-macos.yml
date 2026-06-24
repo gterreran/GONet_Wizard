@@ -1,0 +1,92 @@
+name: Build macOS DMG
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Optional version label for the DMG, e.g. 0.3.0-test"
+        required: false
+        default: ""
+        type: string
+      force_pyinstaller:
+        description: "Force a fresh PyInstaller build before creating the DMG"
+        required: true
+        default: true
+        type: boolean
+
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  macos-dmg:
+    name: macOS unsigned DMG
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install package and build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[build]"
+
+      - name: Build unsigned macOS DMG
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          FORCE_PYINSTALLER: ${{ inputs.force_pyinstaller }}
+        run: |
+          ARGS=()
+
+          if [[ "${FORCE_PYINSTALLER:-true}" == "true" ]]; then
+            ARGS+=(--force-pyinstaller)
+          else
+            ARGS+=(--skip-pyinstaller)
+          fi
+
+          if [[ -n "${REQUESTED_VERSION:-}" ]]; then
+            ARGS+=(--version "${REQUESTED_VERSION}")
+          fi
+
+          build_tools/macos/build_dmg.sh "${ARGS[@]}"
+
+      - name: Create checksums
+        run: |
+          cd dist
+          shasum -a 256 *.dmg > SHA256SUMS-macOS.txt
+          cat SHA256SUMS-macOS.txt
+
+      - name: Upload short-lived build artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: gonet-wizard-macos-dmg
+          path: |
+            dist/*.dmg
+            dist/SHA256SUMS-macOS.txt
+          retention-days: 7
+
+      - name: Upload assets to tagged GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          gh release view "${TAG_NAME}" >/dev/null 2>&1 || \
+            gh release create "${TAG_NAME}" \
+              --draft \
+              --title "GONet Wizard ${TAG_NAME}" \
+              --notes "Draft release created automatically from ${TAG_NAME}."
+
+          gh release upload "${TAG_NAME}" dist/*.dmg dist/SHA256SUMS-macOS.txt --clobber
