@@ -4,19 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Optional version label for the installer, e.g. 0.3.0-test"
+        description: "Optional version label for the installer name. Leave blank to use package/git metadata."
         required: false
         default: ""
-        type: string
       force_pyinstaller:
-        description: "Force a fresh PyInstaller build before creating the installer"
-        required: true
-        default: true
+        description: "Force a fresh PyInstaller build before creating the installer."
+        required: false
         type: boolean
-
+        default: true
   push:
-    branches:
-      - "windows-installer"
     tags:
       - "v*"
 
