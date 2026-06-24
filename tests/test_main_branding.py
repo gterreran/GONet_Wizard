@@ -3,6 +3,7 @@ import sys
 import types
 
 import pytest
+from pathlib import Path
 
 
 def test_main_delegates_to_cli(monkeypatch):
@@ -24,19 +25,23 @@ def test_branding_resource_path_uses_pyinstaller_meipass(monkeypatch):
     branding = pytest.importorskip("GONet_Wizard._branding")
     monkeypatch.setattr(branding.sys, "_MEIPASS", "/tmp/gonet-bundle", raising=False)
 
-    assert branding._resource_path("static", "icon.ico") == "/tmp/gonet-bundle/static/icon.ico"
+    assert Path(branding._resource_path("static", "icon.ico")) == (
+        Path("/tmp/gonet-bundle") / "static" / "icon.ico"
+    )
 
 
 def test_branding_default_icon_path_depends_on_platform(monkeypatch):
     branding = pytest.importorskip("GONet_Wizard._branding")
 
     monkeypatch.setattr(branding.platform, "system", lambda: "Darwin")
-    assert branding._default_icon_path().endswith("static/img/logo/GONet_Wizard.icns")
+    icon_path = Path(branding._default_icon_path())
+    assert icon_path.parts[-4:] == ("static", "img", "logo", "GONet_Wizard.icns")
 
     monkeypatch.setattr(branding.platform, "system", lambda: "Linux")
-    assert branding._default_icon_path().endswith("static/img/logo/GONet_Wizard.ico")
+    icon_path = Path(branding._default_icon_path())
+    assert icon_path.parts[-4:] == ("static", "img", "logo", "GONet_Wizard.ico")
 
-
+    
 def test_set_dock_icon_once_is_noop_if_already_set(monkeypatch):
     branding = pytest.importorskip("GONet_Wizard._branding")
     monkeypatch.setattr(branding, "_ICON_SET", True)

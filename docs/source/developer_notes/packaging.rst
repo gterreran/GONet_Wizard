@@ -91,6 +91,8 @@ Key Packaging Code Paths
      - PyInstaller specs, hooks, and runtime-selection rules.
    * - ``build_tools/macos/build_dmg.sh``
      - Creates the unsigned macOS drag-and-drop DMG after the ``.app`` build succeeds.
+   * - ``build_tools/windows/``
+     - Inno Setup script, PowerShell build wrapper, and Windows installer notes.
 
 Resource and Runtime Path Rules
 -------------------------------
@@ -263,19 +265,71 @@ Unsigned DMGs are useful for internal testing and early GitHub-only
 distribution, but they are not a substitute for Developer ID signing and
 notarization.
 
+Unsigned Windows Setup.exe
+--------------------------
+
+After the raw Windows PyInstaller app passes smoke tests, create a user-local
+installer with Inno Setup:
+
+.. code-block:: powershell
+
+   powershell -ExecutionPolicy Bypass -File build_tools\windows\build_installer.ps1 -ForcePyInstaller
+
+To reuse an existing ``dist\GONet Wizard\`` folder:
+
+.. code-block:: powershell
+
+   powershell -ExecutionPolicy Bypass -File build_tools\windows\build_installer.ps1 -SkipPyInstaller
+
+The default output name is versioned, architecture-specific, and explicitly
+marked unsigned:
+
+.. code-block:: text
+
+   dist\GONet-Wizard-<version>-Windows-x64-unsigned-Setup.exe
+   dist\SHA256SUMS-Windows.txt
+
+The first Windows installer intentionally installs per-user under
+``%LOCALAPPDATA%\Programs\GONet Wizard``. This avoids administrator prompts
+and keeps the installer appropriate for early GitHub-only distribution.
+
+The Windows installer creates a Start Menu shortcut and offers an optional
+Desktop shortcut. It does not add ``GONet_Wizard`` or ``gonet-wizard`` commands
+to ``PATH``. The Python package remains the supported CLI installation path.
+
+The GitHub Actions Windows workflow uses the same PowerShell wrapper. Keep
+``build_tools/windows/build_installer.ps1`` as the single source of truth for
+installer creation so local Windows builds and CI release builds behave the same
+way.
+
+.. note::
+
+   The Windows GUI uses PyWebView. Modern Windows machines usually already have
+   the Microsoft Edge WebView2 Runtime installed, but this should remain part of
+   the Windows smoke-test checklist. If users report that the desktop window
+   cannot open, check WebView2 availability before changing the PyInstaller
+   rules.
+
 Smoke Test Checklist
 --------------------
 
 Before publishing a packaging artifact, run a clean build and test the frozen
 app, not only the source checkout.
 
-Recommended local test:
+Recommended macOS local test:
 
 .. code-block:: bash
 
    pytest
    rm -rf build dist
    build_tools/macos/build_dmg.sh --force-pyinstaller
+
+Recommended Windows local test:
+
+.. code-block:: powershell
+
+   pytest
+   powershell -ExecutionPolicy Bypass -File build_tools\windows\build_installer.ps1 -ForcePyInstaller
 
 Then install or open the generated app and check:
 
@@ -320,17 +374,17 @@ For internal testing, users can usually control-click the app and choose
 ``Open``, or allow it from ``System Settings > Privacy & Security`` after the
 first blocked launch. For wider distribution, plan for signing and notarization.
 
-Future Windows Packaging
-------------------------
+Windows Packaging Notes
+-----------------------
 
-Windows packaging should follow the same architecture:
+Windows packaging follows the same architecture as macOS:
 
 * keep the Python package and command system unchanged;
 * build a GUI executable from the desktop entry point;
-* keep the CLI executable available for advanced users;
-* wrap the frozen app in a Windows installer rather than committing generated files to git;
-* publish installers as GitHub Release assets.
+* keep the Python package as the supported CLI installation path;
+* wrap the frozen GUI app in an installer rather than committing generated files to git;
+* publish installers as GitHub Release assets after local validation.
 
-The likely Windows path is a PyInstaller build followed by an Inno Setup
-installer. Windows-specific work should be validated on a real Windows machine
-or Windows runner before publishing user-facing artifacts.
+The current Windows path is a PyInstaller one-dir build followed by an Inno
+Setup installer. Validate both the raw frozen app and the installed app on a real
+Windows machine before publishing user-facing artifacts.
