@@ -1,10 +1,19 @@
 """
-The `hood` subpackage contains the internal logic and state management used by the
-GONet dashboard's interactive callbacks.
+Dashboard data and plotting backend.
 
-This subpackage serves as the controller layer between the frontend Dash interface
-and the underlying data and visualization systems. It manages plot construction,
-data filtering, selection logic, trace interactivity, and dynamic updates in
-response to user input.
+The ``hood`` package contains the non-layout logic used by the GONet dashboard:
+data loading, schema coercion, derived columns, and Plotly figure construction.
+It intentionally sits below the Dash callback layer so that most data-handling
+code can be tested without running a Dash application.
 
+Subpackages
+-----------
+:mod:`.loaders`
+    File-format loaders and shared post-processing for dashboard data tables.
+
+Submodules
+----------
+:mod:`.plot`
+    Plotly figure construction and trace-update helpers used by dashboard
+    callbacks.
 """

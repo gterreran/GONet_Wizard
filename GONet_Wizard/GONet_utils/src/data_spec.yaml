@@ -1,0 +1,337 @@
+# ------------------------------------------------------------------------------
+# GONet Field Specification Registry
+#
+# This file defines the canonical set of fields used in GONet data extractors,
+# visualizations, and processing modules. Each field contains:
+#   - key:         The internal identifier used in code and data outputs
+#   - label:       A human-readable name for display or plotting
+#   - unit:        A display-only string representing the physical unit
+#   - aliases:     (Optional) Legacy or alternative names used for backward compatibility
+#
+# NOTE:
+#   - The top-level dictionary keys (e.g., "filename", "camera", etc.) are *fixed*.
+#     These keys are used across the codebase to reference fields and SHOULD NOT
+#     be renamed.
+#   - The `key` attribute inside each field object may be edited freely and is
+#     treated independently from the dictionary key.
+# ------------------------------------------------------------------------------
+
+filename:
+  key: filename
+  label: Filename
+  unit: ''
+  plottable: false
+  field_type: env
+  load:
+    coerce: str
+
+camera:
+  key: camera
+  label: Camera
+  unit: ''
+  field_type: env
+  load:
+    coerce: int
+
+exptime:
+  key: exptime
+  label: Exposure Time
+  unit: s
+  field_type: env
+  load:
+    coerce: float
+
+unix_time:
+  key: unix_time
+  label: Unix Time
+  unit: s
+  aliases: [time]
+  plottable: false
+  field_type: env
+  load:
+    coerce: int
+
+night:
+  key: night
+  label: Night
+  unit: ''
+  field_type: env
+  load:
+    coerce: str
+
+date_utc:
+  key: date_utc
+  label: Date UTC
+  unit: ISO 8601
+  aliases: [date]
+  field_type: env
+  load:
+    coerce: datetime
+
+date_local:
+  key: date_local
+  label: Date Local
+  unit: ISO 8601
+  field_type: env
+  load:
+    coerce: datetime
+
+mjd:
+  key: mjd
+  label: Modified Julian Date
+  unit: days
+  field_type: env
+  load:
+    coerce: float
+
+hours_utc:
+  key: hours_utc
+  label: UTC time
+  unit: HH:MM
+  field_type: env
+  load:
+    coerce: str
+    transform: utc_datetime
+
+hours_local:
+  key: hours_local
+  label: Local time
+  unit: HH:MM
+  field_type: env
+  load:
+    coerce: str
+    transform: local_datetime
+
+float_hours_utc:
+  key: float_hours_utc
+  label: Float Hours UTC
+  unit: fraction of day
+  field_type: env
+  load:
+    coerce: float
+
+float_hours_local:
+  key: float_hours_local
+  label: Float Hours Local
+  unit: fraction of day
+  field_type: env
+  load:
+    coerce: float
+
+sunaltaz:
+  key: sunaltaz
+  label: Sun AltAz
+  unit: degrees
+  field_type: env
+  load:
+    coerce: float
+
+moonaltaz:
+  key: moonaltaz
+  label: Moon AltAz
+  unit: degrees
+  field_type: env
+  load:
+    coerce: float
+
+moon_illumination:
+  key: moon_illumination
+  label: Moon Illumination
+  unit: '%'
+  field_type: env
+  load:
+    coerce: float
+
+temperature:
+  key: temperature
+  label: Temperature
+  unit: °C
+  field_type: env
+  load:
+    coerce: float
+
+dew_point:
+  key: dew_point
+  label: Dew Point
+  unit: °C
+  field_type: env
+  load:
+    coerce: float
+
+wind_speed:
+  key: wind_speed
+  label: Wind Speed
+  unit: m/s
+  field_type: env
+  load:
+    coerce: float
+
+pressure:
+  key: pressure
+  label: Pressure
+  unit: hPa
+  field_type: env
+  load:
+    coerce: float
+
+humidity:
+  key: humidity
+  label: Humidity
+  unit: '%'
+  field_type: env
+  load:
+    coerce: float
+
+condition_code:
+  key: condition_code
+  label: Condition Code
+  unit: ''
+  field_type: env
+  load:
+    coerce: int
+
+shape:
+  key: shape
+  label: Image Shape
+  unit: pixels
+  plottable: false
+  field_type: env
+  load:
+    coerce: str
+
+x0:
+  key: x0
+  label: Center X
+  unit: pixels
+  field_type: env
+  load:
+    coerce: float
+
+y0:
+  key: y0
+  label: Center Y
+  unit: pixels
+  field_type: env
+  load:
+    coerce: float
+
+radius:
+  key: radius
+  label: Radius
+  unit: pixels
+  field_type: env
+  load:
+    coerce: float
+
+side1:
+  key: side1
+  label: Side 1
+  unit: pixels
+  field_type: env
+  load:
+    coerce: float
+
+side2:
+  key: side2
+  label: Side 2
+  unit: pixels
+  field_type: env
+  load:
+    coerce: float
+
+inner_radius:
+  key: inner_radius
+  label: Inner Radius
+  unit: pixels
+  field_type: env
+  load:
+    coerce: float
+
+outer_radius:
+  key: outer_radius
+  label: Outer Radius
+  unit: pixels
+  field_type: env
+  load:
+    coerce: float
+
+start_angle:
+  key: start_angle
+  label: Start Angle
+  unit: degrees
+  field_type: env
+  load:
+    coerce: float
+
+end_angle:
+  key: end_angle
+  label: End Angle
+  unit: degrees
+  field_type: env
+  load:
+    coerce: float
+
+path:
+  key: path
+  label: SVG Path
+  unit: ''
+  plottable: false
+  field_type: env
+  load:
+    coerce: str
+
+color_rg:
+  key: color_rg
+  label: 2.5 * log10(Red / Green)
+  unit: ''
+  field_type: env
+  load:
+    coerce: float
+
+color_gb:
+  key: color_gb
+  label: 2.5 * log10(Green / Blue)
+  unit: ''
+  field_type: env
+  load:
+    coerce: float
+
+color_rb:
+  key: color_rb
+  label: 2.5 * log10(Red / Blue)
+  unit: ''
+  field_type: env
+  load:
+    coerce: float
+
+total_counts:
+  key: total_counts
+  label: Total Counts
+  unit: counts
+  field_type: chn
+  load:
+    coerce: float
+
+mean_counts:
+  key: mean_counts
+  label: Mean Counts
+  unit: counts
+  field_type: chn
+  load:
+    coerce: float
+
+std:
+  key: std
+  label: Standard Deviation
+  unit: counts
+  field_type: chn
+  load:
+    coerce: float
+
+npixels:
+  key: npixels
+  label: Number of Pixels
+  unit: pixels
+  field_type: chn
+  load:
+    coerce: float

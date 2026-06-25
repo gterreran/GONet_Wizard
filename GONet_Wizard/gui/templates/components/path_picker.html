@@ -1,0 +1,33 @@
+{# Reusable “path picker” row: text input + Browse button #}
+<div class="form-group">
+  {% if label %}
+    <label class="form-label" for="{{ input_id }}">{{ label }}</label>
+  {% endif %}
+
+  <div class="path-picker">
+    <input
+      id="{{ input_id }}"
+      name="{{ name }}"
+      type="text"
+      placeholder="{{ placeholder or '' }}"
+      autocomplete="off"
+      spellcheck="false"
+      data-cache="1"
+      {% if required %}required{% endif %}
+    />
+
+    <button
+      type="button"
+      class="browse-button"
+      data-pick-mode="{{ pick_mode or 'files' }}"
+      data-target-id="{{ input_id }}"
+      title="Browse…"
+    >
+      Browse…
+    </button>
+  </div>
+
+  {% if help %}
+    <div class="form-help">{{ help }}</div>
+  {% endif %}
+</div>

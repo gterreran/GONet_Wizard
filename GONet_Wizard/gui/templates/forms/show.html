@@ -1,0 +1,24 @@
+{# Filenames: allow wildcards or comma-separated patterns; Browse fills it for you #}
+{% set input_id = "show-filenames" %}
+{% set name = "filenames" %}
+{% set label = "GONet files or folders" %}
+{% set placeholder = "Type a path/pattern (e.g. /data/*.tiff) or use Browse…" %}
+{% set pick_mode = "files" %}
+{% set help = "You can type wildcards and comma-separated entries. Browse will insert selected paths." %}
+{% include "components/path_picker.html" %}
+
+<div class="form-group">
+  <div class="form-label">Channels</div>
+  <div class="checkbox-row">
+    <label class="check"><input type="checkbox" name="blue" checked data-cache="1"> <span>Blue</span></label>
+    <label class="check"><input type="checkbox" name="green" checked data-cache="1"> <span>Green</span></label>
+    <label class="check"><input type="checkbox" name="red" checked data-cache="1"> <span>Red</span></label>
+  </div>
+</div>
+
+<div class="form-group">
+  <label class="form-label" for="show-save">Optional output PDF</label>
+  <input id="show-save" name="save" type="text" placeholder="e.g. output.pdf (leave blank to not save)" />
+</div>
+
+<button type="submit">Run show</button>

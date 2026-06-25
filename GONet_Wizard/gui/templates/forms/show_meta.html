@@ -1,0 +1,13 @@
+{# Filenames: allow wildcards or comma-separated patterns; Browse fills it for you #}
+{% set input_id = "show-meta-filenames" %}
+{% set name = "filenames" %}
+{% set label = "GONet files or folders" %}
+{% set placeholder = "Type a path/pattern (e.g. /data/*.tiff) or use Browse…" %}
+{% set pick_mode = "files" %}
+{% set help = "You can type wildcards and comma-separated entries. Browse will insert selected paths." %}
+{% include "components/path_picker.html" %}
+
+{# Always request HTML output from the backend #}
+<input type="hidden" name="html" value="true" />
+
+<button type="submit">Run show meta</button>

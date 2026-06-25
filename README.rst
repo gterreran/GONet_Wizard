@@ -28,14 +28,30 @@ Includes an interactive Dash dashboard, CLI utilities, and tools for remote inte
 Installation
 ------------
 
-To install the latest version directly from GitHub:
+GONet Wizard has two installation paths, depending on how you want to use it.
+
+**Desktop app for GUI users**
+
+Downloadable desktop installers from the
+`GitHub Releases page <https://github.com/gterreran/GONet_Wizard/releases>`_
+are intended for users who want to launch GONet Wizard by double-clicking the
+application icon. On macOS this is distributed as a DMG; on Windows this is
+distributed as a Setup.exe installer when a Windows build is available. The
+desktop app opens the graphical launcher and does not install the command-line
+tools into your shell ``PATH``.
+
+**Python package for CLI users**
+
+If you want to run terminal commands such as ``GONet_Wizard show``,
+``GONet_Wizard extract``, or ``GONet_Wizard gui``, install the Python package:
 
 .. code-block:: bash
 
    pip install git+https://github.com/gterreran/GONet_Wizard.git
 
 It is recommended to first create and activate a clean environment using Python ≥3.10.
-See the full `Documentation <https://gterreran.github.io/GONet_Wizard/installation.html>`_ for more installation options, including Windows installation.
+See the full `Documentation <https://gterreran.github.io/GONet_Wizard/installation.html>`_
+for more installation options, including desktop-app and Windows notes.
 
 ----
 

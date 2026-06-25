@@ -5,4 +5,11 @@ include pyproject.toml
 include .env
 include .env.example
 
-recursive-include GONet_Wizard/GONet_dashboard/src/assets *
+
+recursive-include GONet_Wizard/static *
+recursive-include GONet_Wizard/gui/templates *.html
+recursive-include GONet_Wizard/GONet_utils/src *.yaml
+
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude .DS_Store

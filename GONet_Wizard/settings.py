@@ -1,84 +1,137 @@
+# GONet_Wizard/settings.py
+
 """
-Environment Configuration and Variable Management.
+Environment Configuration and Variable Management
+=================================================
 
-This module provides utility functions and configuration classes for handling
-environment variables used by the GONet Wizard system, in particular for its 
-entry points and various command-line tools. It includes validation
-tools that either require or gently warn about missing variables, as well as
-data classes that organize related environment values for dashboard and
-camera-side operations.
+This module centralizes environment-driven configuration used across GONet
+Wizard. It defines small helpers and data containers for reading values from
+``os.environ`` (optionally via a ``.env`` file) and for collecting related
+settings into structured objects.
 
-**Functions**
-
-- :func:`require_env_var` : Prompt for required environment variables if missing.
-- :func:`warn_env_var_missing` : Prompt optionally for missing environment variables.
-
-**Classes**
-
-- :class:`EnvVar` : Represents an environment variable with an optional default value.
-- :class:`GONetConfig` : Environment settings for interacting with a remote GONet device.
-- :class:`DashboardConfig` : Environment settings for dashboard data and image access.
+The primary abstraction is :class:`.EnvVar`, which represents a named
+environment variable with an optional default value. :func:`require_env_var`
+builds on that to ensure required values are available, prompting the user when
+needed.
 
 Constants
 ---------
-**GONet variables**
+ROOT : :class:`pathlib.Path`
+    Absolute path to the GONet_Wizard package root directory.
+STATIC : :class:`pathlib.Path`
+    Absolute path to the shared static assets folder.
 
-GONET_USER : :class:`EnvVar`
-    Environment variable for the GONet user (default name: ``GONET_USER``; default value: ``"pi"``).
-GONET_PASSWORD : :class:`EnvVar`
-    Environment variable for the GONet password (default name: ``GONET_PASSWORD``).
-GONET4_PATH : :class:`EnvVar`
-    Environment variable for the path of the ``gonet4.py`` script in a GONet camera (default name: ``GONET4_PATH``; default value: ``"/home/pi/Tools/Camera/gonet4.py"``).
-GONET_CONFIG_FOLDER : :class:`EnvVar`
-    Environment variable for the path of the folder containing '.config' files in a GONet camera (default name: ``GONET_CONFIG_FOLDER``; default value: ``"/home/pi/Tools/Camera/"``).
-GONET_IMAGES_FOLDER : :class:`EnvVar`
-    Environment variable for the path of the folder containing the images acquired in a GONet camera (default name: ``GONET_IMAGES_FOLDER``; default value: ``"/home/pi/images/"``).
-LOCAL_OUTPUT_FOLDER : :class:`EnvVar`
-    Environment variable for the local path of where to download new GONet images (default name: ``LOCAL_OUTPUT_FOLDER``; default value: ``"./downloaded_files/"``).
+GONET_USER : :class:`.EnvVar`
+    Environment variable for the remote GONet username (default: ``"pi"``).
+GONET_PASSWORD : :class:`.EnvVar`
+    Environment variable for the remote GONet password (no default).
+GONET4_PATH : :class:`.EnvVar`
+    Environment variable for the remote ``gonet4.py`` path
+    (default: ``"/home/pi/Tools/Camera/gonet4.py"``).
+GONET_CONFIG_FOLDER : :class:`.EnvVar`
+    Environment variable for the remote configuration folder path
+    (default: ``"/home/pi/Tools/Camera/"``).
+GONET_IMAGES_FOLDER : :class:`.EnvVar`
+    Environment variable for the remote image folder path
+    (default: ``"/home/pi/images/"``).
+LOCAL_OUTPUT_FOLDER : :class:`.EnvVar`
+    Environment variable for the local download destination
+    (default: ``"./downloaded_files/"``).
 
-**Dashboard variables**
+DASHBOARD_DEBUG : :class:`.EnvVar`
+    Environment variable controlling dashboard debug behavior
+    (default: ``False``).
 
-GONET_ROOT : :class:`EnvVar`
-    Environment variable for the folder containing the json data of extracted GONet data.
-GONET_ROOT_IMG : :class:`EnvVar`
-    Environment variable for the folder containing the GONet images to visualize.
+Functions
+---------
+:func:`require_env_var`
+    Retrieve a required environment variable, prompting the user if missing.
+
+Classes
+-------
+:class:`EnvVar`
+    Representation of a named environment variable with an optional default.
+:class:`GONetConfig`
+    Environment-based configuration for interacting with a remote GONet device.
 
 """
 
-import os
-from pathlib import Path
-from dataclasses import dataclass, field
-from dotenv import load_dotenv
-from typing import Optional
+from __future__ import annotations
 
-load_dotenv()    
+import os
+from dataclasses import dataclass
+from typing import Any, Optional
+
+from dotenv import load_dotenv
+
+from GONet_Wizard.logging_utils import get_logger
+from GONet_Wizard.resources import package_root, static_dir, template_dir
+from GONet_Wizard.paths import cache_dir, config_dir, data_dir, log_dir, temp_dir
+
+logger = get_logger(__name__)
+
+
+load_dotenv()
+
 
 @dataclass
 class EnvVar:
     """
-    Represents an environment variable with an optional default value.
+    Representation of an environment variable with an optional default value.
 
-    This class provides a structured way to define environment variable names
-    and their default values, and offers methods to retrieve them from the
-    environment safely. Useful for centralizing and managing environment configuration
-    in a DRY and maintainable way.
+    Instances of this class centralize variable names and defaults, and provide
+    a consistent accessor via :meth:`get`.
 
     Attributes
     ----------
-    name : str
-        The name of the environment variable.
-    default : Optional[str], optional
-        The default value to use if the environment variable is not set. Defaults to None.
-
+    name : :class:`str`
+        Name of the environment variable.
+    default : :class:`object`, optional
+        Default value used when the environment variable is not present.
+        Defaults to ``None``.
     """
+
     name: str
-    default: Optional[str] = None
+    default: Optional[Any] = None
 
-    def get(self) -> str:
-        """Returns the environment variable's value or its default."""
-        return os.environ.get(self.name, self.default)
+    def get(self) -> Optional[Any]:
+        """
+        Retrieve the environment variable value or its default.
 
-# Gonet variables 
+        If the variable exists in the environment and is a string, leading and
+        trailing whitespace are stripped. If the resulting string is empty, the
+        value is treated as missing and ``None`` is returned.
+
+        Returns
+        -------
+        :class:`object`, optional
+            The value of the environment variable, the configured default, or
+            ``None`` if the variable is unset (or set to an empty string).
+        """
+        val: Any = os.environ.get(self.name, self.default)
+        if isinstance(val, str):
+            val = val.strip()
+            if val == "":
+                return None
+        return val
+
+
+# Absolute path to the GONet_Wizard package resource root.
+# This may point inside a frozen desktop bundle when packaged.
+ROOT = package_root()
+
+# Absolute paths to package-shipped UI resources.
+STATIC = static_dir()
+TEMPLATES = template_dir()
+
+# Platform-aware user-writable locations for packaged desktop builds.
+USER_DATA_DIR = data_dir(create=False)
+USER_CONFIG_DIR = config_dir(create=False)
+USER_CACHE_DIR = cache_dir(create=False)
+USER_LOG_DIR = log_dir(create=False)
+USER_TEMP_DIR = temp_dir(create=False)
+
+# GONet variables
 GONET_USER = EnvVar("GONET_USER", "pi")
 GONET_PASSWORD = EnvVar("GONET_PASSWORD")
 GONET4_PATH = EnvVar("GONET4_PATH", "/home/pi/Tools/Camera/gonet4.py")
@@ -87,91 +140,45 @@ GONET_IMAGES_FOLDER = EnvVar("GONET_IMAGES_FOLDER", "/home/pi/images/")
 LOCAL_OUTPUT_FOLDER = EnvVar("LOCAL_OUTPUT_FOLDER", "./downloaded_files/")
 
 # Dashboard variables
-GONET_ROOT = EnvVar("GONET_ROOT")
-GONET_ROOT_IMG = EnvVar("GONET_ROOT_IMG")
+DASHBOARD_DEBUG = EnvVar("DASHBOARD_DEBUG", False)
 
 
-def require_env_var(envvar: EnvVar, prompt: str = None) -> str:
+def require_env_var(envvar: EnvVar, prompt: Optional[str] = None) -> str:
     """
     Retrieve a required environment variable, or prompt the user to input it.
 
-    This function ensures that a required environment variable is defined.
-    If not found, the user is prompted to provide a value.
+    This function ensures a required value is available. If the variable is not
+    set (or is set to an empty string), the user is prompted for a value.
 
     Parameters
     ----------
-    name : :class:`EnvVar`
-        The name of the required environment variable.
+    envvar : :class:`.EnvVar`
+        Environment variable descriptor for the required value.
     prompt : :class:`str`, optional
-        A custom prompt message shown to the user if the variable is not set.
+        Custom prompt shown to the user if the variable is missing.
 
     Returns
     -------
     :class:`str`
-        The retrieved or user-provided value for the environment variable.
+        The retrieved or user-provided value.
+
+    Raises
+    ------
+    EOFError
+        If user input is required but cannot be read (e.g., stdin closed).
     """
     value = envvar.get()
     if value is None:
         if prompt is None:
             prompt = f"Enter a value for {envvar.name}: "
+        logger.warning("Environment variable %r is not set; prompting the user.", envvar.name)
         print(f"⚠️  Environment variable '{envvar.name}' is not set.")
         value = input(prompt)
-        print(f"💡 Tip: You can avoid this prompt in the future by setting {envvar.name} in your environment or in a .env file.")
-    return value
-
-
-def warn_env_var_missing(envvar: EnvVar, prompt: str = None) -> str | None:
-    """
-    Warn the user if an optional environment variable is not set.
-
-    This function checks whether a given environment variable is defined.
-    If it's missing, the user is prompted to define it interactively.
-
-    To avoid duplicate prompts when running a Dash app in debug mode,
-    the function only executes its logic in the reloader child process
-    (i.e., when the environment variable ``WERKZEUG_RUN_MAIN`` is set to 'true').
-
-    Parameters
-    ----------
-    name : :class:`EnvVar`
-        The name of the environment variable to check.
-    prompt : :class:`str`, optional
-        A custom input prompt if the user agrees to define the variable.
-
-    Returns
-    -------
-    :class:`str` or :class:`None`
-        The value of the environment variable if already set or newly defined,
-        or None if the user chooses not to define it.
-
-    Notes
-    -----
-    When `app.run_server(debug=True)` is used in Dash, the server restarts
-    itself in a child process for hot reloading. To avoid running this prompt
-    logic multiple times, we check for the environment variable
-    'WERKZEUG_RUN_MAIN' which is only 'true' in the child process.
-    """
-    # Only run in main or reloader child process to avoid duplicate prompts
-    if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
-        return None
-
-    value = envvar.get()
-    if value is not None:
-        return value
-
-    print(f"⚠️  The environment variable '{envvar.name}' is not set. You can still proceed, but some functionalities will not work.")
-    choice = input(f"Would you like to define {envvar.name} now? [y/N]: ").strip().lower()
-
-    if choice == 'y':
-        if prompt is None:
-            prompt = f"Enter a value for {envvar.name}: "
-        value = input(prompt).strip()
-        os.environ[envvar.name] = value
-        print(f"✅ Set {envvar.name} = {value}")
-        return value
-    else:
-        print(f"ℹ️  Skipping {envvar.name}. You can set it later in your environment or .env file.")
-        return None
+        print(
+            f"💡 Tip: You can avoid this prompt in the future by setting "
+            f"{envvar.name} in your environment or in a .env file."
+        )
+    return str(value)
 
 
 @dataclass
@@ -179,138 +186,70 @@ class GONetConfig:
     """
     Environment-based configuration for interacting with a remote GONet device.
 
-    This class retrieves configuration settings from environment variables,
-    including SSH credentials, paths to scripts and image directories, and
-    local output locations. Environment variables are loaded dynamically at
-    runtime to ensure flexibility and testability.
-
-    ⚠️ Implementation Note:
-    ------------------------
-    Environment variables are not read as default values at class definition time.
-    Instead, they are loaded dynamically in the `__post_init__` method.
-
-    Why?
-        If fields were defined like: gonet_user: str = GONET_USER.get()
-        the environment lookup would occur at **parse time**, not instantiation time.
-        This means:
-
-        - Tests using tools like `monkeypatch.setenv()` would not affect behavior.
-        - It becomes difficult to override variables dynamically.
-        - Test isolation and runtime flexibility are compromised.
-
-    Solution:
-        All environment lookups are deferred to `__post_init__()` to ensure they
-        reflect the current state of `os.environ` when the object is created.
+    Values are loaded from environment variables at instantiation time (in
+    :meth:`__post_init__`) to support test overrides (e.g.,
+    ``monkeypatch.setenv``) and runtime reconfiguration.
 
     Attributes
     ----------
-    gonet_user : str
-        Username for SSH connection to the GONet device, from `GONET_USER`.
-    gonet4_path : str
-        Remote path to `gonet4.py`, from `GONET4_PATH`.
-    gonet_config_folder : str
-        Remote folder containing camera config files, from `GONET_CONFIG_FOLDER`.
-    gonet_images_folder : str
-        Remote folder where images are stored, from `GONET_IMAGES_FOLDER`.
-    local_output_folder : str
-        Local folder where downloaded files should be saved, from `LOCAL_OUTPUT_FOLDER`.
-    gonet_password : str
-        SSH password for the GONet device, from `GONET_PASSWORD`, or prompted interactively.
-
+    gonet_user : :class:`str`, optional
+        Username for SSH connection to the GONet device (from ``GONET_USER``).
+    gonet4_path : :class:`str`, optional
+        Remote path to ``gonet4.py`` (from ``GONET4_PATH``).
+    gonet_config_folder : :class:`str`, optional
+        Remote folder containing camera config files (from ``GONET_CONFIG_FOLDER``).
+    gonet_images_folder : :class:`str`, optional
+        Remote folder where images are stored (from ``GONET_IMAGES_FOLDER``).
+    local_output_folder : :class:`str`, optional
+        Local folder where downloaded files should be saved (from ``LOCAL_OUTPUT_FOLDER``).
+    gonet_password : :class:`str`, optional
+        SSH password for the GONet device. Loaded from ``GONET_PASSWORD`` or
+        prompted for interactively if missing.
     """
 
-    gonet_user: str = None
-    gonet4_path: str = None
-    gonet_config_folder: str = None
-    gonet_images_folder: str = None
-    local_output_folder: str = None
+    gonet_user: Optional[str] = None
+    gonet4_path: Optional[str] = None
+    gonet_config_folder: Optional[str] = None
+    gonet_images_folder: Optional[str] = None
+    local_output_folder: Optional[str] = None
+    gonet_password: Optional[str] = None
 
-    def __post_init__(self):
-        self.gonet_user = GONET_USER.get()
-        self.gonet4_path = GONET4_PATH.get()
-        self.gonet_config_folder = GONET_CONFIG_FOLDER.get()
-        self.gonet_images_folder = GONET_IMAGES_FOLDER.get()
-        self.local_output_folder = LOCAL_OUTPUT_FOLDER.get()
+    def __post_init__(self) -> None:
+        """
+        Populate configuration values from the current environment.
+
+        Returns
+        -------
+        None
+        """
+        self.gonet_user = str(GONET_USER.get()) if GONET_USER.get() is not None else None
+        self.gonet4_path = str(GONET4_PATH.get()) if GONET4_PATH.get() is not None else None
+        self.gonet_config_folder = (
+            str(GONET_CONFIG_FOLDER.get()) if GONET_CONFIG_FOLDER.get() is not None else None
+        )
+        self.gonet_images_folder = (
+            str(GONET_IMAGES_FOLDER.get()) if GONET_IMAGES_FOLDER.get() is not None else None
+        )
+        self.local_output_folder = (
+            str(LOCAL_OUTPUT_FOLDER.get()) if LOCAL_OUTPUT_FOLDER.get() is not None else None
+        )
         self.gonet_password = self.get_gonet_password()
 
     def get_gonet_password(self) -> str:
         """
-        SSH password for the GONet device.
+        Retrieve the SSH password for the GONet device.
 
-        Retrieved from the `GONET_PASSWORD` environment variable,
-        or entered interactively if not set.
+        The password is read from ``GONET_PASSWORD`` when available; otherwise
+        the user is prompted interactively.
 
         Returns
         -------
         :class:`str`
             The SSH password.
+
+        Raises
+        ------
+        EOFError
+            If user input is required but cannot be read (e.g., stdin closed).
         """
         return require_env_var(GONET_PASSWORD, "Enter GONet SSH password: ")
-
-
-@dataclass
-class DashboardConfig:
-    """
-    Environment-based configuration for the GONet dashboard.
-
-    This class centralizes the retrieval of environment-based paths required
-    for the GONet dashboard to function properly. It ensures that environment
-    variables are not read until runtime, allowing for dynamic configuration
-    and interactive prompting or fallback handling if variables are missing.
-
-    Attributes
-    ----------
-    dashboard_data_path : :class:`pathlib.Path`
-        Absolute path to the root directory where dashboard data is stored.
-        Retrieved from the environment variable `GONET_ROOT`. Set during object initialization.
-    
-    gonet_images_path : :class:`pathlib.Path` or :class:`None`
-        Optional absolute path to the directory containing image files for the dashboard.
-        Retrieved from the environment variable `GONET_ROOT_IMG`, or set to None if the
-        variable is not defined or skipped by the user.
-
-    """
-
-    dashboard_data_path: Path = field(init=False)
-    gonet_images_path: Optional[Path] = field(init=False)
-
-    def __post_init__(self):
-        self.dashboard_data_path = self.get_dashboard_data_path()
-        self.gonet_images_path = self.get_gonet_images_path()
-
-
-    def get_dashboard_data_path(self) -> Path:
-        """
-        Path to the dashboard data directory.
-
-        Retrieves the value of the `GONET_ROOT` environment variable and
-        converts it to a `Path` object. If the variable is not set, the user
-        is prompted to enter a path interactively.
-
-        Returns
-        -------
-        :class:`pathlib.Path`
-            The absolute path defined by the `GONET_ROOT` environment variable.
-        """
-        gonet_folder_path_str = require_env_var(GONET_ROOT, "Enter the path for the GONet data: ")
-        return Path(gonet_folder_path_str)
-    
-    def get_gonet_images_path(self) -> Path | None:
-        """
-        Optional path to the image directory for the dashboard.
-
-        Retrieves the value of the `GONET_ROOT_IMG` environment variable and
-        converts it to a `Path` object. If the variable is not set or skipped,
-        returns None.
-
-        Returns
-        -------
-        :class:`pathlib.Path` or :class:`None`
-            The path defined by the `GONET_ROOT_IMG` environment variable,
-            or None if the variable is missing.
-        """
-        gonet_images_folder_path_str = warn_env_var_missing(GONET_ROOT_IMG, "Enter the path for the GONet images: ")
-        if gonet_images_folder_path_str is None:
-            return None
-        else:
-            return Path(gonet_images_folder_path_str)

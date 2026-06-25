@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61", "setuptools-scm"]
+requires = ["setuptools>=77.0.3", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,34 +8,43 @@ dynamic = ["version"]
 description = "Tools and methods to handle GONet data."
 readme = { file = "README.rst", content-type = "text/x-rst" }
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE*"]
 
-authors = [
-    { name = "Giacomo Terreran", email = "gterreran@adlerplanetarium.org" }
-]
+authors = [{ name = "Giacomo Terreran", email = "gterreran@adlerplanetarium.org" }]
 
 dependencies = [
-    "numpy",
-    "pillow",
-    "matplotlib",
-    "tifffile==2023.7.10",
-    "python-dateutil",
-    "dash==2.18.2",
-    "dash_daq",
-    "python-dotenv",
-    "paramiko",
-    "scp",
-    "astropy"
+  "numpy",
+  "pillow",
+  "matplotlib",
+  "pandas",
+  "tifffile==2023.7.10",
+  "python-dateutil",
+  "dash==2.18.2",
+  "flask",
+  "plotly",
+  "dash-extensions",
+  "dash_daq",
+  "python-dotenv",
+  "PyYAML",
+  "paramiko",
+  "scp",
+  "astropy",
+  "scipy",
+  "pywebview",
+  "astroplan",
+  "meteostat==1.7.6",
+  "tqdm"
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0", "twine>=4.0.2"]
-docs = [
-    "sphinx>=7.0",
-    "sphinx-autodoc-typehints",
-    "sphinx-rtd-theme",
-    "myst-parser"
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
 ]
+docs = ["sphinx>=7.0", "sphinx-autodoc-typehints", "sphinx-rtd-theme", "myst-parser"]
+build = ["pyinstaller>=6.0"]
 
 [project.urls]
 Homepage = "https://github.com/gterreran/GONet_Wizard"
@@ -44,12 +53,31 @@ Issues = "https://github.com/gterreran/GONet_Wizard/issues"
 
 [project.scripts]
 GONet_Wizard = "GONet_Wizard.__main__:main"
+gonet-wizard = "GONet_Wizard.__main__:main"
+
+[project.gui-scripts]
+GONet_Wizard_GUI = "GONet_Wizard.desktop:main"
+gonet-wizard-gui = "GONet_Wizard.desktop:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["GONet_Wizard*"]
+exclude = ["build_tools*", "docs*", "tests*"]
+namespaces = false
+
+[tool.setuptools.package-data]
+GONet_Wizard = [
+  "GONet_utils/src/*.yaml",
+  "gui/templates/**/*.html",
+  "static/**/*",
+]
 
 [tool.setuptools_scm]
 version_scheme = "post-release"
 local_scheme = "node-and-date"
 
 [tool.pytest.ini_options]
-filterwarnings = [
-    "ignore:.*FigureCanvasAgg is non-interactive.*"
-]
+filterwarnings = ["ignore:.*FigureCanvasAgg is non-interactive.*"]

@@ -25,9 +25,13 @@ This module is intended to serve as the plotting backend for the GONet dashboard
 
 import numpy as np
 import warnings
+import pandas as pd
+from pathlib import Path
 
-from GONet_Wizard.GONet_utils import GONetFile
+from GONet_Wizard.GONet_utils import GONetFile, DATA_SPEC
+from GONet_Wizard.GONet_utils.src.extract_app.shapes import base as shape_base
 from GONet_Wizard.GONet_dashboard.src import env
+from GONet_Wizard.GONet_dashboard.src.server import app
 
 
 class Trace(dict):
@@ -70,7 +74,7 @@ class Trace(dict):
       
     """
 
-    def __init__(self, x_label: str, y_label: str, channel: str):
+    def __init__(self, xfield: str, yfield: str, channel: str):
         """
         Initialize a new Trace object representing a styled Plotly scatter trace.
 
@@ -81,9 +85,9 @@ class Trace(dict):
 
         Parameters
         ----------
-        x_label : :class:`str`
+        xfield : :class:`str`
             The label for the x-axis quantity. Used in the hovertemplate.
-        y_label : :class:`str`
+        yfield : :class:`str`
             The label for the y-axis quantity. Used in the hovertemplate.
         channel : :class:`str`
             The name of the channel this trace represents (e.g., 'red', 'green', 'blue').
@@ -92,8 +96,11 @@ class Trace(dict):
         """
         super().__init__()
 
-        self.x_label = x_label
-        self.y_label = y_label
+        self.xfield = xfield
+        self.yfield = yfield
+
+        self.x_label = getattr(DATA_SPEC[xfield],'label')
+        self.y_label = getattr(DATA_SPEC[yfield],'label')
 
         marker = {
             'color': env.rgba(channel=channel, alpha=1),
@@ -101,9 +108,10 @@ class Trace(dict):
         }
 
         self.update({
-            'hovertemplate': f"{x_label}=%{{x}}<br>{y_label}=%{{y}}",
+            'hovertemplate': f"{self.x_label}=%{{x}}<br>{self.y_label}=%{{y}}<br>Night=%{{customdata}}",
             'x': [],
             'y': [],
+            'customdata': [],
             'type': 'scatter',
             'mode': 'markers',
             'marker': marker,
@@ -111,7 +119,7 @@ class Trace(dict):
             'channel': channel,
             'name': channel,
             'showlegend': True,
-            'idx': [],
+            'epoch_idx': [],
             'filtered': False,
             'big_point': False,
             'hidden': False,
@@ -234,7 +242,7 @@ class FigureWrapper:
 
     """
 
-    def __init__(self, fig: dict, x_label: str, y_label: str, all_data: dict):
+    def __init__(self, fig: dict, xfield: str, yfield: str, all_data: pd.DataFrame):
         """
         Initialize a :class:`FigureWrapper` with an existing Plotly figure and data source.
 
@@ -247,21 +255,17 @@ class FigureWrapper:
         fig : :class:`dict`
             A Plotly-compatible figure dictionary. This should contain a `layout` key with
             axis configurations and a `data` list for trace dictionaries or Trace objects.
-        x_label : :class:`str`
+        xfield : :class:`str`
             The field name used for the x-axis (must be a key in `all_data`).
-        y_label : :class:`str`
+        yfield : :class:`str`
             The field name used for the y-axis (must be a key in `all_data`).
-        all_data : :class:`dict`
-            The full data dictionary used by the dashboard. It should contain at minimum:
-
-            - `'channel'`: array of channel labels
-            - `'idx'`: array of global image indices
-            - All fields needed for plotting and filtering
+        all_data : :class:`pd.DataFrame`
+            The full dataframe used by the dashboard.
 
         """
         self.fig = fig
-        self.x_label = x_label
-        self.y_label = y_label
+        self.xfield = xfield
+        self.yfield = yfield
         self.all_data = all_data
         self.channels = []
         self.total_filter = np.full(len(all_data['channel']), True)
@@ -270,7 +274,7 @@ class FigureWrapper:
 
 
     @classmethod
-    def build(cls, x_label: str, y_label: str, channels: list, all_data: dict):
+    def build(cls, xfield: str, yfield: str, channels: list, show_filtered_points: bool, all_data: pd.DataFrame):
         """
         Construct a new :class:`FigureWrapper` with default layout and one trace per channel.
 
@@ -278,22 +282,21 @@ class FigureWrapper:
         settings based on the GONet dashboard environment. It then creates a new 
         :class:`FigureWrapper` instance and populates it with traces for each requested channel.
 
-        If both `x_label` and `y_label` refer to general (non-channel-specific) quantities,
+        If both `xfield` and `yfield` refer to general (non-channel-specific) quantities,
         only a single trace is created using channel `"gen"` as a placeholder.
 
         Parameters
         ----------
-        x_label : :class:`str`
+        xfield : :class:`str`
             The quantity to be used for the x-axis. This must be a key in `all_data`.
-        y_label : :class:`str`
+        yfield : :class:`str`
             The quantity to be used for the y-axis. This must be a key in `all_data`.
         channels : :class:`list` of :class:`str`
             A list of channel names (e.g., `['red', 'green', 'blue']`) to generate traces for.
-        all_data : :class:`dict`
-            The full dataset dictionary containing:
-
-            - `'idx'`: global index values
-            - All fields referenced by `x_label`, `y_label`, and filters
+        show_filtered_points : bool
+            Whether to display filtered-out points with reduced opacity or hide them entirely.
+        all_data : :class:`pd.DataFrame`
+            The full dataframe used by the dashboard.
 
         Returns
         -------
@@ -303,10 +306,18 @@ class FigureWrapper:
         Notes
         -----
         - Time-based x-labels (starting with `'hours_'`) are formatted as HH:MM.
-        - The method uses `env.LABELS['gen']` to determine if the selected axes are non-channel-specific.
+        - The method uses `app.server.config["base_columns"]` to determine if the selected axes are non-channel-specific.
         - This is the standard entry point for figure creation at the beginning of a session.
 
         """
+        xunit = getattr(DATA_SPEC[xfield],'unit', "")
+        if xunit:
+            xunit = f" ({xunit})"
+        xlabel = f"{getattr(DATA_SPEC[xfield],'label')}"
+        yunit = getattr(DATA_SPEC[yfield],'unit', "")
+        if yunit:
+            yunit = f" ({yunit})"
+        ylabel = f"{getattr(DATA_SPEC[yfield],'label')}"
         fig = {
             'data': [],
             'layout': {
@@ -315,14 +326,16 @@ class FigureWrapper:
                 'font': {'color': env.TEXT_COLOR},
                 'dragmode': 'lasso',
                 'margin': {'l': 10, 'r': 10, 't': 10, 'b': 10},
+                'xfield': xfield,
                 'xaxis': {
-                    'title': {'text': x_label},
+                    'title': {'text': f"{xlabel}{xunit}"},
                     'automargin': True,
                     'ticks': "outside",
                     'mirror': True
                 },
+                'yfield': yfield,
                 'yaxis': {
-                    'title': {'text': y_label},
+                    'title': {'text': f"{ylabel}{yunit}"},
                     'automargin': True,
                     'ticks': "outside",
                     'mirror': True
@@ -330,24 +343,27 @@ class FigureWrapper:
             }
         }
 
-        if x_label.split('_')[0]=='hours':
+        if xfield.split('_')[0]=='hours':
             fig['layout']['xaxis']['tickformat'] = "%H:%M"
 
         wrapper = cls(
             fig=fig,
-            x_label=x_label,
-            y_label=y_label,
+            xfield=xfield,
+            yfield=yfield,
             all_data=all_data
         )
 
-
-        if x_label in env.LABELS['gen'] and y_label in env.LABELS['gen']:
+        if xfield in app.server.config["base_columns"] and yfield in app.server.config["base_columns"]:
             # If the labels are not channel-specific, the row of any channel can be used
             channels = ['gen']
 
         for c in channels:
             # Add the initial traces here
             wrapper.add_trace(c)
+
+        if not show_filtered_points:
+            wrapper.show_filtered_points = show_filtered_points
+            wrapper.apply_visibility()
 
         return wrapper
     
@@ -377,7 +393,7 @@ class FigureWrapper:
 
         all_data : :class:`dict`
             The full dataset originally used to construct the figure, including the keys
-            referenced by each trace's 'x', 'y', and 'idx' attributes. This is needed to
+            referenced by each trace's 'x', 'y', and 'epoch_idx' attributes. This is needed to
             restore filtering, indexing, and interactivity.
 
         Returns
@@ -391,19 +407,19 @@ class FigureWrapper:
 
         - Each trace in `fig['data']` is converted into a :class:`Trace` object.
         - Channels are inferred from the 'channel' field in each trace.
-        - If a trace is marked as `big_point`, its associated `idx[0]` is stored as `big_point_idx`.
+        - If a trace is marked as `big_point`, its associated `epoch_idx[0]` is stored as `big_point_idx`.
         - If any trace is marked as `hidden`, `show_filtered_points` is set to False.
         - This method assumes that all necessary metadata exists in the figure dictionary
           and that `all_data` is consistent with what was used to generate the figure.
 
         """
-        x_label = fig['layout']['xaxis']['title']['text']
-        y_label = fig['layout']['yaxis']['title']['text']
+        xfield = fig['layout']['xfield']
+        yfield = fig['layout']['yfield']
 
         # Convert each trace to a Trace instance for reactive behavior
         converted_traces = []
         for trace in fig['data']:
-            trace_obj = Trace(x_label=x_label, y_label=y_label, channel=trace['channel'])
+            trace_obj = Trace(xfield=xfield, yfield=yfield, channel=trace['channel'])
             trace_obj.update(trace)  # Apply original trace content
             converted_traces.append(trace_obj)
 
@@ -412,8 +428,8 @@ class FigureWrapper:
         # Instantiate the wrapper with restored state
         wrapper = cls(
             fig=fig,
-            x_label=x_label,
-            y_label=y_label,
+            xfield=xfield,
+            yfield=yfield,
             all_data=all_data
         )
 
@@ -422,8 +438,8 @@ class FigureWrapper:
             if img['channel'] not in wrapper.channels:
                 wrapper.channels.append(img['channel'])
             if img['big_point']:
-                if len(img['idx']) > 0:
-                    wrapper.big_point_idx = img['idx'][0]
+                if len(img['epoch_idx']) > 0:
+                    wrapper.big_point_idx = img['epoch_idx'][0]
             if img['hidden']:
                 wrapper.show_filtered_points = False
 
@@ -467,7 +483,7 @@ class FigureWrapper:
 
         # Create 3 traces: regular, filtered, and big-point
         for _ in range(3):
-            self.fig['data'].append(Trace(self.x_label, self.y_label, channel))
+            self.fig['data'].append(Trace(self.xfield, self.yfield, channel))
 
         # Configure filtered trace
         self.fig['data'][-2]['filtered'] = True
@@ -487,7 +503,7 @@ class FigureWrapper:
         """
         Apply the current filter mask to all traces associated with a specific channel.
 
-        This method updates the `x`, `y`, and `idx` values of traces in the figure
+        This method updates the `x`, `y`, and `epoch_idx` values of traces in the figure
         based on whether they should be shown as filtered or not, using the
         `self.total_filter` boolean mask and the specified data channel.
 
@@ -505,11 +521,22 @@ class FigureWrapper:
         if channel == 'gen':
             channel = 'red'
 
-        # Extract data arrays
-        x_data = np.array(self.all_data[self.x_label])
-        y_data = np.array(self.all_data[self.y_label])
-        idx_data = np.array(self.all_data['idx'])
-        channel_filter = np.array(self.all_data['channel']) == channel
+        # Extract data arrays from a pandas DataFrame
+        df = self.all_data
+
+        # If x/y are numeric or datetime, to_numpy() preserves appropriate dtype
+        x_data = df[self.xfield].to_numpy()
+        y_data = df[self.yfield].to_numpy()
+
+        # Strings (ensure string dtype)
+        night_data = df["night"].astype(str).to_numpy()
+
+        # Indices (works for Int64/Int32 nullable too; missing -> np.nan)
+        idx_data = df["epoch_idx"].to_numpy()
+
+        # Channel filter (category or string both fine; cast to str if your `channel` is a str)
+        # If your `channel` var is a string like "green":
+        channel_filter = (df["channel"].to_numpy() == channel)
 
         # Determine which points are included/excluded by the total filter
         selected_data = np.logical_and(self.total_filter, channel_filter)
@@ -520,8 +547,8 @@ class FigureWrapper:
                 continue
 
             if img['big_point']:
-                if len(img['idx']) > 0:
-                    if img['idx'][0] in idx_data[selected_data]:
+                if len(img['epoch_idx']) > 0:
+                    if img['epoch_idx'][0] in idx_data[selected_data]:
                         self.fig['data'][i]['filtered'] = False
                     else:
                         self.fig['data'][i]['filtered'] = True
@@ -530,11 +557,13 @@ class FigureWrapper:
                 if not img['filtered']:
                     self.fig['data'][i]['x'] = x_data[selected_data]
                     self.fig['data'][i]['y'] = y_data[selected_data]
-                    self.fig['data'][i]['idx'] = idx_data[selected_data]
+                    self.fig['data'][i]['customdata'] = night_data[selected_data]
+                    self.fig['data'][i]['epoch_idx'] = idx_data[selected_data]
                 else:
                     self.fig['data'][i]['x'] = x_data[filtered_out_data]
                     self.fig['data'][i]['y'] = y_data[filtered_out_data]
-                    self.fig['data'][i]['idx'] = idx_data[filtered_out_data]
+                    self.fig['data'][i]['customdata'] = night_data[filtered_out_data]
+                    self.fig['data'][i]['epoch_idx'] = idx_data[filtered_out_data]
 
 
     def update_visibility(self, show_filtered_points: bool) -> None:
@@ -646,47 +675,72 @@ class FigureWrapper:
 
         Notes
         -----
-
         - All filters are combined using logical AND.
         - Secondary filters are combined with the primary using logical OR.
         - The resulting `self.total_filter` array is used by `filter_traces()` to control visibility.
 
+        About type casting
+        ------------------
+        When filters come from the UI they are often strings (e.g., "3", "2024-11-22T23:15:11+00:00").
+        We cast the comparison value to the column's *native* type by looking at the first non-null
+        exemplar in that column (via `.dropna().iloc[0]`) and calling that type on the incoming value.
+        This avoids deprecated patterns like `int(series)` / `float(series)` and ensures we compare
+        numbers to numbers and datetimes to datetimes. If the column has only nulls, we fall back to
+        using the incoming value as-is.
         """
+        import numpy as np
+        import pandas as pd
+
+        df = self.all_data  # pandas DataFrame
         filters = []
 
-        for l in ['date_utc', 'date_local', 'hours_utc', 'hours_local']:
-            print(l, self.all_data[l][0])
-
         for f in active_filters:
-            # Handle selection-based filters (match by index)
+            # Handle selection-based filters (match by epoch index)
             if f['label'].split()[0] == 'Selection':
-                primary_filter = np.isin(self.all_data['idx'], f['value'])
+                primary_filter = df['epoch_idx'].isin(f['value']).to_numpy()
                 if f['operator'] == 'out':
                     primary_filter = ~primary_filter
                 filters.append(primary_filter)
 
             else:
                 # Handle threshold-style filters
-                label_data = np.array(self.all_data[f['label']])
-                value_type = type(self.all_data[f['label']][0])
-                comparison_value = value_type(f['value'])
+                s = df[f['label']]
+                # get exemplar type from first non-null value (avoid deprecated int(series) / float(series))
+                if s.notna().any():
+                    exemplar = s.dropna().iloc[0]
+                    try:
+                        comparison_value = type(exemplar)(f['value'])
+                    except Exception:
+                        comparison_value = f['value']
+                else:
+                    comparison_value = f['value']
+
+                label_data = s.to_numpy()
                 primary_filter = env.OP[f['operator']](label_data, comparison_value)
 
                 if 'secondary' in f:
                     secondary = f['secondary']
-                    secondary_label_data = np.array(self.all_data[secondary['label']])
-                    secondary_value_type = type(self.all_data[secondary['label']][0])
-                    secondary_value = secondary_value_type(secondary['value'])
+                    s2 = df[secondary['label']]
+                    if s2.notna().any():
+                        exemplar2 = s2.dropna().iloc[0]
+                        try:
+                            secondary_value = type(exemplar2)(secondary['value'])
+                        except Exception:
+                            secondary_value = secondary['value']
+                    else:
+                        secondary_value = secondary['value']
+
+                    secondary_label_data = s2.to_numpy()
                     secondary_filter = env.OP[secondary['operator']](secondary_label_data, secondary_value)
                 else:
                     # Use all-False secondary filter if not provided
-                    secondary_filter = np.full(len(self.all_data['channel']), False)
+                    secondary_filter = np.full(len(df['channel']), False)
 
                 filters.append(np.logical_or(primary_filter, secondary_filter))
 
         # Combine all filters using logical AND
-        for f in filters:
-            self.total_filter = np.logical_and(self.total_filter, f)
+        for fmask in filters:
+            self.total_filter = np.logical_and(self.total_filter, fmask)
 
 
 
@@ -710,7 +764,7 @@ class FigureWrapper:
         """
         plot_index = clickdata['points'][0]['curveNumber']
         point_index = clickdata['points'][0]['pointIndex']
-        self.big_point_idx = self.fig['data'][plot_index]['idx'][point_index]
+        self.big_point_idx = self.fig['data'][plot_index]['epoch_idx'][point_index]
 
 
     def plot_big_point(self) -> None:
@@ -738,7 +792,9 @@ class FigureWrapper:
         if self.big_point_idx is None:
             return
 
-        big_point_selection = np.array(self.all_data['idx']) == self.big_point_idx
+        df = self.all_data  # pandas DataFrame
+
+        big_point_selection = (df['epoch_idx'] == self.big_point_idx).to_numpy()
 
         for i, img in enumerate(self.fig['data']):
             if img['big_point']:
@@ -746,18 +802,17 @@ class FigureWrapper:
                 if channel == 'gen':
                     channel = 'red'
 
-                channel_filter = np.array(self.all_data['channel']) == channel
+                channel_filter = (df['channel'] == channel).to_numpy()
                 selected_data_filter = np.logical_and(big_point_selection, channel_filter)
 
-                self.fig['data'][i]['x'] = np.array(self.all_data[self.x_label])[selected_data_filter]
-                self.fig['data'][i]['y'] = np.array(self.all_data[self.y_label])[selected_data_filter]
-                self.fig['data'][i]['idx'] = np.array(self.all_data['idx'])[selected_data_filter]
+                self.fig['data'][i]['x'] = df[self.xfield].to_numpy()[selected_data_filter]
+                self.fig['data'][i]['y'] = df[self.yfield].to_numpy()[selected_data_filter]
+                self.fig['data'][i]['customdata'] = df['night'].astype(str).to_numpy()[selected_data_filter]
+                self.fig['data'][i]['epoch_idx'] = df['epoch_idx'].to_numpy()[selected_data_filter]
 
                 # Determine whether the selected point passes the current filters
-                if np.logical_and(selected_data_filter, self.total_filter).any():
-                    self.fig['data'][i]['filtered'] = False
-                else:
-                    self.fig['data'][i]['filtered'] = True
+                self.fig['data'][i]['filtered'] = not np.logical_and(selected_data_filter, self.total_filter).any()
+
 
 
 
@@ -779,10 +834,13 @@ class FigureWrapper:
 
         stats_table = {}
 
-        for axis,label in [['x', self.x_label],['y', self.y_label]]:
+        x_label = getattr(DATA_SPEC[self.xfield],'label')
+        y_label = getattr(DATA_SPEC[self.yfield],'label')
+
+        for axis,label in [['x', x_label],['y', y_label]]:
             stats_table[axis] = []
             try:
-                if label in env.LABELS['gen']:
+                if label in app.server.config["base_columns"]:
                     stats_table[axis].append({'label':label})
                     if 'gen' in data_figs:
                         m = np.mean(data_figs['gen'][axis])
@@ -797,7 +855,7 @@ class FigureWrapper:
                     for c in env.CHANNELS:
                         if c in data_figs:
                             stats_table[axis].append({
-                                'label': f"{label}_{c}",
+                                'label': f"{label} ({c})",
                                 'value': f"{np.mean(data_figs[c][axis]):.2f} ± {np.std(data_figs[c][axis]):.2f}"
                             })
             except (ValueError, TypeError):
@@ -814,150 +872,300 @@ class FigureWrapper:
         `self.big_point_idx`, combining general metadata and channel-specific fit values
         into a single dictionary.
 
-        General fields (from `env.LABELS['gen']`) are assumed to be identical across channels
-        and are taken from the first matching index. Channel-specific fields (from `env.LABELS['fit']`)
+        General fields (from `app.server.config["base_columns"]`) are assumed to be identical across channels
+        and are taken from the first matching index. Channel-specific fields (from `app.server.config["channel_columns"]`)
         are extracted separately for each matching channel and labeled accordingly.
 
         Returns
         -------
-        :class:`dict`
+        dict
             A dictionary containing the values of all general and fit-related fields
             for the selected "big point". Fit values are keyed by `{label}_{channel}`.
-        
         """
-        indices = np.where(np.array(self.all_data['idx']) == self.big_point_idx)[0]
+        import numpy as np
+        import pandas as pd
 
+        df = self.all_data  # pandas DataFrame
+
+        # Find all rows for this epoch_idx (typically 3: one per channel)
+        indices = np.where(df["epoch_idx"].to_numpy() == self.big_point_idx)[0]
         out_dict = {}
 
+        if len(indices) == 0:
+            return out_dict
+
+        first_i = indices[0]
+
+        # Helper formatters (keep behavior similar to your original)
+        def _as_iso_str(val):
+            # For datetime-like values, prefer ISO string; else plain str
+            if hasattr(val, "isoformat"):
+                return val.isoformat()
+            return str(val)
+
+        def _time_str(val):
+            # For datetime-like values, use HH:MM:SS; else try to split string
+            if hasattr(val, "strftime"):
+                return val.strftime("%H:%M:%S")
+            s = str(val)
+            # try to split on space or 'T' and take the time-ish part
+            if " " in s:
+                return s.split(" ", 1)[1]
+            if "T" in s:
+                return s.split("T", 1)[1]
+            return s  # fallback
+
         # General labels are channel-independent, so we use the first occurrence
-        for label in env.LABELS['gen']:
-            if label.split('_')[0] == 'date':
-                out_dict[label] = self.all_data[label][indices[0]].replace('T',' ')
-            elif label.split('_')[0] == 'hours':
-                out_dict[label] = self.all_data[label][indices[0]].split()[1]
+        for label in app.server.config["base_columns"]:
+            base_val = df[label].iloc[first_i]
+            if label.split("_")[0] == "date":
+                # original behavior: replace 'T' with space
+                out_dict[label] = _as_iso_str(base_val).replace("T", " ")
+            elif label.split("_")[0] == "hours":
+                out_dict[label] = _time_str(base_val)
             else:
-                out_dict[label] = self.all_data[label][indices[0]]
+                out_dict[label] = base_val
 
         # Fit labels are channel-specific, so we include one per index
-        for label in env.LABELS['fit']:
+        for label in app.server.config["channel_columns"]:
             for i in indices:
-                channel = self.all_data['channel'][i]
-                out_dict[f'{label}_{channel}'] = self.all_data[label][i]
+                channel = df["channel"].iloc[i]
+                out_dict[f"{label}_{channel}"] = df[label].iloc[i]
 
         return out_dict
 
 
-
-    def gonet_image(self, clickdata: dict) -> dict | None:
+    @staticmethod
+    def _image_message_figure(message: str) -> dict:
         """
-        Retrieve and render a GONet image corresponding to the selected data point.
-
-        This method locates the raw image file corresponding to the clicked data point
-        and generates a Plotly-compatible figure dictionary for display in the dashboard.
-        It overlays the image with a marker at the extraction center and a circular
-        region representing the extraction aperture.
+        Build a lightweight figure used when an image preview cannot be shown.
 
         Parameters
         ----------
-        clickdata : :class:`dict`
-            A Plotly click event dictionary from a Dash callback. Must contain:
-
-            - 'points': list with at least one entry
-            - 'curveNumber': index of the clicked trace
-            - 'pointIndex': index of the clicked point within the trace
+        message : :class:`str`
+            Message to display in the image-preview panel.
 
         Returns
         -------
-        :class:`dict` or None
-            A Plotly figure dictionary containing a heatmap of the selected image
-            and overlay annotations. Returns None if the image cannot be loaded
-            due to missing configuration or file.
-
-        Notes
-        -----
-
-        - This function uses `env.GONET_IMAGES_PATH` to resolve image file paths.
-
+        :class:`dict`
+            Plotly-compatible figure dictionary containing a centered message.
         """
-        if env.GONET_IMAGES_PATH is None:
+        return {
+            "data": [],
+            "layout": {
+                "xaxis": {"visible": False},
+                "yaxis": {"visible": False},
+                "annotations": [
+                    {
+                        "text": message,
+                        "xref": "paper",
+                        "yref": "paper",
+                        "x": 0.5,
+                        "y": 0.5,
+                        "showarrow": False,
+                        "font": {"size": 18, "color": env.TEXT_COLOR},
+                        "align": "center",
+                    }
+                ],
+                "paper_bgcolor": env.BG_COLOR,
+                "plot_bgcolor": env.BG_COLOR,
+                "font": {"color": env.TEXT_COLOR},
+                "margin": {"l": 10, "r": 10, "t": 10, "b": 10},
+            },
+        }
+
+
+    @staticmethod
+    def _is_missing(value) -> bool:
+        """
+        Return whether a dashboard row value should be treated as missing.
+
+        Dashboard data come from pandas rows, so missing values may be ``None``,
+        ``NaN``, or ``NaT``.  This helper avoids calling :func:`pandas.isna` in
+        contexts where it can return an array-like object.
+        """
+        if value is None:
+            return True
+        try:
+            return bool(pd.isna(value))
+        except (TypeError, ValueError):
+            return False
+
+    @classmethod
+    def _first_row_value(cls, row: pd.Series, *keys: str, default=None):
+        """
+        Return the first non-missing value from a row among several possible keys.
+
+        Extraction products store user-facing geometry fields such as
+        ``radius`` or ``inner_radius``.  The shape classes consume the internal
+        ``param1``/``param2`` convention.  Accepting both names keeps the
+        dashboard compatible with current and older products.
+        """
+        for key in keys:
+            if key not in row:
+                continue
+            value = row.get(key)
+            if not cls._is_missing(value):
+                return value
+        return default
+
+    @classmethod
+    def _shape_params_from_row(cls, row: pd.Series) -> dict | None:
+        """
+        Convert a dashboard row into parameters accepted by ``Shape.from_dict``.
+
+        The extraction JSON stores the public output field names, while the
+        shape framework expects ``param1`` and ``param2`` for shape-specific
+        dimensions.  This method performs only that small translation and then
+        delegates all geometry construction to the shared shape classes.
+        """
+        raw_shape = row.get("shape") if "shape" in row else None
+        if cls._is_missing(raw_shape):
+            return None
+
+        shape_name = str(raw_shape).strip().lower()
+        if not shape_name or shape_name in {"none", "nan", "nat"}:
+            return None
+
+        params = {
+            "shape": shape_name,
+            "x0": cls._first_row_value(row, "x0"),
+            "y0": cls._first_row_value(row, "y0"),
+            "start_angle": cls._first_row_value(row, "start_angle", default=-180),
+            "end_angle": cls._first_row_value(row, "end_angle", default=180),
+        }
+
+        if shape_name == "circle":
+            params["param1"] = cls._first_row_value(row, "radius", "param1")
+
+        elif shape_name == "annulus":
+            params["param1"] = cls._first_row_value(row, "inner_radius", "param1")
+            params["param2"] = cls._first_row_value(row, "outer_radius", "param2")
+
+        elif shape_name == "rectangle":
+            params["param1"] = cls._first_row_value(row, "side1", "param1")
+            params["param2"] = cls._first_row_value(row, "side2", "param2")
+
+        elif shape_name in {"path", "freehand"}:
+            params["path"] = cls._first_row_value(row, "path")
+
+        return params
+
+    def _shape_overlay_from_row(self, row: pd.Series) -> list[dict]:
+        """
+        Build Plotly layout shapes for the extraction geometry in a row.
+
+        Missing or invalid geometry should never break image preview.  If the
+        dashboard cannot reconstruct the shape, it returns no overlay and leaves
+        the selected image visible.
+        """
+        params = self._shape_params_from_row(row)
+        if params is None:
+            return []
+
+        try:
+            shape = shape_base.Shape.from_dict(params)
+            return shape.draw()
+        except shape_base.IncompleteShapeError:
+            return []
+        except Exception as exc:
             warnings.warn(
-                "The environment variable for image paths is not set. Cannot display any image.",
-                category=UserWarning
+                f"Could not draw extraction overlay for selected dashboard row: {exc}",
+                UserWarning,
             )
-        elif not env.GONET_IMAGES_PATH.exists():
-            warnings.warn(
-                f"The folder {env.GONET_IMAGES_PATH}, defined in the environment, does not exist.",
-                category=UserWarning
-            )
+            return []
+
+    def gonet_image(self, clickdata: dict) -> dict | None:
+        """
+        Render the GONet image associated with the clicked dashboard point.
+
+        The dashboard expects the loaded extraction products to contain a
+        ``filename`` field storing the full path to the extracted GONet image.
+        This method reads that path from ``self.all_data`` and loads the image
+        directly, without requiring a separate image-directory setting.
+
+        If the file is missing or cannot be read, a non-breaking placeholder
+        figure is returned instead of raising an exception.
+        """
+        if not clickdata or "points" not in clickdata or not clickdata["points"]:
+            return None
+
+        # Which trace was clicked -> which channel trace we are in.  General
+        # (channel-independent) traces use ``gen``; in that case, choose a real
+        # channel from the selected epoch below.
+        plot_index = clickdata["points"][0]["curveNumber"]
+        clicked_channel = self.fig["data"][plot_index].get("channel")
+
+        df = self.all_data
+        epoch_mask = df["epoch_idx"] == self.big_point_idx
+        if not epoch_mask.any():
+            warnings.warn(f"No data row for epoch_idx={self.big_point_idx}", UserWarning)
+            return self._image_message_figure("Image preview unavailable<br>No matching dashboard row")
+
+        epoch_rows = df.loc[epoch_mask]
+
+        if clicked_channel in env.CHANNELS:
+            channel_rows = epoch_rows.loc[epoch_rows["channel"] == clicked_channel]
         else:
-            plot_index = clickdata['points'][0]['curveNumber']
-            channel = self.fig['data'][plot_index]['channel']
+            channel_rows = pd.DataFrame()
 
-            # Identify the real index matching both the big point and the channel
-            real_idx = np.argmax(
-                np.logical_and(
-                    np.array(self.all_data['idx']) == self.big_point_idx,
-                    np.array(self.all_data['channel']) == channel
-                )
-            )
+        if channel_rows.empty:
+            # Prefer green for generic points because it is the default channel
+            # in the dashboard UI, then fall back to the first available row.
+            green_rows = epoch_rows.loc[epoch_rows["channel"] == "green"]
+            row = (green_rows if not green_rows.empty else epoch_rows).iloc[0]
+            channel = str(row.get("channel", "green"))
+        else:
+            row = channel_rows.iloc[0]
+            channel = str(clicked_channel)
 
-            filename = env.GONET_IMAGES_PATH / self.all_data['night'][real_idx] / "Horizontal" / self.all_data['filename'][real_idx]
+        raw_filename = row.get("filename")
+        if raw_filename is None or pd.isna(raw_filename) or str(raw_filename).strip() == "":
+            warnings.warn("Selected dashboard row has no filename field.", UserWarning)
+            return self._image_message_figure("File not found<br>No filename stored for this point")
 
-            if not filename.exists():
-                warnings.warn("Image not found at resolved path.", category=UserWarning)
-                return
+        filename = Path(str(raw_filename)).expanduser()
 
-            # Load image data
+        if not filename.exists():
+            warnings.warn(f"Image not found: {filename}", UserWarning)
+            return self._image_message_figure(f"File not found<br>{filename}")
+
+        try:
             go = GONetFile.from_file(filename)
+            try:
+                img = go.get_channel(channel)
+            finally:
+                del go  # free ASAP
+        except Exception as exc:
+            warnings.warn(f"Could not load image preview from {filename}: {exc}", UserWarning)
+            return self._image_message_figure(f"File not found or unreadable<br>{filename}")
 
-            outfig = {
-                'data': [{
-                    'z': go.channel(channel),
-                    'type': 'heatmap'
-                }],
-                'layout': {
-                    'showlegend': False,
-                    'paper_bgcolor': env.BG_COLOR,
-                    'plot_bgcolor': env.BG_COLOR,
-                    'font': {'color': env.TEXT_COLOR},
-                    'margin': {'l': 10, 'r': 10},
-                    'xaxis': {'automargin': True, 'ticks': "outside", 'mirror': True},
-                    'yaxis': {'automargin': True, 'ticks': "outside", 'mirror': True},
+        outfig = {
+            "data": [
+                {
+                    "z": img,
+                    "type": "heatmap"
                 }
-            }
-            del go
+            ],
+            "layout": {
+                "showlegend": False,
+                "paper_bgcolor": env.BG_COLOR,
+                "plot_bgcolor": env.BG_COLOR,
+                "font": {"color": env.TEXT_COLOR},
+                "margin": {"l": 10, "r": 10},
+                "xaxis": {"automargin": True, "ticks": "outside", "mirror": True},
+                "yaxis": {"automargin": True, "ticks": "outside", "mirror": True},
+            },
+        }
 
-            # Center marker
-            outfig['data'].append({
-                'x': [self.all_data['center_x'][real_idx]],
-                'y': [self.all_data['center_y'][real_idx]],
-                'type': 'scatter',
-                'mode': 'markers',
-                'marker': {
-                    'color': 'rgba(0, 0, 0, 1)',
-                    'symbol': 'circle'
-                }
-            })
+        # Optional geometry overlay.  The extraction app already owns shape
+        # construction and Plotly drawing through the shared Shape framework, so
+        # the dashboard only adapts the selected row into Shape.from_dict input.
+        overlay_shapes = self._shape_overlay_from_row(row)
+        for i in range(len(overlay_shapes)):
+            overlay_shapes[i]["line"] = {"color": "black"}
+        if overlay_shapes:
+            outfig["layout"]["shapes"] = overlay_shapes
 
-            # Circular aperture overlay
-            c_x, c_y = [], []
-            for ang in np.linspace(0, 2 * np.pi, 25):
-                c_x.append(self.all_data['center_x'][real_idx] + self.all_data['extraction_radius'][real_idx] * np.cos(ang))
-                c_y.append(self.all_data['center_y'][real_idx] + self.all_data['extraction_radius'][real_idx] * np.sin(ang))
+        return outfig
 
-            outfig['data'].append({
-                'x': c_x,
-                'y': c_y,
-                'type': 'scatter',
-                'mode': 'lines',
-                'marker': {'color': 'rgba(0, 0, 0, 1)', 'symbol': 'circle'}
-            })
-
-            return outfig
-
-        return None
-
-
-# if 'range' in fig['layout']['xaxis']:
-#     xaxis_range = fig['layout']['xaxis']['range']
-#     yaxis_range = fig['layout']['yaxis']['range']

@@ -1,13 +1,15 @@
-import json, sys, pytest
+import json, pytest
 import numpy as np
 from GONet_Wizard.GONet_utils import GONetFile
 from pathlib import Path
-from GONet_Wizard.GONet_utils.src.gonetfile import scale_uint12_to_16bit_range, FileType
-from unittest.mock import MagicMock
+from GONet_Wizard.GONet_utils.src.gonet.filetypes import FileType
+from GONet_Wizard.GONet_utils.src.gonet.io_utils import scale_uint12_to_16bit_range
+from GONet_Wizard.GONet_utils.src.gonet import config
+from GONet_Wizard.GONet_utils.src.gonet import parsers
 
-def verify_proper_load(source_file: str, tmp_path: str, pattern_red: np.ndarray, pattern_green: np.ndarray, pattern_blue: np.ndarray):
+def verify_proper_load(source_file: str, tmp_path: str, pattern_blue: np.ndarray, pattern_green: np.ndarray, pattern_red: np.ndarray):
     """
-    Verify that the red, green, and blue channels in a GONetFile instance
+    Verify that the blue, green, and red channels in a GONetFile instance
     match the expected Dolus pattern.
 
     This test uses a controlled test file ("Dolus") and compares the parsed
@@ -31,9 +33,9 @@ def verify_proper_load(source_file: str, tmp_path: str, pattern_red: np.ndarray,
     assert gonet.filename == str(test_file.name)
 
     # Confirm that each channel was parsed and scaled correctly
-    np.testing.assert_array_equal(gonet.red, pattern_red)
-    np.testing.assert_array_equal(gonet.green, pattern_green)
     np.testing.assert_array_equal(gonet.blue, pattern_blue)
+    np.testing.assert_array_equal(gonet.green, pattern_green)
+    np.testing.assert_array_equal(gonet.red, pattern_red)
 
     # Confirm that metadata matches the known expected fields
     meta = gonet.meta
@@ -63,14 +65,14 @@ def test_loading_from_raw_file(tmp_path):
 
     # Generate the expected RGB arrays using the known pattern logic
     array = np.array([
-        range(i, i + int(GONetFile.PIXEL_PER_LINE / 2))
-        for i in range(0, int(GONetFile.PIXEL_PER_COLUMN / 2))
+        range(i, i + int(config.PIXEL_PER_LINE / 2))
+        for i in range(0, int(config.PIXEL_PER_COLUMN / 2))
     ])
-    red = scale_uint12_to_16bit_range(np.clip(array, 0, 4095))
-    green = scale_uint12_to_16bit_range(np.clip(array * 5, 0, 4095))
     blue = scale_uint12_to_16bit_range(np.clip(array * 2, 0, 4095))
+    green = scale_uint12_to_16bit_range(np.clip(array * 5, 0, 4095))
+    red = scale_uint12_to_16bit_range(np.clip(array, 0, 4095))
 
-    verify_proper_load(source_file, tmp_path, red, green, blue)
+    verify_proper_load(source_file, tmp_path, blue, green, red)
 
 
 def test_loading_from_tiff_file(tmp_path):
@@ -84,8 +86,8 @@ def test_loading_from_tiff_file(tmp_path):
 
     # Generate the expected RGB arrays using the known pattern logic
     array = np.array([
-        np.arange(i,(i+int(GONetFile.PIXEL_PER_LINE/2)))
-        for i in np.arange(0,int(GONetFile.PIXEL_PER_COLUMN/2))
+        np.arange(i,(i+int(config.PIXEL_PER_LINE/2)))
+        for i in np.arange(0,int(config.PIXEL_PER_COLUMN/2))
     ])
 
     def approx_Domus(arr):
@@ -95,7 +97,7 @@ def test_loading_from_tiff_file(tmp_path):
     green = np.clip(approx_Domus(array*5), 0, 2**16-1)
     blue = np.clip(approx_Domus(array*2), 0, 2**16-1)
 
-    verify_proper_load(source_file, tmp_path, red, green, blue)
+    verify_proper_load(source_file, tmp_path, blue, green, red)
 
 
 def is_safe_scalar(val):
@@ -134,24 +136,24 @@ def test_invalid_filename_type(bad_filename):
 
 
 @pytest.mark.parametrize("channel_name, bad_value", [
-    ("red", "not an array"),
+    ("blue", "not an array"),
     ("green", 42),
-    ("blue", {"array": True}),
+    ("red", {"array": True}),
 ])
 def test_non_array_channels(channel_name, bad_value):
-    data = {"red": np.zeros((2, 2)), "green": np.zeros((2, 2)), "blue": np.zeros((2, 2))}
+    data = {"blue": np.zeros((2, 2)), "green": np.zeros((2, 2)), "red": np.zeros((2, 2))}
     data[channel_name] = bad_value
     with pytest.raises(TypeError, match=f"{channel_name} must be a numpy.ndarray"):
-        GONetFile("file", data["red"], data["green"], data["blue"], {}, FileType.SCIENCE)
+        GONetFile("file", data["blue"], data["green"], data["red"], {}, FileType.SCIENCE)
 
 
-@pytest.mark.parametrize("channel_name", ["red", "green", "blue"])
+@pytest.mark.parametrize("channel_name", ["blue", "green", "red"])
 def test_invalid_array_dimensions(channel_name):
     bad_shape = np.zeros((2, 2, 2))  # 3D instead of 2D
-    data = {"red": np.zeros((2, 2)), "green": np.zeros((2, 2)), "blue": np.zeros((2, 2))}
+    data = {"blue": np.zeros((2, 2)), "green": np.zeros((2, 2)), "red": np.zeros((2, 2))}
     data[channel_name] = bad_shape
     with pytest.raises(ValueError, match=f"{channel_name} must be a 2D array"):
-        GONetFile("file", data["red"], data["green"], data["blue"], {}, FileType.SCIENCE)
+        GONetFile("file", data["blue"], data["green"], data["red"], {}, FileType.SCIENCE)
 
 
 @pytest.mark.parametrize("bad_meta", ["not a dict", 123, 3.14, [1, 2]])
@@ -168,15 +170,15 @@ def test_invalid_filetype(bad_filetype):
 def test_invalid_channel_request():
     gnf = GONetFile(
         filename="dummy",
-        red=np.zeros((2, 2)),
-        green=np.zeros((2, 2)),
         blue=np.zeros((2, 2)),
+        green=np.zeros((2, 2)),
+        red=np.zeros((2, 2)),
         meta={},
         filetype=None
     )
 
     with pytest.raises(ValueError, match=r"Invalid channel name: fake."):
-        gnf.channel("fake")
+        gnf.get_channel("fake")
 
 def test_from_file_nonexistent_path():
     """
@@ -199,7 +201,7 @@ def test_parse_exif_metadata_malformed_wb():
     exif = {
         315: "WB: (bad_format)"  # Tag 315 = "Artist"
     }
-    result = GONetFile._parse_exif_metadata(exif)
+    result = parsers.parse_exif_metadata(exif)
     assert "WB" not in result.get("JPEG", {}), "Malformed WB should be skipped"
 
 
@@ -207,7 +209,7 @@ def test_parse_exif_metadata_unconvertible_gps_key():
     exif = {
         34853: {"not_a_number": "some_value", 2: (1, 2, 3), 1: "N"}  # Tag 34853 = "GPSInfo"
     }
-    result = GONetFile._parse_exif_metadata(exif)
+    result = parsers.parse_exif_metadata(exif)
     
     # Should still parse the valid numeric keys correctly
     assert "latitude" in result["GPS"]
@@ -217,5 +219,5 @@ def test_parse_exif_metadata_southern_hemisphere():
     exif = {
         34853: {1: "S", 2: (10, 0, 0)}  # GPSInfo
     }
-    result = GONetFile._parse_exif_metadata(exif)
+    result = parsers.parse_exif_metadata(exif)
     assert result["GPS"]["latitude"] < 0, "Latitude should be negative for 'S'"

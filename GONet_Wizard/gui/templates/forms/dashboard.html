@@ -1,0 +1,9 @@
+{% set input_id = "dashboard-input" %}
+{% set name = "input" %}
+{% set label = "Data directory" %}
+{% set placeholder = "Select a data folder (or type/paste a path)…" %}
+{% set pick_mode = "folder" %}
+{% set help = "Pick a folder containing JSON/CSV files. This maps to --input." %}
+{% include "components/path_picker.html" %}
+
+<button type="submit">Launch dashboard</button>

@@ -1,27 +1,23 @@
 """
 GONet Wizard Utility Functions.
 
-This module provides reusable functions for plotting, filtering, statistical analysis,
-and layout generation within the GONet Wizard dashboard application. These functions
-support the construction of `Dash <https://dash.plotly.com/>`_ figures, dynamic filter UI elements, and filter logic
-used in the callback system.
+This module provides utility functions and constants for the GONet Wizard dashboard application.
+It includes debugging decorators, a custom Dash callback decorator with enhanced error handling,
+date/time parsing utilities, and functions to create dynamic filter UI components.
 
 `Dash <https://dash.plotly.com/>`_ components from `dash` and `dash_daq` are used to construct UI elements dynamically.
 
 **Functions**
 
-- :func:`debug` : debugging. 
-- :func:`sort_figure` : Reorders the traces in a Plotly figure based on filtering and highlight status.
-- :func:`get_labels` : Extracts the axis label text from a Plotly figure layout.
-- :func:`plot_scatter` : Update a Plotly figure by adding scatter traces for selected and filtered data.
-- :func:`plot_big_points` : Highlight a selected point in the scatter plot by adding enlarged "big point" markers.
-- :func:`get_stats` : Compute summary statistics (mean and standard deviation) for plotted x and y values.
+- :func:`debug_print` : Decorator that logs when a Dash callback is triggered, including the triggering component ID and source line.
+- :func:`gonet_callback` : Custom Dash callback decorator that extends the original callback with automatic alert handling, debug logging, and error state protection.
+- :func:`parse_date_time` : Parses and converts a date/time value based on the provided label. 
 - :func:`new_empty_filter` : Create a `Dash <https://dash.plotly.com/>`_ component representing an empty primary filter block.
 - :func:`new_empty_second_filter` : Create a `Dash <https://dash.plotly.com/>`_ component block representing a secondary (OR) filter.
 - :func:`new_selection_filter` : Create a `Dash <https://dash.plotly.com/>`_ component for a selection-based filter using manually selected points.
 
 """
-import traceback, inspect, warnings, os, uuid, datetime
+import inspect, warnings, os, uuid, datetime
 from functools import wraps
 
 from dash import html, dcc, ctx, no_update
@@ -30,6 +26,9 @@ import dash_daq as daq
 
 from GONet_Wizard.GONet_dashboard.src import env
 from GONet_Wizard.GONet_dashboard.src.server import app
+from GONet_Wizard.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 def debug_print(callback_fn):
     """
@@ -53,7 +52,7 @@ def debug_print(callback_fn):
     def wrapper(*args, **kwargs):
         if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
             caller = inspect.stack()[1]
-            print(f"{callback_fn.__name__} fired (line {caller.lineno}) triggered by {ctx.triggered_id}.")
+            logger.debug("%s fired (line %s) triggered by %s.", callback_fn.__name__, caller.lineno, ctx.triggered_id)
         return callback_fn(*args, **kwargs)
     return wrapper
 
@@ -123,7 +122,7 @@ def gonet_callback(*args, **kwargs):
             try:
                 if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
                     caller = inspect.stack()[1]
-                    print(f"{callback_fn.__name__} fired (line {caller.lineno}) triggered by {ctx.triggered_id}.")
+                    logger.debug("%s fired (line %s) triggered by %s.", callback_fn.__name__, caller.lineno, ctx.triggered_id)
 
                 # Capture warnings
                 with warnings.catch_warnings(record=True) as wlist:
@@ -150,8 +149,7 @@ def gonet_callback(*args, **kwargs):
                 return (*result, "", "", {"display": "none"})
 
             except Exception as e:
-                print(f"Exception in callback: {callback_fn.__name__}")
-                print(traceback.format_exc())
+                logger.exception("Exception in callback: %s", callback_fn.__name__)
                 return (
                     *[no_update] * n_real_outputs,
                     f"🚨 {str(e)}",
@@ -168,39 +166,39 @@ def parse_date_time(label, value):
     """
     Parses and converts a date/time value based on the provided label.
 
-    This function processes a given date/time value and returns it in a standardized format. Depending on the label, it 
-    either converts an ISO datetime string to Unix time or a time string (hours:minutes:seconds) to a fraction of the day.
-    If the label corresponds to 'date', the value is converted to Unix time. If the label corresponds to 'hours', the value 
-    is converted to a fraction of the day, accounting for potential time zone shifts.
+    This function processes a given date/time value and returns it in a standardized format. Depending on the label,
+    it either converts an ISO datetime string to Unix time or a time string (hours:minutes:seconds) to a fraction of
+    the day. If the label corresponds to 'date', the value is converted to Unix time. If the label corresponds to
+    'hours', the value is converted to a fraction of the day, accounting for potential time zone shifts.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     label : :class:`str`
-        A string representing the quantity parsed. If not time or date related it will return itself.
-    
-    value : :class:`str`
-        Value of the quantity parsed. If `label` is not time or date related it will return itself.
+        A string representing the quantity parsed. If not time or date related, it will return itself.
 
-    Returns:
-    --------
+    value : :class:`str`
+        Value of the quantity parsed. If `label` is not time or date related, it will return itself.
+
+    Returns
+    -------
     tuple
         A tuple containing the processed label and the parsed value:
-        
+
         - If the label starts with 'date', the value will be the corresponding Unix time as an integer.
         - If the label starts with 'hours', the value will be a float representing the fraction of the day.
-        - If the time is earlier than the defined 'day start' (UTC or local), the function will adjust the value to the 
-          following day.
+        - If the time is earlier than the defined 'day start' (UTC or local), the function will adjust the value
+          to the following day.
 
-    Raises:
-    -------
+    Raises
+    ------
     ValueError
-        If the 'value' cannot be parsed into a valid datetime or time string, the function will print an error message 
+        If the 'value' cannot be parsed into a valid datetime or time string, the function will print an error message
         and return None.
     """
 
     # Function to convert ISO datetime to Unix time (int)
     def convert_to_unix_time(value):
-        print(value)
+        logger.debug("Parsing datetime value: %s", value)
         try:
             # Parse the value as an ISO datetime, which includes timezone info
             dt = datetime.datetime.fromisoformat(value)
@@ -210,7 +208,7 @@ def parse_date_time(label, value):
             return unix_time
 
         except ValueError:
-            print(f"Error: Value '{value}' could not be parsed into a valid datetime.")
+            logger.warning("Value %r could not be parsed into a valid datetime.", value)
             return None  # Or return a default value or raise an exception
 
     def time_to_fraction_of_day(time_str):
@@ -334,6 +332,21 @@ def new_empty_filter(idx: int, labels: list) -> html.Div:
                         n_clicks=0
                     )
                 ]
+            ),
+            html.Div(
+                className="remove-filter-container",
+                id={"type": "remove-filter-container", "index": index},
+                children=[
+                    html.Button(
+                        id={"type": "remove-filter", "index": index},
+                        className="remove-filter-button",
+                        n_clicks=0,
+                        children=html.Img(
+                            src="/assets/img/icons/trash.svg",
+                            className="remove-filter-icon"
+                        )
+                    )
+                ]
             )
         ]
     )
@@ -372,34 +385,78 @@ def new_empty_second_filter(idx: int, labels: list) -> list:
 
 def new_selection_filter(idx: int, selected_indexes: list) -> html.Div:
     """
-    Create a `Dash <https://dash.plotly.com/>`_ component for a selection-based filter using manually selected points.
+    Create a Dash component for a selection-based filter.
 
-    This function generates a filter UI tied to a lasso or box selection on the plot.
-    It includes a toggle switch, a dropdown preset to the selection label, a hidden
-    data store with the selected indices, and a dropdown to choose inclusion or exclusion.
+    Selection filters are created from lasso/box-selected plot points. The
+    stored values are ``epoch_idx`` identifiers, not Plotly trace point
+    positions.
 
-    Parameters
-    ----------
-    idx : :class:`int`
-        The index of the filter, used to generate unique component IDs.
-    selected_indexes : :class:`list`
-        A list of data indices representing the points included in the selection.
-
-    Returns
-    -------
-    :class:`dash.html.Div`
-        A :dashdoc:`Dash Div <dash-html-components/div>` component containing the selection-based filter UI.
+    The component IDs intentionally use the same key schema as ordinary value
+    filters: ``{"type": ..., "index": <stable-index>}``. Keeping the ID keys
+    consistent is important because Dash pattern-matching callbacks only receive
+    components that match the requested ID schema. A previous implementation put
+    an additional ``uuid`` key on the switch ID, which meant toggling a
+    selection filter did not reliably trigger the shared ``update_filters``
+    callback.
     """
 
-    new_filter = html.Div(className="custom-filter-container", id = {"type":'custom-filter-container', "index":idx}, children=[
-                html.Div(className="first-filter-container", id = {"type":'first-filter-container', "index":idx}, children=[
-                    html.Div(className = 'switch-container', id = {"type":'filter-switch-container', "index":idx}, children=
-                        daq.BooleanSwitch(className='switch', id={"type":'filter-switch', "index":idx, "uuid": str(uuid.uuid4())}, on=False),
+    row_uuid = str(uuid.uuid4())
+    index = f"{idx}|{row_uuid}"
+    label = f"Selection {idx}"
+
+    new_filter = html.Div(
+        className="custom-filter-container",
+        id={"type": "custom-filter-container", "index": index},
+        children=[
+            html.Div(
+                className="first-filter-container",
+                id={"type": "first-filter-container", "index": index},
+                children=[
+                    html.Div(
+                        className="switch-container",
+                        id={"type": "filter-switch-container", "index": index},
+                        children=daq.BooleanSwitch(
+                            className="switch",
+                            id={"type": "filter-switch", "index": index},
+                            on=False,
+                        ),
                     ),
-                    dcc.Dropdown(className="custom-filter-dropdown", id={"type":'filter-dropdown', "index":idx}, options=[f'Selection {idx}'], value=f'Selection {idx}'),
-                    dcc.Store(id={"type":'filter-selection-data', "index": idx}, data = selected_indexes),
-                    dcc.Dropdown(className="custom-filter-operator", id={"type":'filter-operator', "index":idx}, options=['in', 'out'], value = 'in'),
-                ])
-            ])
+                    dcc.Dropdown(
+                        className="custom-filter-dropdown",
+                        id={"type": "filter-dropdown", "index": index},
+                        options=[label],
+                        value=label,
+                        clearable=False,
+                    ),
+                    dcc.Store(
+                        id={"type": "filter-selection-data", "index": index},
+                        data=selected_indexes,
+                    ),
+                    dcc.Dropdown(
+                        className="custom-filter-operator",
+                        id={"type": "filter-operator", "index": index},
+                        options=["in", "out"],
+                        value="in",
+                        clearable=False,
+                    ),
+                ],
+            ),
+            html.Div(
+                className="remove-filter-container",
+                id={"type": "remove-filter-container", "index": index},
+                children=[
+                    html.Button(
+                        id={"type": "remove-filter", "index": index},
+                        className="remove-filter-button",
+                        n_clicks=0,
+                        children=html.Img(
+                            src="/assets/img/icons/trash.svg",
+                            className="remove-filter-icon",
+                        ),
+                    )
+                ],
+            ),
+        ],
+    )
 
     return new_filter

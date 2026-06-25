@@ -31,6 +31,7 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+!build_tools/pyinstaller/*.spec
 
 # Installer logs
 pip-log.txt
@@ -70,6 +71,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/build/
 
 # PyBuilder
 .pybuilder/
@@ -168,3 +170,11 @@ data/**/*.json
 #Personal scripts and logging
 tag_and_push.sh
 commit_changelog.txt
+# Local editor settings
+.vscode/
+
+# Ignore build artifacts and installer files
+*.dmg
+*.exe
+*.msi
+*.pkg
