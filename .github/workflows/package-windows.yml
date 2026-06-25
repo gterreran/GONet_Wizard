@@ -7,11 +7,6 @@ on:
         description: "Optional version label for the installer name. Leave blank to use package/git metadata."
         required: false
         default: ""
-      force_pyinstaller:
-        description: "Force a fresh PyInstaller build before creating the installer."
-        required: false
-        type: boolean
-        default: true
   push:
     tags:
       - "v*"
@@ -64,16 +59,8 @@ jobs:
         shell: pwsh
         env:
           REQUESTED_VERSION: ${{ inputs.version || '' }}
-          FORCE_PYINSTALLER: ${{ inputs.force_pyinstaller != false }}
         run: |
-          $buildArgs = @()
-
-          if ($env:FORCE_PYINSTALLER -eq "true") {
-            $buildArgs += "-ForcePyInstaller"
-          }
-          else {
-            $buildArgs += "-SkipPyInstaller"
-          }
+          $buildArgs = @("-ForcePyInstaller")
 
           if ($env:REQUESTED_VERSION) {
             $buildArgs += "-Version"
