@@ -32,8 +32,9 @@ declarative, extensible command tree with optional UI presentation:
   and :class:`~GONet_Wizard.commands.specs.ParserSpec`.
 
 - :mod:`GONet_Wizard.commands.inputs`
-  Provides CLI input normalization utilities such as :class:`.ExpandFilenames`,
-  :func:`.expand_inputs`, and :func:`.filter_by_ext`.
+  Provides CLI input normalization utilities such as :class:`~GONet_Wizard.commands.inputs.ExpandFilenames`,
+  :func:`~GONet_Wizard.commands.inputs.expand_inputs`, and
+  :func:`~GONet_Wizard.commands.inputs.filter_by_ext`.
 
 - :mod:`GONet_Wizard.commands.parser_builder`
   Constructs the full parser hierarchy from :data:`PARSER` and command specs via
@@ -91,11 +92,11 @@ Constants
 # a separate package or optional extension later.
 # "GONet_Wizard.commands.connect_commands",
 
-from GONet_Wizard.commands import show, show_meta, extract, run_dashboard, build_full_array, gui, connect
+from GONet_Wizard.commands import show, show_meta, extract, run_dashboard, build_full_array, gui
 #from GONet_Wizard.commands import connect_commands
 from .cli_core import ParserSpec
 
-COMMANDS = (show, show_meta, extract, run_dashboard, build_full_array, gui) #connect
+COMMANDS = (show, show_meta, extract, run_dashboard, build_full_array, gui)
 
 PARSER = ParserSpec(
     dest="command",

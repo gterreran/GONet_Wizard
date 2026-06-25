@@ -52,3 +52,25 @@ Version
 .. automodule:: GONet_Wizard._version
    :members:
    :show-inheritance:
+   
+Desktop Entrypoint
+------------------
+
+.. automodule:: GONet_Wizard.desktop
+   :members:
+   :show-inheritance:
+
+Path Helpers
+------------
+
+.. automodule:: GONet_Wizard.paths
+   :members:
+   :show-inheritance:
+
+Resource Helpers
+----------------
+
+.. automodule:: GONet_Wizard.resources
+   :members:
+   :show-inheritance:
+

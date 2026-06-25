@@ -56,7 +56,7 @@ class Field:
         key: str,
         label: str,
         unit: str,
-        aliases: List[str] = [],
+        aliases: List[str] | None = None,
         plottable: bool = True,
         field_type: str = "env",
         **extras: Any,

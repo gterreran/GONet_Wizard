@@ -372,6 +372,43 @@ def test_build_show_figure_multi_channel_adds_row_frames(monkeypatch, dummy_arr)
     assert meta["cols"] == 3
 
 
+def test_load_gonet_file_for_show_uses_processed_loader_for_tiff(monkeypatch):
+    import GONet_Wizard.commands.show.figure as show_figure_mod
+
+    calls = []
+
+    def fake_gonet_from_file(path: str):
+        calls.append(("processed", path))
+        return "processed-file"
+
+    def fake_raw_from_file(path: str):
+        calls.append(("raw", path))
+        return "raw-file"
+
+    monkeypatch.setattr(show_figure_mod.GONetFile, "from_file", staticmethod(fake_gonet_from_file))
+    monkeypatch.setattr(show_figure_mod.GONetFileRaw, "from_file", staticmethod(fake_raw_from_file))
+
+    assert show_figure_mod._load_gonet_file_for_show(Path("image.tiff")) == "processed-file"
+    assert calls[-1] == ("processed", "image.tiff")
+
+    assert show_figure_mod._load_gonet_file_for_show(Path("image.tif")) == "processed-file"
+    assert calls[-1] == ("processed", "image.tif")
+
+    assert show_figure_mod._load_gonet_file_for_show(Path("image.jpg")) == "raw-file"
+    assert calls[-1] == ("raw", "image.jpg")
+
+
+def test_channel_for_loaded_file_falls_back_to_green_for_processed_files():
+    import GONet_Wizard.commands.show.figure as show_figure_mod
+
+    class ProcessedLike:
+        CHANNELS = ["blue", "green", "red"]
+
+    assert show_figure_mod._channel_for_loaded_file(ProcessedLike(), "green1") == "green"
+    assert show_figure_mod._channel_for_loaded_file(ProcessedLike(), "green2") == "green"
+    assert show_figure_mod._channel_for_loaded_file(ProcessedLike(), "red") == "red"
+
+
 from GONet_Wizard.commands.show.io import save_figure_plotly
 
 

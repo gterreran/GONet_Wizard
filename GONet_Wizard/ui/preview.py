@@ -45,7 +45,7 @@ from dataclasses import dataclass
 from threading import Lock
 from typing import Dict, Optional
 
-from flask import Blueprint, Response, render_template, request
+from flask import Blueprint, Response, render_template
 
 
 @dataclass

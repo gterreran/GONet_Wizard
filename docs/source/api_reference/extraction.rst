@@ -4,6 +4,14 @@ Extraction API
 Shape definitions, measurement extractors, merge utilities, and the Dash-based
 extraction GUI implementation.
 
+
+Field Specification
+-------------------
+
+.. automodule:: GONet_Wizard.GONet_utils.src.data_spec
+   :members:
+   :show-inheritance:
+
 Extraction Shapes
 -----------------
 
