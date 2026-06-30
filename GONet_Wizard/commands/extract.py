@@ -34,15 +34,25 @@ Functions
 
 """
 
-import json, warnings, argparse
+import json, warnings, argparse, logging
 from typing import Union, List
 from GONet_Wizard.GONet_utils.src.extractors import extract_all
 from GONet_Wizard.GONet_utils import GONetFile
 from pathlib import Path
 from GONet_Wizard.commands.cli_core import ExpandFilenames, CommandSpec, filter_by_ext
-from GONet_Wizard.logging_utils import get_logger
+from GONet_Wizard.logging_utils import PACKAGE_LOGGER_NAME, get_logger
 
 logger = get_logger(__name__)
+
+def _package_info_logs_are_visible() -> bool:
+    """Return whether package INFO logs are already visible to the caller."""
+    return logging.getLogger(PACKAGE_LOGGER_NAME).getEffectiveLevel() <= logging.INFO
+
+
+def _print_output_path_if_needed(output_path: str) -> None:
+    """Print the output path for plain CLI runs when INFO logs are hidden."""
+    if not _package_info_logs_are_visible():
+        print(f"Results saved to {output_path}")
 
 _channel_flags = [
     {
@@ -281,7 +291,7 @@ def extract_counts_from_GONet(
         angles: str = None,
         output: str = None,
         output_type: str = None,
-    ) -> None:
+    ) -> str | None:
     """
     Extract pixel counts from one or more GONet image files.
 
@@ -341,7 +351,9 @@ def extract_counts_from_GONet(
 
     Returns
     -------
-    None
+    str or None
+        Absolute path to the written output file, or ``None`` when the
+        extraction is cancelled before writing output.
 
     Raises
     ------
@@ -429,22 +441,27 @@ def extract_counts_from_GONet(
 
     if extraction_params is None:
         logger.info("Extraction parameters were not set. Exiting.")
-        return
+        return None
 
     logger.info("Extracting %s", shape)
     logger.info("Channels: %s", ", ".join(channels))
     out_epoch_list = extract_all(files, channels, extraction_params)
 
+    output_path = str(Path(output).resolve())
+
     if output_type == "csv":
         import pandas as pd
         df = pd.json_normalize(out_epoch_list, sep="_")
         df.to_csv(output, index=False)
-        logger.info("Results saved to %s", output)
+        logger.info("Results saved to %s", output_path)
 
     else:
         with open(output, "w") as f:
             json.dump(out_epoch_list, f, indent=4)
-            logger.info("Results saved to %s", output)
+        logger.info("Results saved to %s", output_path)
+
+    _print_output_path_if_needed(output_path)
+    return output_path
 
 
 def cli_handler(args: argparse.Namespace):
@@ -502,6 +519,7 @@ def cli_handler(args: argparse.Namespace):
             channels=channels,
             output=args.output,
             output_type=args.output_type,
+            terminal_stream=getattr(args, "_gonet_terminal_stream", None),
         )
 
         return WindowRequest(
@@ -541,3 +559,4 @@ def cli_handler(args: argparse.Namespace):
         output=args.output,
         output_type=args.output_type,
     )
+    return None

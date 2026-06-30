@@ -30,7 +30,7 @@ Functions
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from GONet_Wizard.GONet_utils.src.extract_app.extract_server import app
 from GONet_Wizard.ui.dash_runner import DashLaunchSpec, ensure_dash_running
@@ -40,6 +40,7 @@ def _configure_extract_gui(
     channels: Optional[List[str]] = None,
     output: Optional[str] = None,
     output_type: Optional[str] = None,
+    terminal_stream: Optional[Any] = None,
 ) -> None:
     """
     Populate the Dash server configuration for the extraction GUI.
@@ -59,6 +60,9 @@ def _configure_extract_gui(
         callback writes the usual ``extraction_<shape>.json`` file.
     output_type : :class:`str`, optional
         Requested output type, either ``"json"`` or ``"csv"``.
+    terminal_stream : object, optional
+        Stream bridge used by the launcher GUI terminal panel. When present,
+        extraction callback output is forwarded to the original command stream.
 
     Returns
     -------
@@ -69,6 +73,7 @@ def _configure_extract_gui(
         channels=channels or ["red", "green", "blue"],
         output=output,
         output_type=output_type,
+        terminal_stream=terminal_stream,
     )
 
 
@@ -115,6 +120,7 @@ def ensure_extraction_gui_running(
     channels: Optional[List[str]] = None,
     output: Optional[str] = None,
     output_type: Optional[str] = None,
+    terminal_stream: Optional[Any] = None,
 ) -> str:
     """
     Ensure the extraction GUI Dash server is running and return its URL.
@@ -140,6 +146,9 @@ def ensure_extraction_gui_running(
         callback writes the usual ``extraction_<shape>.json`` file.
     output_type : :class:`str`, optional
         Requested output type, either ``"json"`` or ``"csv"``.
+    terminal_stream : object, optional
+        Stream bridge used by the launcher GUI terminal panel. When present,
+        extraction callback output is forwarded to the original command stream.
 
     Returns
     -------
@@ -155,6 +164,7 @@ def ensure_extraction_gui_running(
             channels=channels,
             output=output,
             output_type=output_type,
+            terminal_stream=terminal_stream,
         ),
         layout=_layout,
         register_callbacks=_register_callbacks,

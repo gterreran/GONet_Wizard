@@ -97,7 +97,12 @@ class ExtractionValues(Extractor):
             # Submit tasks directly with all arguments
             futures = [executor.submit(process_single_file, file, raw["channels"], raw["extraction_parameters"]) for file in raw["file_list"]]
 
-            for future in tqdm(as_completed(futures), total=len(futures), desc="Processing:"):
+            for future in tqdm(
+                as_completed(futures),
+                total=len(futures),
+                desc="Processing",
+                ncols=100,
+            ):
                 result = future.result()
                 if result is not None:
                     night_data.append(result)
