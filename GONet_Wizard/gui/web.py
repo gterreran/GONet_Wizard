@@ -36,7 +36,9 @@ Functions
 :func:`command_page`
     Render the form page for a specific command.
 :func:`run_command`
-    Execute a command using a GUI JSON payload.
+    Execute a command using a GUI JSON payload and return captured feedback.
+:func:`stream_command`
+    Execute a command while streaming terminal-style feedback as server-sent events.
 :func:`payload_to_argv_with_parser`
     Convert a GUI payload dictionary into an ``argv`` list using argparse metadata.
 
@@ -269,7 +271,19 @@ def stream_command():
 # ----------------------------
 
 def _quote_argv(argv: list[str]) -> str:
-    """Return a shell-like display string for a parsed argument vector."""
+    """
+    Return a shell-like display string for a parsed argument vector.
+
+    Parameters
+    ----------
+    argv : list of str
+        Command tokens after GUI payload conversion.
+
+    Returns
+    -------
+    str
+        Display string prefixed with ``GONet_Wizard``.
+    """
     if not argv:
         return "GONet_Wizard"
     return "GONet_Wizard " + shlex.join([str(token) for token in argv])
@@ -285,7 +299,31 @@ def _format_terminal_output(
     stderr: str = "",
     traceback_text: str = "",
 ) -> str:
-    """Format captured command feedback for display in the GUI terminal panel."""
+    """
+    Format captured command feedback for the GUI terminal panel.
+
+    Parameters
+    ----------
+    argv : list of str
+        Parsed command tokens shown at the top of the terminal panel.
+    status : str
+        Command status label, usually ``"success"`` or ``"error"``.
+    message : str
+        Human-readable summary line.
+    logs : str, optional
+        Captured package logger output.
+    stdout : str, optional
+        Captured standard output.
+    stderr : str, optional
+        Captured standard error.
+    traceback_text : str, optional
+        Traceback text to append when command execution fails.
+
+    Returns
+    -------
+    str
+        Terminal-style block ready to render in the form page.
+    """
     header = [f"$ {_quote_argv(argv)}", f"{status.upper()}: {message}".strip()]
 
     sections: list[str] = []
@@ -306,14 +344,50 @@ def _format_terminal_output(
 
 
 def _sse_event(event: str, data: dict[str, Any]) -> str:
-    """Serialize one server-sent event block."""
+    """
+    Serialize one server-sent event block.
+
+    Parameters
+    ----------
+    event : str
+        Event name sent to the browser, such as ``"terminal"`` or ``"done"``.
+    data : dict
+        JSON-serializable event payload.
+
+    Returns
+    -------
+    str
+        Complete SSE block ending with a blank line.
+    """
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
 class _QueueTextWriter:
-    """File-like object that forwards writes to a streaming event queue."""
+    """
+    File-like object that forwards writes to a streaming event queue.
+
+    The object implements the minimal ``write``/``flush`` interface expected by
+    ``redirect_stdout``, ``redirect_stderr``, and :class:`logging.StreamHandler`.
+
+    Parameters
+    ----------
+    event_queue : queue.Queue
+        Queue receiving ``("terminal", payload)`` tuples for the SSE generator.
+    prefix : str, optional
+        Prefix added to non-empty chunks, used to distinguish stderr output.
+    """
 
     def __init__(self, event_queue: "queue.Queue[tuple[str, dict[str, Any]]]", *, prefix: str = ""):
+        """
+        Initialize the queue-backed text writer.
+
+        Parameters
+        ----------
+        event_queue : queue.Queue
+            Queue receiving terminal event payloads.
+        prefix : str, optional
+            Prefix added to non-empty chunks before they are queued.
+        """
         self._event_queue = event_queue
         self._prefix = prefix
 
@@ -335,9 +409,35 @@ class _QueueTextWriter:
 
 
 class _TerminalStreamBridge:
-    """Bridge delayed GUI callbacks back into the original terminal stream."""
+    """
+    Bridge delayed interactive GUI callbacks into the original terminal stream.
+
+    Interactive extraction launches a secondary Dash window.  The initial
+    ``/run/stream`` request therefore cannot finish when the window opens; it
+    must stay alive until the user clicks Extract or exits the interactive
+    window.  This bridge is stored in the Dash server config so callbacks in the
+    extraction app can append text and emit the final ``done`` event through the
+    original form-page terminal.
+
+    Parameters
+    ----------
+    event_queue : queue.Queue
+        Queue drained by the original ``/run/stream`` response generator.
+    argv : list of str
+        Command tokens shown in the final event payload.
+    """
 
     def __init__(self, event_queue: "queue.Queue[tuple[str, dict[str, Any]]]", argv: list[str]):
+        """
+        Initialize a terminal stream bridge.
+
+        Parameters
+        ----------
+        event_queue : queue.Queue
+            Queue receiving terminal and completion events.
+        argv : list of str
+            Parsed command tokens associated with the running command.
+        """
         self._event_queue = event_queue
         self._argv = list(argv)
         self._done = False
@@ -345,27 +445,64 @@ class _TerminalStreamBridge:
 
     @property
     def is_done(self) -> bool:
-        """Return whether the stream has already emitted its final event."""
+        """
+        Return whether the stream has already emitted its final event.
+
+        Returns
+        -------
+        bool
+            ``True`` after :meth:`finish` has queued the final ``done`` event.
+        """
         with self._lock:
             return self._done
 
     def stdout_writer(self) -> _QueueTextWriter:
-        """Return a writer that appends stdout-like text to the stream."""
+        """
+        Return a writer that appends stdout-like text to the stream.
+
+        Returns
+        -------
+        _QueueTextWriter
+            Writer suitable for ``redirect_stdout``.
+        """
         return _QueueTextWriter(self._event_queue)
 
     def stderr_writer(self) -> _QueueTextWriter:
-        """Return a writer that appends stderr-like text to the stream."""
+        """
+        Return a writer that appends stderr-like text to the stream.
+
+        Returns
+        -------
+        _QueueTextWriter
+            Writer suitable for ``redirect_stderr``.
+        """
         return _QueueTextWriter(self._event_queue, prefix="[stderr] ")
 
     def logging_handler(self) -> logging.Handler:
-        """Return a logging handler that writes package logs to the stream."""
+        """
+        Return a logging handler that writes package logs to the stream.
+
+        Returns
+        -------
+        logging.Handler
+            Handler configured with the package log formatter.
+        """
         handler = logging.StreamHandler(self.stdout_writer())
         handler.setFormatter(logging.Formatter(DEFAULT_LOG_FORMAT))
         handler.setLevel(logging.INFO)
         return handler
 
     def append(self, text: str, *, status: str = "running") -> None:
-        """Append terminal text if the stream is still open."""
+        """
+        Append terminal text if the stream is still open.
+
+        Parameters
+        ----------
+        text : str
+            Text chunk to append to the terminal panel.
+        status : str, optional
+            Terminal status associated with the chunk.
+        """
         with self._lock:
             if self._done:
                 return
@@ -382,7 +519,20 @@ class _TerminalStreamBridge:
         output: str | None = None,
         traceback_text: str = "",
     ) -> None:
-        """Emit a final terminal message and close the stream."""
+        """
+        Emit a final terminal message and close the stream.
+
+        Parameters
+        ----------
+        status : str
+            Final command status, usually ``"success"`` or ``"error"``.
+        message : str
+            Final user-facing status message.
+        output : str, optional
+            Output product path or command result to include in the final event.
+        traceback_text : str, optional
+            Traceback text appended when the command fails.
+        """
         with self._lock:
             if self._done:
                 return
@@ -411,7 +561,20 @@ class _TerminalStreamBridge:
 
 
 def _should_defer_terminal_completion(args: argparse.Namespace) -> bool:
-    """Return whether a parsed command completes later in a secondary GUI."""
+    """
+    Return whether a parsed command completes later in a secondary GUI.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command arguments.
+
+    Returns
+    -------
+    bool
+        ``True`` for interactive extraction, whose final result is produced by
+        callbacks in the secondary extraction window.
+    """
     return (
         getattr(args, "command", None) == "extract"
         and getattr(args, "shape", None) in {None, "", "interactive"}
@@ -419,7 +582,23 @@ def _should_defer_terminal_completion(args: argparse.Namespace) -> bool:
 
 
 def _error_done_event(argv: list[str], message: str, terminal: str) -> str:
-    """Return an SSE error sequence for validation or parsing failures."""
+    """
+    Return an SSE error sequence for validation or parsing failures.
+
+    Parameters
+    ----------
+    argv : list of str
+        Command tokens parsed before the error occurred.
+    message : str
+        User-facing error message.
+    terminal : str
+        Terminal panel text to send with the error.
+
+    Returns
+    -------
+    str
+        Concatenated ``terminal`` and ``done`` SSE blocks.
+    """
     return _sse_event(
         "terminal",
         {"mode": "replace", "status": "error", "text": terminal},
@@ -430,12 +609,25 @@ def _error_done_event(argv: list[str], message: str, terminal: str) -> str:
 
 
 def _stream_command_events(payload: dict[str, Any]):
-    """Yield live command feedback events for a GUI payload.
+    """
+    Yield live command feedback events for a GUI payload.
 
     The command itself runs in a worker thread while this generator drains a
     queue populated by stdout, stderr, and logging adapters. This lets the web
     page append feedback while the extraction is still running instead of
-    waiting for the command to finish.
+    waiting for the command to finish.  Interactive extraction receives a
+    :class:`_TerminalStreamBridge` so the secondary extraction window can finish
+    the same stream after the user selects parameters.
+
+    Parameters
+    ----------
+    payload : dict
+        JSON payload submitted by a command form.
+
+    Yields
+    ------
+    str
+        Serialized server-sent event blocks.
     """
     argv: list[str] = []
 
@@ -498,6 +690,7 @@ def _stream_command_events(payload: dict[str, Any]):
         setattr(args, "_gonet_terminal_stream", _TerminalStreamBridge(event_queue, argv))
 
     def worker() -> None:
+        """Run the parsed command and enqueue its final completion event."""
         final_data = _run_handler_with_terminal_stream(
             args,
             argv,
@@ -524,7 +717,27 @@ def _run_handler_with_terminal_stream(
     *,
     defer_done: bool = False,
 ) -> dict[str, Any] | None:
-    """Run ``args.handler`` and push live feedback into ``event_queue``."""
+    """
+    Run a command handler while pushing live feedback into an event queue.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command arguments with an attached ``handler`` attribute.
+    argv : list of str
+        Original command tokens, included in the final event payload.
+    event_queue : queue.Queue
+        Queue receiving terminal and completion events.
+    defer_done : bool, optional
+        When ``True``, command completion is delegated to a secondary GUI
+        callback, as in interactive extraction.
+
+    Returns
+    -------
+    dict or None
+        Final ``done`` payload for ordinary commands.  Returns ``None`` when a
+        secondary GUI callback will finish the stream later.
+    """
     logger = logging.getLogger(PACKAGE_LOGGER_NAME)
     capture_handler = logging.StreamHandler(_QueueTextWriter(event_queue))
     capture_handler.setFormatter(logging.Formatter(DEFAULT_LOG_FORMAT))

@@ -51,8 +51,11 @@ configuration changes.
 - :func:`load_path`:
     Loads a previously saved freehand path from uploaded JSON content.
 
+- :func:`update_extract_button_disabled`:
+    Enables the interactive Extract button only after the selected shape is valid.
+
 - :func:`extraction_button`:
-    Stores extraction parameters and programmatically triggers the "Exit" button.
+    Validates extraction parameters, closes the setup window, and starts extraction.
 
 - :func:`exit_app`:
     Requests closing the PyWebView window when the "Exit" button is clicked.
@@ -86,12 +89,30 @@ import numpy as np
 
 
 def _package_info_logs_are_visible() -> bool:
-    """Return whether package INFO logs are already visible to the caller."""
+    """
+    Return whether package INFO logs are already visible to the caller.
+
+    Returns
+    -------
+    bool
+        ``True`` when the package logger is configured to show ``INFO`` records.
+    """
     return logging.getLogger(PACKAGE_LOGGER_NAME).getEffectiveLevel() <= logging.INFO
 
 
 def _print_output_path_if_needed(output_path: str) -> None:
-    """Print the output path for plain CLI interactive runs when INFO logs are hidden."""
+    """
+    Print the output path for plain CLI interactive runs when needed.
+
+    The GUI terminal captures package ``INFO`` logs, so printing the same path
+    there would duplicate feedback.  Plain CLI interactive runs usually hide
+    ``INFO`` logs, so this helper prints the final path only in that case.
+
+    Parameters
+    ----------
+    output_path : str
+        Absolute path to the extraction output file.
+    """
     if not _package_info_logs_are_visible():
         print(f"Results saved to {output_path}")
 
@@ -106,7 +127,27 @@ def _interactive_params_from_inputs(
     end_angle,
     path,
 ):
-    """Build an extraction-parameter dictionary from interactive form values."""
+    """
+    Build an extraction-parameter dictionary from interactive form values.
+
+    Parameters
+    ----------
+    selected_shape : str
+        Current shape selector value.
+    center_x, center_y : float or None
+        Shape center coordinates from the interactive controls.
+    param1, param2 : float or None
+        Shape-specific parameters such as radius or side length.
+    start_angle, end_angle : float or None
+        Optional angular sector limits.
+    path : str or None
+        Freehand path data when using freehand extraction.
+
+    Returns
+    -------
+    dict
+        Extraction parameter dictionary compatible with ``Shape.from_dict``.
+    """
     return {
         "shape": selected_shape,
         "x0": center_x,
@@ -121,7 +162,20 @@ def _interactive_params_from_inputs(
 
 @contextmanager
 def _capture_terminal_stream(terminal_stream):
-    """Forward interactive callback stdout, stderr, and package logs to a stream."""
+    """
+    Forward interactive callback stdout, stderr, and package logs to a stream.
+
+    Parameters
+    ----------
+    terminal_stream : object or None
+        Stream bridge created by the launcher ``/run/stream`` endpoint.  When
+        ``None``, output is left attached to the normal CLI process.
+
+    Yields
+    ------
+    None
+        Context in which callback output is redirected when a stream exists.
+    """
     if terminal_stream is None:
         yield
         return
@@ -148,7 +202,14 @@ def _capture_terminal_stream(terminal_stream):
 
 
 def _clear_terminal_stream_if_current(terminal_stream) -> None:
-    """Clear the configured terminal stream after it has been completed."""
+    """
+    Clear the configured terminal stream after it has been completed.
+
+    Parameters
+    ----------
+    terminal_stream : object or None
+        Stream bridge to clear only if it is still the active bridge.
+    """
     if terminal_stream is not None and app.server.config.get("terminal_stream") is terminal_stream:
         app.server.config["terminal_stream"] = None
 
@@ -445,7 +506,28 @@ def update_extract_button_disabled(
     end_angle,
     path,
 ):
-    """Disable Extract until the current interactive parameters are complete."""
+    """
+    Disable the Extract button until interactive parameters are valid.
+
+    Parameters
+    ----------
+    selected_shape : str
+        Current extraction shape selected in the interactive app.
+    center_x, center_y : float or None
+        Shape center coordinates.
+    param1, param2 : float or None
+        Shape-specific parameters.
+    start_angle, end_angle : float or None
+        Optional angular sector limits.
+    path : str or None
+        Freehand path data.
+
+    Returns
+    -------
+    bool
+        ``True`` when the button should be disabled, ``False`` when the
+        parameters are complete enough to run extraction.
+    """
     extraction_params = _interactive_params_from_inputs(
         selected_shape,
         center_x,
@@ -932,12 +1014,24 @@ def load_path(contents):
 
 def _write_interactive_extraction_output(extraction_params):
     """
-    Run the extraction selected in the GUI and write the requested output file.
+    Run the selected interactive extraction and write the output file.
 
+    Parameters
+    ----------
+    extraction_params : dict
+        Validated extraction parameters selected in the interactive window.
+
+    Returns
+    -------
+    str
+        Absolute path to the written JSON or CSV output file.
+
+    Notes
+    -----
     The integrated extraction GUI is launched asynchronously by the shared UI
-    runtime, so there is no longer a caller waiting for ``extraction_params`` to
-    be returned after the window closes.  The Extract button therefore performs
-    the actual extraction after the selection window has been dismissed.
+    runtime.  The Extract button therefore starts the extraction after the
+    selection window has been dismissed, while progress is reported either to
+    the main GUI terminal stream or to the normal CLI terminal.
     """
     from GONet_Wizard.commands.extract import validate_output_file
 
@@ -971,7 +1065,17 @@ def _write_interactive_extraction_output(extraction_params):
 
 
 def _run_interactive_extraction_in_background(extraction_params, terminal_stream):
-    """Run the selected interactive extraction after closing the setup window."""
+    """
+    Run selected interactive extraction after closing the setup window.
+
+    Parameters
+    ----------
+    extraction_params : dict
+        Validated extraction parameters selected by the user.
+    terminal_stream : object or None
+        Optional stream bridge for the launcher terminal panel.  When ``None``,
+        the thread is used by a CLI launch and the process waits for completion.
+    """
     try:
         with _capture_terminal_stream(terminal_stream):
             output = _write_interactive_extraction_output(extraction_params)
@@ -1014,13 +1118,12 @@ def _run_interactive_extraction_in_background(extraction_params, terminal_stream
 )
 def extraction_button(_, extraction_params, path, selected_shape, n):
     """
-    Store extraction parameters and programmatically trigger the exit button.
+    Validate parameters, close the setup window, and start extraction.
 
-    This callback is triggered when the user clicks the "Extract" button.
-    It stores the provided extraction parameters in the Flask server config
-    so they can be accessed after the GUI closes, and then programmatically
-    increments the click count of the "Exit" button to initiate application
-    shutdown.
+    This callback is triggered when the user clicks the "Extract" button in the
+    interactive extraction window.  It validates the current parameters before
+    closing the window, starts the extraction in a worker thread, and lets the
+    main GUI terminal stream or CLI terminal report progress and completion.
 
     Parameters
     ----------
@@ -1042,10 +1145,10 @@ def extraction_button(_, extraction_params, path, selected_shape, n):
     Returns
     -------
     tuple
-        A tuple containing the updated exit click count and the error-banner
-        contents/classes.  On success, the click count is incremented so the
-        window closes.  On failure, the window remains open and the error banner
-        reports the extraction error.
+        A tuple containing the exit-click update and error-banner contents/classes.
+        On success, the setup window closes immediately while extraction
+        continues.  On failure, the window remains open and the error banner
+        reports the validation error.
     """
 
     extraction_params = dict(extraction_params or {})

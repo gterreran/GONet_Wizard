@@ -2,7 +2,7 @@ Extraction API
 ==============
 
 Shape definitions, measurement extractors, merge utilities, and the Dash-based
-extraction GUI implementation.
+extraction GUI implementation, including interactive extraction callbacks.
 
 
 Field Specification
