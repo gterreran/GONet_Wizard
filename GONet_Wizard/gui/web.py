@@ -50,6 +50,8 @@ from flask import Blueprint, render_template, request, jsonify
 
 from GONet_Wizard import commands as commands_pkg
 from GONet_Wizard.commands import cli_core
+from GONet_Wizard.commands.argparse_errors import CliParseError
+from GONet_Wizard.commands.smart_parser import SmartArgumentParser, set_current_argv
 
 
 launcher_bp = Blueprint("launcher", __name__)
@@ -77,7 +79,7 @@ def get_cli_parser() -> argparse.ArgumentParser:
     """
     global _CLI_PARSER
     if _CLI_PARSER is None:
-        parser = argparse.ArgumentParser(description="GONet Wizard command-line interface.")
+        parser = SmartArgumentParser(description="GONet Wizard command-line interface.")
         _CLI_PARSER = cli_core.build_subparser(parser, commands_pkg)
     return _CLI_PARSER
 
@@ -149,6 +151,7 @@ def run_command():
         if not argv:
             return jsonify({"status": "error", "message": "No command provided."})
 
+        set_current_argv(argv)
         args = parser.parse_args(argv)
 
         if not hasattr(args, "handler"):
@@ -162,6 +165,14 @@ def run_command():
 
         return jsonify(resp)
 
+    except CliParseError as e:
+        detail = (e.message or "").strip()
+        message = (
+            f"Invalid arguments: {detail}"
+            if detail
+            else "Invalid arguments. Please check your inputs."
+        )
+        return jsonify({"status": "error", "message": message})
     except SystemExit:
         return jsonify(
             {"status": "error", "message": "Invalid arguments. Please check your inputs."}
@@ -247,6 +258,26 @@ def _get_final_subparser(root: argparse.ArgumentParser, cmd_tokens: list[str]) -
     return parser
 
 
+def _option_string_for_dest(parser: argparse.ArgumentParser, dest: str) -> str:
+    """Return the argparse option string registered for ``dest``.
+
+    GUI form field names are keyed by argparse destinations (for example
+    ``inner_radius``). The actual CLI option may contain underscores or hyphens,
+    so this helper asks the parser instead of guessing.
+    """
+    for action in parser._actions:
+        if action.dest != dest:
+            continue
+
+        long_options = [opt for opt in action.option_strings if opt.startswith("--")]
+        if long_options:
+            return long_options[0]
+        if action.option_strings:
+            return action.option_strings[0]
+
+    return f"--{dest}"
+
+
 def payload_to_argv_with_parser(root: argparse.ArgumentParser, payload: dict) -> list[str]:
     """
     Convert a GUI payload into an ``argv`` list using argparse metadata.
@@ -312,7 +343,7 @@ def payload_to_argv_with_parser(root: argparse.ArgumentParser, payload: dict) ->
         if val is None or val == "":
             continue
 
-        flag = f"--{key.replace('_', '-')}"  # matches argparse flags
+        flag = _option_string_for_dest(cmd_parser, key)
 
         # Boolean flags
         if isinstance(val, bool) or (
@@ -330,8 +361,9 @@ def payload_to_argv_with_parser(root: argparse.ArgumentParser, payload: dict) ->
             argv.extend(str(v) for v in val)
             continue
 
-        # Everything else is passed literally
-        argv.append(flag)
-        argv.append(str(val))
+        # Everything else is passed as an explicit option assignment. This
+        # avoids argparse mistaking negative values such as ``-90,180`` for
+        # option-like tokens.
+        argv.append(f"{flag}={val}")
 
     return argv

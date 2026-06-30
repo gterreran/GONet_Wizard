@@ -240,6 +240,33 @@ def comma_separated_pair(value, name):
     except ValueError:
         raise ValueError(f"--{name} must be two comma-separated integers.")
 
+
+def parse_float_argument(value, name):
+    """Parse a numeric CLI argument and report the offending option name.
+
+    Parameters
+    ----------
+    value : object
+        Raw argument value to parse.
+    name : :class:`str`
+        Argument destination name, without leading dashes.
+
+    Returns
+    -------
+    :class:`float`
+        Parsed floating-point value.
+
+    Raises
+    ------
+    ValueError
+        If ``value`` cannot be converted to a number.
+    """
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"--{name} must be a number.") from None
+
+
 def extract_counts_from_GONet(
         files: Union[str, List[str]],
         red: bool = False,
@@ -494,10 +521,22 @@ def cli_handler(args: argparse.Namespace):
         blue=args.blue,
         shape=args.shape,
         center=args.center,
-        radius=float(args.radius) if args.radius is not None else None,
+        radius=(
+            parse_float_argument(args.radius, "radius")
+            if args.radius is not None
+            else None
+        ),
         sides=args.sides,
-        inner_radius=float(args.inner_radius) if args.inner_radius is not None else None,
-        outer_radius=float(args.outer_radius) if args.outer_radius is not None else None,
+        inner_radius=(
+            parse_float_argument(args.inner_radius, "inner_radius")
+            if args.inner_radius is not None
+            else None
+        ),
+        outer_radius=(
+            parse_float_argument(args.outer_radius, "outer_radius")
+            if args.outer_radius is not None
+            else None
+        ),
         angles=args.angles,
         output=args.output,
         output_type=args.output_type,

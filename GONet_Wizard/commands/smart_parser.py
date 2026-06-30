@@ -108,6 +108,83 @@ def _guess_cmd_tokens(argv: Sequence[str]) -> list[str]:
     return toks
 
 
+def _looks_like_negative_numeric_token(token: str) -> bool:
+    """Return True when ``token`` looks like a negative numeric value.
+
+    ``argparse`` normally treats strings beginning with ``-`` as option-like
+    tokens. Values such as ``-90,180`` are therefore ambiguous when passed as
+    the value for an option like ``--angles``. This helper identifies the
+    numeric-looking cases that should be interpreted as values rather than as
+    option names.
+    """
+    if not token.startswith("-") or token.startswith("--"):
+        return False
+
+    body = token[1:]
+    return bool(body) and (body[0].isdigit() or body[0] == ".")
+
+
+def _action_consumes_single_value(action: argparse.Action) -> bool:
+    """Return True when an argparse action expects a single option value."""
+    nargs = getattr(action, "nargs", None)
+    return nargs is None or nargs == "?" or nargs == 1
+
+
+def _collect_option_actions(parser: argparse.ArgumentParser) -> dict[str, argparse.Action]:
+    """Collect option-string to action mappings from a parser tree."""
+    option_actions: dict[str, argparse.Action] = {}
+
+    for action in parser._actions:
+        for option_string in getattr(action, "option_strings", []):
+            option_actions[option_string] = action
+
+        if isinstance(action, argparse._SubParsersAction):
+            for subparser in action.choices.values():
+                option_actions.update(_collect_option_actions(subparser))
+
+    return option_actions
+
+
+def normalize_negative_option_values(
+    parser: argparse.ArgumentParser,
+    argv: Sequence[str],
+) -> list[str]:
+    """Normalize negative numeric option values before argparse sees them.
+
+    ``argparse`` accepts negative numeric values for options in many simple
+    cases, but values containing punctuation, such as ``-90,180``, can be
+    mistaken for an option token. Rewriting ``--angles -90,180`` as
+    ``--angles=-90,180`` removes the ambiguity while preserving the user's
+    intended value.
+    """
+    option_actions = _collect_option_actions(parser)
+    normalized: list[str] = []
+
+    i = 0
+    raw = list(argv)
+    while i < len(raw):
+        token = raw[i]
+
+        if token.startswith("--") and "=" not in token:
+            action = option_actions.get(token)
+            next_token = raw[i + 1] if i + 1 < len(raw) else None
+
+            if (
+                action is not None
+                and _action_consumes_single_value(action)
+                and next_token is not None
+                and _looks_like_negative_numeric_token(next_token)
+            ):
+                normalized.append(f"{token}={next_token}")
+                i += 2
+                continue
+
+        normalized.append(token)
+        i += 1
+
+    return normalized
+
+
 class SmartArgumentParser(argparse.ArgumentParser):
     """
     Argument parser that raises structured exceptions on parse failure.
@@ -167,6 +244,16 @@ class SmartArgumentParser(argparse.ArgumentParser):
         None
         """
         return list(self._argv) if self._argv is not None else list(_CURRENT_ARGV)
+
+    def parse_args(self, args=None, namespace=None):
+        """Parse arguments after normalizing ambiguous negative option values.
+
+        This preserves standard argparse behavior while allowing invocations such
+        as ``--angles -90,90`` to work as users expect.
+        """
+        if args is not None:
+            args = normalize_negative_option_values(self, args)
+        return super().parse_args(args, namespace)
 
     def error(self, message: str) -> None:
         """
