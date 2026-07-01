@@ -4,7 +4,9 @@
 The ``show_meta`` command displays metadata from one or more GONet image files.
 
 By default, metadata is printed as terminal text. The command can also generate
-HTML output for GUI-backed preview workflows.
+HTML output for GUI-backed preview workflows. In the graphical preview, the
+metadata window includes **Save PDF** and **Exit** actions; **Save PDF** writes
+the displayed metadata tables to a PDF file.
 
 For the conceptual tool guide, see :doc:`metadata inspection tool guide <../tools/inspect_metadata>`.
 
@@ -29,7 +31,9 @@ Options
 ``--html``
    Return metadata as HTML instead of plain terminal text.
 
-   This option is mainly useful for GUI and preview-backed workflows.
+   This option is mainly useful for GUI and preview-backed workflows. When the
+   HTML preview is opened through the desktop UI, the preview includes a
+   **Save PDF** button that writes the displayed metadata tables to disk.
 
 Examples
 --------

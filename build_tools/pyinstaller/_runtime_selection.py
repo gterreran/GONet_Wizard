@@ -48,6 +48,8 @@ RUNTIME_HIDDENIMPORT_PACKAGES = [
     "plotly",
     # Plotly imports Kaleido dynamically when saving static images/PDFs.
     "kaleido",
+    # ReportLab is imported lazily when show_meta saves metadata tables to PDF.
+    "reportlab",
     "flask",
     "webview",
 ]

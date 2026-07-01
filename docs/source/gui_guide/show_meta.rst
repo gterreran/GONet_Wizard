@@ -66,7 +66,9 @@ To launch the metadata inspection viewer:
 #. Select one or more files or folders.
 #. Click **Run show meta**.
 
-The metadata viewer opens in a separate window.
+The metadata viewer opens in a separate window. The form page also shows a
+terminal-style feedback panel so save and exit actions remain visible after the
+viewer window closes.
 
 Multiple Files
 --------------
@@ -76,16 +78,31 @@ viewer.
 
 The results can be inspected by scrolling through the output window.
 
+Saving Metadata to PDF
+----------------------
+
+The metadata viewer includes a **Save PDF** button at the bottom of the window.
+Clicking this button opens the operating system save dialog. After a path is
+selected, the metadata viewer closes and the PDF is written in the background.
+Progress and the final saved path are shown in the Show Metadata feedback panel.
+
+The PDF contains the same metadata content shown in the viewer, organized as
+file-level tables.
+
 Navigation Buttons
 ------------------
 
-The buttons at the bottom of the window control the GUI session.
+The buttons at the bottom of the metadata viewer control the viewer window.
 
-**Back to Main Menu**
-   Returns to the launcher without running the current form.
+**Save PDF**
+   Opens a native save dialog, closes the viewer, and saves the displayed
+   metadata tables to a PDF file.
 
 **Exit**
-   Closes the graphical interface.
+   Closes the metadata viewer without saving.
+
+The launcher form itself still provides the standard navigation controls for
+returning to the main menu or closing the graphical interface.
 
 Relationship to the CLI
 -----------------------

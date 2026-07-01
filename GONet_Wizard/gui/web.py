@@ -267,13 +267,15 @@ def stream_command():
     return response
 
 
+def _request_named_window_close(key: str) -> None:
+    """Best-effort close request for a registered pywebview window."""
+    try:
+        from GONet_Wizard.ui import WINDOWS
 
+        threading.Timer(0.05, lambda: WINDOWS.close(key)).start()
+    except Exception:
+        return
 
-def _request_show_window_close() -> None:
-    """Close the interactive show window without blocking the request thread."""
-    from GONet_Wizard.ui import WINDOWS
-
-    threading.Timer(0.05, lambda: WINDOWS.close("show")).start()
 
 @launcher_bp.post("/show/session/<session_id>/close")
 def close_show_session(session_id: str):
@@ -312,7 +314,6 @@ def close_show_session(session_id: str):
 
     save_path = str(payload.get("save_path") or "").strip()
     terminal_stream = session.terminal_stream
-    _request_show_window_close()
 
     def _print_or_append(message: str) -> None:
         if terminal_stream is not None:
@@ -373,11 +374,101 @@ def close_show_session(session_id: str):
             dot_thread.join(timeout=0.2)
             _finish_error(f"Show save failed: {exc}", exc)
 
-    threading.Thread(
-        target=_background_save,
-        daemon=terminal_stream is not None,
-    ).start()
+    threading.Thread(target=_background_save, daemon=True).start()
     return jsonify({"status": "success", "message": "Show save started.", "save_path": save_path})
+
+
+@launcher_bp.post("/show_meta/session/<session_id>/close")
+def close_show_meta_session(session_id: str):
+    """Finalize an interactive ``show_meta`` session.
+
+    The metadata preview calls this route when the user clicks ``Save PDF`` or
+    ``Exit``. When a save path is provided, the PDF is written in a background
+    worker while progress remains visible in the CLI or GUI terminal panel.
+
+    Parameters
+    ----------
+    session_id : :class:`str`
+        Identifier of the active metadata preview session.
+
+    Returns
+    -------
+    :class:`flask.Response`
+        JSON status describing whether the close/save request was accepted.
+    """
+    from GONet_Wizard.commands.show_meta import save_metadata_pdf
+    from GONet_Wizard.commands.show_meta_session import show_meta_session_registry
+
+    session = show_meta_session_registry.pop(session_id)
+    if session is None:
+        return jsonify({"status": "ignored", "message": "Session already closed."})
+
+    _request_named_window_close("show_meta")
+
+    payload = request.get_json(silent=True)
+    if payload is None:
+        raw = request.get_data(cache=False, as_text=True) or "{}"
+        try:
+            payload = json.loads(raw) if raw.strip() else {}
+        except Exception:
+            payload = {}
+
+    save_path = str(payload.get("save_path") or "").strip()
+    terminal_stream = session.terminal_stream
+
+    def _print_or_append(message: str) -> None:
+        if terminal_stream is not None:
+            terminal_stream.append(message)
+        else:
+            print(message, end="", flush=True)
+
+    def _finish_success(message: str, output: str | None = None) -> None:
+        if terminal_stream is not None:
+            terminal_stream.finish(status="success", message=message, output=output)
+        else:
+            if output:
+                print(f"SUCCESS: {message}\nOutput: {output}")
+            else:
+                print(f"SUCCESS: {message}")
+
+    def _finish_error(message: str, exc: Exception) -> None:
+        traceback_text = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+        if terminal_stream is not None:
+            terminal_stream.finish(
+                status="error",
+                message=message,
+                traceback_text=traceback_text,
+            )
+        else:
+            print(f"ERROR: {message}")
+            print(traceback_text)
+
+    if not save_path:
+        _finish_success("Show metadata window closed without saving.")
+        return jsonify({"status": "success", "message": "Show metadata window closed."})
+
+    def _background_save() -> None:
+        stop_event = threading.Event()
+
+        def _dot_worker() -> None:
+            while not stop_event.wait(1.5):
+                _print_or_append(".")
+
+        dot_thread = threading.Thread(target=_dot_worker, daemon=True)
+        try:
+            _print_or_append(f"Saving metadata PDF to {save_path}")
+            dot_thread.start()
+            output = save_metadata_pdf(session.files, str(save_path))
+            stop_event.set()
+            dot_thread.join(timeout=0.2)
+            _finish_success("Metadata PDF saved.", str(output))
+        except Exception as exc:
+            stop_event.set()
+            dot_thread.join(timeout=0.2)
+            _finish_error(f"Metadata PDF save failed: {exc}", exc)
+
+    threading.Thread(target=_background_save, daemon=terminal_stream is not None).start()
+    return jsonify({"status": "success", "message": "Metadata PDF save started.", "save_path": save_path})
 
 
 # ----------------------------
@@ -690,7 +781,7 @@ def _should_defer_terminal_completion(args: argparse.Namespace) -> bool:
         callbacks in the secondary extraction window.
     """
     command = getattr(args, "command", None)
-    if command == "show":
+    if command in {"show", "show_meta"}:
         return True
     return (
         command == "extract"
@@ -909,6 +1000,11 @@ def _run_handler_with_terminal_stream(
             text = (
                 "Show window opened. Interact with the figure, then click Save figure or Exit "
                 "in the interactive window to continue.\n"
+            )
+        elif command == "show_meta":
+            text = (
+                "Show metadata window opened. Click Save PDF or Exit in the interactive "
+                "window to continue.\n"
             )
         else:
             text = (

@@ -185,8 +185,8 @@ def test_close_show_session_saves_figure(monkeypatch):
 
     monkeypatch.setattr("GONet_Wizard.commands.show.figure.build_show_figure", fake_build_show_figure)
     monkeypatch.setattr("GONet_Wizard.commands.show.io.save_figure_plotly", fake_save)
-    monkeypatch.setattr(web, "_request_show_window_close", lambda: None, raising=False)
     monkeypatch.setattr(web.threading, "Thread", ImmediateThread)
+    monkeypatch.setattr(web, "_request_named_window_close", lambda key: None)
 
     show_session_registry.register(
         ShowSaveSession(
@@ -212,3 +212,89 @@ def test_close_show_session_saves_figure(monkeypatch):
     assert saved["path"] == "requested.pdf"
     assert saved["files"] == ["requested.jpg"]
     assert saved["channels"] == ["red", "green"]
+
+
+def test_close_show_meta_session_finishes_terminal_stream(monkeypatch):
+    from GONet_Wizard.commands.show_meta_session import ShowMetaSession, show_meta_session_registry
+
+    class DummyTerminalStream:
+        def __init__(self):
+            self.calls = []
+
+        def append(self, text, *, status="running"):
+            self.calls.append(("append", text, status))
+
+        def finish(self, **kwargs):
+            self.calls.append(("finish", kwargs))
+
+    terminal_stream = DummyTerminalStream()
+    show_meta_session_registry.register(
+        ShowMetaSession(
+            session_id="show-meta-session-test",
+            files=["x.jpg"],
+            terminal_stream=terminal_stream,
+        )
+    )
+    monkeypatch.setattr(web, "_request_named_window_close", lambda key: None)
+
+    app = _fake_app(_parser_with_handler(lambda args: None), monkeypatch)
+    with app.test_client() as client:
+        response = client.post(
+            "/show_meta/session/show-meta-session-test/close",
+            json={"save_path": ""},
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["status"] == "success"
+    assert terminal_stream.calls[-1][0] == "finish"
+    assert terminal_stream.calls[-1][1]["message"] == "Show metadata window closed without saving."
+
+
+def test_close_show_meta_session_saves_pdf(monkeypatch):
+    from GONet_Wizard.commands.show_meta_session import ShowMetaSession, show_meta_session_registry
+
+    saved = {}
+
+    def fake_save_metadata_pdf(files, save_path):
+        saved["files"] = files
+        saved["path"] = save_path
+        return "/tmp/metadata.pdf"
+
+    class ImmediateThread:
+        def __init__(self, target=None, args=(), kwargs=None, daemon=None):
+            self._target = target
+            self._args = args
+            self._kwargs = kwargs or {}
+        def start(self):
+            if self._target is None:
+                return
+            if getattr(self._target, "__name__", "") == "_dot_worker":
+                return
+            self._target(*self._args, **self._kwargs)
+        def join(self, timeout=None):
+            return None
+
+    monkeypatch.setattr("GONet_Wizard.commands.show_meta.save_metadata_pdf", fake_save_metadata_pdf)
+    monkeypatch.setattr(web.threading, "Thread", ImmediateThread)
+    monkeypatch.setattr(web, "_request_named_window_close", lambda key: None)
+
+    show_meta_session_registry.register(
+        ShowMetaSession(
+            session_id="show-meta-save-test",
+            files=["requested.jpg"],
+        )
+    )
+
+    app = _fake_app(_parser_with_handler(lambda args: None), monkeypatch)
+    with app.test_client() as client:
+        response = client.post(
+            "/show_meta/session/show-meta-save-test/close",
+            json={"save_path": "metadata.pdf"},
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["status"] == "success"
+    assert data["save_path"] == "metadata.pdf"
+    assert saved == {"files": ["requested.jpg"], "path": "metadata.pdf"}

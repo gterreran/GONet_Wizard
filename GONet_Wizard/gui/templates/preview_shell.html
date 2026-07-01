@@ -2,6 +2,24 @@
 
 {% block footer %}
   <!-- Empty block - footer content from base.html will not be rendered -->
+  <script>
+    window.addEventListener('message', function(event) {
+      const data = event.data || {};
+      if (data.type !== 'gonet-close-window') return;
+      try {
+        if (window.pywebview && window.pywebview.api) {
+          if (typeof window.pywebview.api.close_named_window === 'function') {
+            window.pywebview.api.close_named_window(data.key || '{{ channel }}');
+            return;
+          }
+          if (typeof window.pywebview.api.close_window === 'function') {
+            window.pywebview.api.close_window();
+          }
+        }
+      } catch (err) {}
+    });
+  </script>
+
 {% endblock %}
 
 {% block content %}
@@ -38,11 +56,10 @@
     window.addEventListener('message', function(event) {
       const data = event.data || {};
       if (data.type !== 'gonet-close-window') return;
-      const key = data.key || '{{ channel }}';
       try {
         if (window.pywebview && window.pywebview.api) {
           if (typeof window.pywebview.api.close_named_window === 'function') {
-            window.pywebview.api.close_named_window(key);
+            window.pywebview.api.close_named_window(data.key || '{{ channel }}');
             return;
           }
           if (typeof window.pywebview.api.close_window === 'function') {

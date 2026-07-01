@@ -8,17 +8,17 @@
     <input type="hidden" name="command" value="{{ command_name }}">
   </form>
 
-  {% if command_name in ["extract", "show"] %}
+  {% if command_name in ["extract", "show", "show_meta"] %}
     <section id="command-terminal" class="command-terminal" aria-live="polite">
       <div class="command-terminal-header">
-        <span>{{ "Extraction" if command_name == "extract" else "Show" }} feedback</span>
+        <span>{{ "Extraction" if command_name == "extract" else ("Metadata" if command_name == "show_meta" else "Show") }} feedback</span>
         <span id="terminal-status" class="command-terminal-status is-ready">Ready</span>
       </div>
       <pre id="terminal-output" class="command-terminal-output">Ready. Run {{ command_name }} to see command feedback here.</pre>
     </section>
   {% endif %}
 
-  {% if command_name not in ["extract", "show"] %}
+  {% if command_name not in ["extract", "show", "show_meta"] %}
     <div id="output" class="command-output"></div>
   {% endif %}
 {% endblock %}
