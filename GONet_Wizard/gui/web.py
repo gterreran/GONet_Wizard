@@ -52,6 +52,7 @@ import logging
 import queue
 import shlex
 import threading
+import time
 import traceback
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
@@ -264,6 +265,119 @@ def stream_command():
     response.headers["Cache-Control"] = "no-cache"
     response.headers["X-Accel-Buffering"] = "no"
     return response
+
+
+
+
+def _request_show_window_close() -> None:
+    """Close the interactive show window without blocking the request thread."""
+    from GONet_Wizard.ui import WINDOWS
+
+    threading.Timer(0.05, lambda: WINDOWS.close("show")).start()
+
+@launcher_bp.post("/show/session/<session_id>/close")
+def close_show_session(session_id: str):
+    """Finalize a deferred interactive ``show`` session.
+
+    The interactive show window explicitly calls this route when the user clicks
+    ``Save figure`` or ``Exit``. The route immediately acknowledges the request
+    and, when a save path is provided, performs the expensive figure rebuild and
+    export in a background thread so the show window can close right away.
+
+    Parameters
+    ----------
+    session_id : :class:`str`
+        Identifier of the active show session.
+
+    Returns
+    -------
+    :class:`flask.Response`
+        JSON status describing whether the session was accepted.
+    """
+    from GONet_Wizard.commands.show.figure import build_show_figure
+    from GONet_Wizard.commands.show.io import save_figure_plotly
+    from GONet_Wizard.commands.show.session import show_session_registry
+
+    session = show_session_registry.pop(session_id)
+    if session is None:
+        return jsonify({"status": "ignored", "message": "Session already closed."})
+
+    payload = request.get_json(silent=True)
+    if payload is None:
+        raw = request.get_data(cache=False, as_text=True) or "{}"
+        try:
+            payload = json.loads(raw) if raw.strip() else {}
+        except Exception:
+            payload = {}
+
+    save_path = str(payload.get("save_path") or "").strip()
+    terminal_stream = session.terminal_stream
+    _request_show_window_close()
+
+    def _print_or_append(message: str) -> None:
+        if terminal_stream is not None:
+            terminal_stream.append(message)
+        else:
+            print(message, end="", flush=True)
+
+    def _finish_success(message: str, output: str | None = None) -> None:
+        if terminal_stream is not None:
+            terminal_stream.finish(status="success", message=message, output=output)
+        else:
+            if output:
+                print(f"SUCCESS: {message}\nOutput: {output}")
+            else:
+                print(f"SUCCESS: {message}")
+
+    def _finish_error(message: str, exc: Exception) -> None:
+        traceback_text = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+        if terminal_stream is not None:
+            terminal_stream.finish(
+                status="error",
+                message=message,
+                traceback_text=traceback_text,
+            )
+        else:
+            print(f"ERROR: {message}")
+            print(traceback_text)
+
+    if not save_path:
+        _finish_success("Show window closed without saving.")
+        return jsonify({"status": "success", "message": "Show window closed."})
+
+    def _background_save() -> None:
+        stop_event = threading.Event()
+
+        def _dot_worker() -> None:
+            while not stop_event.wait(1.5):
+                _print_or_append(".")
+
+        dot_thread = threading.Thread(target=_dot_worker, daemon=True)
+        try:
+            _print_or_append(f"Saving show figure to {save_path}. Rebuilding figure in background")
+            dot_thread.start()
+            fig = build_show_figure(
+                session.files,
+                channels=session.channels,
+                window_width_px=session.window_width_px,
+                window_height_px=session.window_height_px,
+                width_frac=0.90,
+                row_height_frac=0.40,
+            )
+            output = save_figure_plotly(fig, str(save_path))
+            stop_event.set()
+            dot_thread.join(timeout=0.2)
+            _finish_success("Show figure saved.", str(output))
+        except Exception as exc:
+            stop_event.set()
+            dot_thread.join(timeout=0.2)
+            _finish_error(f"Show save failed: {exc}", exc)
+
+    threading.Thread(
+        target=_background_save,
+        daemon=terminal_stream is not None,
+    ).start()
+    return jsonify({"status": "success", "message": "Show save started.", "save_path": save_path})
 
 
 # ----------------------------
@@ -575,8 +689,11 @@ def _should_defer_terminal_completion(args: argparse.Namespace) -> bool:
         ``True`` for interactive extraction, whose final result is produced by
         callbacks in the secondary extraction window.
     """
+    command = getattr(args, "command", None)
+    if command == "show":
+        return True
     return (
-        getattr(args, "command", None) == "extract"
+        command == "extract"
         and getattr(args, "shape", None) in {None, "", "interactive"}
     )
 
@@ -787,16 +904,25 @@ def _run_handler_with_terminal_stream(
         return {"status": "error", "message": str(error), "argv": argv}
 
     if defer_done:
+        command = getattr(args, "command", None)
+        if command == "show":
+            text = (
+                "Show window opened. Interact with the figure, then click Save figure or Exit "
+                "in the interactive window to continue.\n"
+            )
+        else:
+            text = (
+                "Interactive extraction window opened. "
+                "Select the region and click Extract to continue.\n"
+            )
+
         event_queue.put(
             (
                 "terminal",
                 {
                     "mode": "append",
                     "status": "running",
-                    "text": (
-                        "Interactive extraction window opened. "
-                        "Select the region and click Extract to continue.\n"
-                    ),
+                    "text": text,
                 },
             )
         )

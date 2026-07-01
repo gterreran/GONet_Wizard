@@ -34,4 +34,23 @@
     ></iframe>
   </div>
 
+  <script>
+    window.addEventListener('message', function(event) {
+      const data = event.data || {};
+      if (data.type !== 'gonet-close-window') return;
+      const key = data.key || '{{ channel }}';
+      try {
+        if (window.pywebview && window.pywebview.api) {
+          if (typeof window.pywebview.api.close_named_window === 'function') {
+            window.pywebview.api.close_named_window(key);
+            return;
+          }
+          if (typeof window.pywebview.api.close_window === 'function') {
+            window.pywebview.api.close_window();
+          }
+        }
+      } catch (err) {}
+    });
+  </script>
+
 {% endblock %}

@@ -19,7 +19,9 @@ control over layout, spacing, and styling that is hard to achieve with Plotly's
 built-in menu widgets.
 
 The returned HTML embeds the Plotly figure and a tiny script that maps button clicks
-to :meth:`plotly.graph_objects.Figure.relayout` via ``Plotly.relayout(...)``.
+to :meth:`plotly.graph_objects.Figure.relayout` via ``Plotly.relayout(...)``.  The
+page also contains explicit ``Save figure`` and ``Exit`` buttons used by the
+interactive window.
 
 Constants
 ---------
@@ -42,6 +44,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import uuid
 from typing import Optional
 
 import plotly.io as pio
@@ -51,8 +54,8 @@ from GONet_Wizard.GONet_utils import GONetFile
 from GONet_Wizard.settings import STATIC
 
 from .figure import build_show_figure
-from .io import save_figure_plotly
 from .layout import build_zoom_payloads
+from .session import ShowSaveSession, show_session_registry
 
 
 _channel_flags = [
@@ -77,10 +80,6 @@ COMMAND = CommandSpec(
                 "GONet file(s) to plot [.jpg, .tif, .tiff]. "
                 "`*` wildcards and comma-separated lists are supported."
             ),
-        },
-        {
-            "flags": ["--save"],
-            "help": "Save output as a PDF.",
         },
     ]
     + _channel_flags,
@@ -160,7 +159,7 @@ def cli_handler(args: argparse.Namespace) -> Optional[str]:
 
     1. Resolves input files and channel selection from CLI arguments.
     2. Builds a Plotly figure using :func:`~GONet_Wizard.commands.show.figure.build_show_figure`.
-    3. Optionally saves the figure (e.g. PDF) via :func:`~GONet_Wizard.commands.show.io.save_figure_plotly`.
+    3. Registers an interactive session for the returned window.
     4. Computes "zoom linking" payloads and emits custom HTML buttons that call
        ``Plotly.relayout(graphDiv, payload)``.
     5. Returns the HTML string to the UI layer (PyWebView / GUI launcher) for display.
@@ -171,6 +170,11 @@ def cli_handler(args: argparse.Namespace) -> Optional[str]:
     - Layout is stable across different grid shapes (single-channel grids vs
       per-file rows) and across different WebView implementations.
     - The UI is decoupled from Plotly's menu rendering quirks and limitations.
+
+    The interactive window provides explicit ``Save figure`` and ``Exit`` buttons.
+    ``Save figure`` opens a native OS save dialog, then closes the window and lets
+    the backend rebuild and export the figure in the background while terminal
+    feedback remains visible in the CLI or GUI fake terminal.
 
     Parameters
     ----------
@@ -210,9 +214,17 @@ def cli_handler(args: argparse.Namespace) -> Optional[str]:
         row_height_frac=0.40,
     )
 
-    if getattr(args, "save", None):
-        out = save_figure_plotly(fig, str(args.save))
-        print(f"✅ Figure saved to {out}")
+    session_id = uuid.uuid4().hex
+    show_session_registry.register(
+        ShowSaveSession(
+            session_id=session_id,
+            files=[str(path) for path in files],
+            channels=list(channels),
+            window_width_px=window_w,
+            window_height_px=window_h,
+            terminal_stream=getattr(args, "_gonet_terminal_stream", None),
+        )
+    )
 
     # Geometry needed for zoom-link payloads (stored in fig.layout.meta by figure.py)
     meta = getattr(fig.layout, "meta", {}) or {}
@@ -246,41 +258,51 @@ def cli_handler(args: argparse.Namespace) -> Optional[str]:
     css_text = css_path.read_text(encoding="utf-8")
 
     payloads_json = json.dumps(payloads)
+    close_url_json = json.dumps(f"/show/session/{session_id}/close")
 
     channel_html = ""
     if len(channels) == 1:
         single_channel_label = channels[0].capitalize()
         channel_html = f'<span class="gw-channel-label">Channel: {single_channel_label}</span>'
 
-    # Custom HTML wrapper + JS to wire buttons -> Plotly.relayout
+    # Custom HTML wrapper + JS to wire buttons -> Plotly.relayout and to notify
+    # the Python side when the window closes.
     html = f"""<!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset=\"utf-8\" />
+  <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />
   <style>
 {css_text}
   </style>
 </head>
 <body>
-  <div class="gw-controls-row">
-    <div class="gw-controls" role="group" aria-label="Zoom controls">
-      <span class="label">Zoom mode</span>
-      <button type="button" class="zoom-btn active" data-mode="all">All</button>
-      <button type="button" class="zoom-btn" data-mode="file">Same file</button>
-      <button type="button" class="zoom-btn" data-mode="none">Independent</button>
+  <div class=\"gw-controls-row\">
+    <div class=\"gw-controls\" role=\"group\" aria-label=\"Zoom controls\">
+      <span class=\"label\">Zoom mode</span>
+      <button type=\"button\" class=\"zoom-btn active\" data-mode=\"all\">All</button>
+      <button type=\"button\" class=\"zoom-btn\" data-mode=\"file\">Same file</button>
+      <button type=\"button\" class=\"zoom-btn\" data-mode=\"none\">Independent</button>
     </div>
     {channel_html}
   </div>
 
-  <div class="gw-plot-wrap">
+  <div class=\"gw-plot-wrap\">
     {plot_html}
+  </div>
+  <div class="gw-controls-row" style="justify-content: flex-end; margin-top: 10px;">
+    <div class="gw-controls" role="group" aria-label="Show actions">
+      <button type="button" id="gw-save-btn">Save figure</button>
+      <button type="button" id="gw-exit-btn">Exit</button>
+    </div>
   </div>
 
   <script>
   (function() {{
     const divId = {json.dumps(div_id)};
     const payloads = {payloads_json};
+    const closeUrl = {close_url_json};
+    let actionSubmitted = false;
 
     function getGraphDiv() {{
       return document.getElementById(divId);
@@ -301,9 +323,70 @@ def cli_handler(args: argparse.Namespace) -> Optional[str]:
       setActive(mode);
     }}
 
+    function postClose(savePath) {{
+      if (actionSubmitted) return;
+      actionSubmitted = true;
+      fetch(closeUrl, {{
+        method: 'POST',
+        headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify({{ save_path: savePath || '' }}),
+        keepalive: true,
+      }}).catch(() => {{}});
+    }}
+
+    function closeShowWindow() {{
+      try {{
+        if (window.parent && window.parent !== window) {{
+          window.parent.postMessage({{ type: 'gonet-close-window', key: 'show' }}, '*');
+        }}
+      }} catch (err) {{}}
+      try {{
+        if (window.pywebview && window.pywebview.api) {{
+          if (typeof window.pywebview.api.close_named_window === 'function') {{
+            window.pywebview.api.close_named_window('show');
+            return;
+          }}
+          if (typeof window.pywebview.api.close_window === 'function') {{
+            window.pywebview.api.close_window();
+            return;
+          }}
+        }}
+      }} catch (err) {{}}
+      window.close();
+    }}
+
+    async function handleSave() {{
+      if (actionSubmitted) return;
+      let savePath = '';
+      try {{
+        if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.pick_save_path === 'function') {{
+          savePath = await window.pywebview.api.pick_save_path('gonet_figure.pdf');
+        }} else {{
+          savePath = window.prompt('Save figure as', 'gonet_figure.pdf') || '';
+        }}
+      }} catch (err) {{
+        savePath = '';
+      }}
+
+      if (!savePath) {{
+        return;
+      }}
+
+      postClose(savePath);
+      closeShowWindow();
+    }}
+
+    function handleExit() {{
+      if (actionSubmitted) return;
+      postClose('');
+      closeShowWindow();
+    }}
+
     document.querySelectorAll('.zoom-btn').forEach(btn => {{
       btn.addEventListener('click', () => applyMode(btn.dataset.mode));
     }});
+    document.getElementById('gw-save-btn').addEventListener('click', handleSave);
+    document.getElementById('gw-exit-btn').addEventListener('click', handleExit);
 
     requestAnimationFrame(() => applyMode('all'));
   }})();

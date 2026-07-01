@@ -16,7 +16,6 @@ class DummyArgs:
     blue: bool = False
     green: bool = False
     red: bool = False
-    save: str | None = None
     window_width_px: int | None = None
     window_height_px: int | None = None
 
@@ -111,7 +110,6 @@ def test_cli_handler_requires_css(monkeypatch, tmp_path: Path):
         blue=False,
         green=False,
         red=False,
-        save=None,
         window_width_px=1250,
         window_height_px=800,
     )
@@ -138,7 +136,6 @@ def test_cli_handler_single_channel_includes_channel_label(monkeypatch, minimal_
         blue=True,
         green=False,
         red=False,
-        save=None,
         window_width_px=1200,
         window_height_px=700,
     )
@@ -162,7 +159,6 @@ def test_cli_handler_multi_channel_omits_channel_label(monkeypatch, minimal_css:
         blue=True,
         green=True,
         red=True,
-        save=None,
         window_width_px=1200,
         window_height_px=700,
     )
@@ -197,13 +193,41 @@ def test_cli_handler_uses_figure_meta_to_build_payloads(monkeypatch, minimal_css
         blue=False,
         green=False,
         red=False,
-        save=None,
         window_width_px=1200,
         window_height_px=700,
     )
 
     _ = show_command.cli_handler(args)
     assert called == {"rows": 3, "cols": 2, "per_file_rows": True}
+
+
+
+def test_cli_handler_includes_explicit_show_action_buttons(monkeypatch, minimal_css: Path):
+    from GONet_Wizard.commands.show import command as show_command
+
+    monkeypatch.setattr("GONet_Wizard.settings.STATIC", minimal_css, raising=False)
+    monkeypatch.setattr(
+        show_command,
+        "build_show_figure",
+        lambda *a, **k: _dummy_fig(rows=1, cols=1, per_file_rows=False, height=555),
+    )
+    monkeypatch.setattr(show_command.pio, "to_html", lambda *a, **k: "<div id='gonet-show-plot'>PLOT</div>")
+
+    args = SimpleNamespace(
+        filenames=[Path("x.jpg")],
+        blue=True,
+        green=False,
+        red=False,
+        window_width_px=1200,
+        window_height_px=700,
+    )
+
+    html = show_command.cli_handler(args)
+    assert 'gw-save-btn' in html
+    assert 'gw-exit-btn' in html
+    assert 'Save figure' in html
+    assert 'Exit' in html
+    assert '/show/session/' in html
 
 from GONet_Wizard.commands.show.layout import (
     _axis_name,

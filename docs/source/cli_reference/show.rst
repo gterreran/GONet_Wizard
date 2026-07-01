@@ -4,8 +4,8 @@
 The ``show`` command opens one or more GONet images in the image inspection
 viewer.
 
-It can display selected Bayer channels and optionally export the visualization
-to PDF.
+It can display selected Bayer channels. Export is available from inside the
+interactive viewer with the **Save figure** button.
 
 For the conceptual tool guide, see :doc:`image inspection tool guide <../tools/inspect_images>`.
 
@@ -14,7 +14,7 @@ Usage
 
 .. code-block:: bash
 
-   GONet_Wizard show [-h] [--save SAVE] [--blue] [--green] [--red] filenames [filenames ...]
+   GONet_Wizard show [-h] [--blue] [--green] [--red] filenames [filenames ...]
 
 Arguments
 ---------
@@ -26,11 +26,6 @@ Arguments
 
 Options
 -------
-
-``--save SAVE``
-   Save the generated visualization as a PDF. Static Plotly export uses
-   Kaleido. With Kaleido v1, Chrome or Chromium must be available on the
-   machine running the command.
 
 ``--blue``
    Display the blue channel.
@@ -76,11 +71,15 @@ Inspect blue and green channels:
 
    GONet_Wizard show image.jpg --blue --green
 
-Save the visualization to PDF:
+Save the visualization:
 
-.. code-block:: bash
-
-   GONet_Wizard show image.jpg --save preview.pdf
+   Open the viewer, adjust the figure if needed, then click **Save figure**.
+   GONet Wizard opens the operating-system save dialog and writes the export
+   after the viewer window closes. Supported extensions are ``.pdf``, ``.png``,
+   ``.jpg``, ``.jpeg``, ``.webp``, ``.svg``, ``.html``, and ``.htm``. If no
+   extension is provided, ``.pdf`` is appended automatically. Static image
+   formats use Plotly/Kaleido. With Kaleido v1, Chrome or Chromium must be
+   available on the machine running the command. ``.html`` export avoids Kaleido.
 
 GUI Equivalent
 --------------

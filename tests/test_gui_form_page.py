@@ -28,7 +28,7 @@ def test_extract_page_uses_terminal_without_duplicate_feedback_div():
     assert 'id="output"' not in html
 
 
-def test_non_extract_pages_keep_regular_feedback_div():
+def test_show_page_uses_terminal_without_regular_feedback_div():
     app = _template_app()
 
     with app.test_client() as client:
@@ -37,8 +37,11 @@ def test_non_extract_pages_keep_regular_feedback_div():
     html = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert 'id="command-terminal"' not in html
-    assert 'id="output"' in html
+    assert 'id="command-terminal"' in html
+    assert 'id="terminal-output"' in html
+    assert 'id="output"' not in html
+    assert 'name="save"' not in html
+    assert 'show-save' not in html
 
 
 def test_extract_page_lists_interactive_shape_once():

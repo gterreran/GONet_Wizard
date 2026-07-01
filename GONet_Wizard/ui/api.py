@@ -181,6 +181,69 @@ class WebviewAPI:
         finally:
             self._dialog_lock.release()
 
+
+    def close_named_window(self, key: str) -> None:
+        """
+        Close a registered pywebview window by key.
+
+        Parameters
+        ----------
+        key : :class:`str`
+            Window registry key.
+
+        Returns
+        -------
+        None
+        """
+        from GONet_Wizard.ui.windows import WINDOWS
+        threading.Timer(0.05, lambda: WINDOWS.close(str(key))).start()
+
+    def pick_save_path(self, default_name: str = "gonet_figure.pdf") -> str:
+        """
+        Open a native save dialog and return the selected output path.
+
+        Parameters
+        ----------
+        default_name : :class:`str`, optional
+            Suggested filename shown by the OS save dialog.
+
+        Returns
+        -------
+        :class:`str`
+            Selected save path, or an empty string when the dialog is canceled.
+        """
+        now = time.time()
+
+        if now - self._last_dialog_t < 0.35:
+            return ""
+
+        if not self._dialog_lock.acquire(blocking=False):
+            return ""
+
+        self._last_dialog_t = now
+        try:
+            webview = self._webview()
+            win = self._window0()
+            if not hasattr(win, "create_file_dialog"):
+                logger.warning("Save dialog not supported in current backend.")
+                return ""
+
+            result = win.create_file_dialog(
+                webview.SAVE_DIALOG,
+                save_filename=default_name,
+                file_types=(
+                    "PDF files (*.pdf)",
+                    "PNG files (*.png)",
+                    "SVG files (*.svg)",
+                    "HTML files (*.html)",
+                    "All files (*.*)",
+                ),
+            )
+            paths = self._as_list(result)
+            return paths[0] if paths else ""
+        finally:
+            self._dialog_lock.release()
+
     def download_json(self, data: dict) -> None:
         """
         Save a dictionary as a JSON file using a native save dialog.
