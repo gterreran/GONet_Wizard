@@ -16,6 +16,7 @@ from GONet_Wizard.GONet_utils.src.extractors.file_info import FileInfo
 from GONet_Wizard.GONet_utils.src.extractors.shape_info import ShapeInfo
 from GONet_Wizard.GONet_utils.src.extractors.time_info import TimeInfo
 from GONet_Wizard.GONet_utils.src.extractors.weather_info import WeatherInfo
+import GONet_Wizard.GONet_utils.src.extractors.extraction_values as extraction_values_module
 
 
 def test_file_info_extracts_filename_camera_unix_time_and_context_time():
@@ -253,3 +254,24 @@ def test_process_single_file_returns_none_when_file_loading_fails(monkeypatch):
     )
 
     assert result is None
+
+
+def test_extraction_executor_defaults_to_thread_in_frozen_app(monkeypatch):
+    monkeypatch.setattr(extraction_values_module.sys, "frozen", True, raising=False)
+    monkeypatch.delenv(extraction_values_module._EXECUTOR_ENV_VAR, raising=False)
+
+    assert extraction_values_module._executor_mode() == "thread"
+
+
+def test_extraction_executor_defaults_to_process_in_source_mode(monkeypatch):
+    monkeypatch.delattr(extraction_values_module.sys, "frozen", raising=False)
+    monkeypatch.delenv(extraction_values_module._EXECUTOR_ENV_VAR, raising=False)
+
+    assert extraction_values_module._executor_mode() == "process"
+
+
+def test_extraction_executor_env_override(monkeypatch):
+    monkeypatch.setattr(extraction_values_module.sys, "frozen", True, raising=False)
+    monkeypatch.setenv(extraction_values_module._EXECUTOR_ENV_VAR, "serial")
+
+    assert extraction_values_module._executor_mode() == "serial"

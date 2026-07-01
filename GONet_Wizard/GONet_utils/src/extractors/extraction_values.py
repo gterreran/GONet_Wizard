@@ -10,9 +10,11 @@ then summarized with total counts, mean counts, standard deviation, and pixel
 count.
 
 The public :class:`.ExtractionValues` extractor processes many files in
-parallel.  The lower-level :func:`.process_single_file` helper performs the work
-for one image and is useful for testing or debugging the extraction behavior on
-a single file.
+parallel. Source-mode runs use a process pool by default, while frozen desktop
+apps automatically use a thread pool because spawned process-pool workers are
+fragile inside PyInstaller bundles. The lower-level :func:`.process_single_file`
+helper performs the work for one image and is useful for testing or debugging
+the extraction behavior on a single file.
 
 Functions
 ---------
@@ -34,9 +36,124 @@ from GONet_Wizard.GONet_utils import GONetFile
 from GONet_Wizard.GONet_utils import DATA_SPEC
 from GONet_Wizard.GONet_utils.src.extract_app.shapes import base
 from typing import Dict, Any, Tuple
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from tqdm import tqdm
+import os
+import sys
 import numpy as np
+
+_EXECUTOR_ENV_VAR = "GONET_WIZARD_EXTRACT_EXECUTOR"
+_DEFAULT_MAX_WORKERS = 12
+
+
+def _running_in_frozen_app() -> bool:
+    """
+    Return whether the current process is running from a frozen desktop bundle.
+
+    PyInstaller sets ``sys.frozen`` on bundled applications.  The extraction
+    pipeline uses this to avoid spawning a nested process pool from the frozen
+    GUI app, which can terminate worker processes abruptly on macOS and
+    Windows.
+    """
+    return bool(getattr(sys, "frozen", False))
+
+
+def _executor_mode() -> str:
+    """
+    Resolve the executor mode used for per-file pixel extraction.
+
+    Returns
+    -------
+    :class:`str`
+        One of ``"process"``, ``"thread"``, or ``"serial"``.
+
+    Notes
+    -----
+    The optional ``GONET_WIZARD_EXTRACT_EXECUTOR`` environment variable can be
+    set to ``process``, ``thread``, or ``serial`` for debugging.  Without an
+    override, source-mode runs keep the existing process-pool behavior, while
+    frozen desktop apps use threads to avoid PyInstaller multiprocessing worker
+    crashes.
+    """
+    requested = os.environ.get(_EXECUTOR_ENV_VAR, "").strip().lower()
+    if requested in {"process", "thread", "serial"}:
+        return requested
+    return "thread" if _running_in_frozen_app() else "process"
+
+
+def _max_workers(n_files: int) -> int:
+    """
+    Return a bounded worker count for extraction parallelism.
+
+    Parameters
+    ----------
+    n_files : :class:`int`
+        Number of files submitted to the extractor.
+
+    Returns
+    -------
+    :class:`int`
+        At least one worker and at most :data:`_DEFAULT_MAX_WORKERS`, capped by
+        the number of files.
+    """
+    return max(1, min(_DEFAULT_MAX_WORKERS, n_files or 1))
+
+
+def _extract_files(
+    file_list: list,
+    channels: list,
+    extraction_params: dict,
+) -> list:
+    """
+    Process all files using the executor mode appropriate for this runtime.
+
+    Parameters
+    ----------
+    file_list : :class:`list`
+        Paths to the image files to process.
+    channels : :class:`list`
+        Channel names to extract.
+    extraction_params : :class:`dict`
+        Shape/extraction parameters passed to :func:`.process_single_file`.
+
+    Returns
+    -------
+    :class:`list`
+        Successful per-file extraction dictionaries.  Files that fail to load
+        or process are skipped by :func:`.process_single_file`.
+    """
+    if not file_list:
+        return []
+
+    mode = _executor_mode()
+    night_data = []
+
+    if mode == "serial":
+        for file in tqdm(file_list, total=len(file_list), desc="Processing", ncols=100):
+            result = process_single_file(file, channels, extraction_params)
+            if result is not None:
+                night_data.append(result)
+        return night_data
+
+    executor_class = ThreadPoolExecutor if mode == "thread" else ProcessPoolExecutor
+    with executor_class(max_workers=_max_workers(len(file_list))) as executor:
+        futures = [
+            executor.submit(process_single_file, file, channels, extraction_params)
+            for file in file_list
+        ]
+
+        for future in tqdm(
+            as_completed(futures),
+            total=len(futures),
+            desc="Processing",
+            ncols=100,
+        ):
+            result = future.result()
+            if result is not None:
+                night_data.append(result)
+
+    return night_data
+
 
 class ExtractionValues(Extractor):
     """
@@ -92,21 +209,11 @@ class ExtractionValues(Extractor):
         :func:`.process_single_file`.  Downstream merging uses the returned
         ``"files"`` list to keep surviving rows aligned with other extractors.
         """
-        night_data = []
-        with ProcessPoolExecutor(max_workers=12) as executor:
-            # Submit tasks directly with all arguments
-            futures = [executor.submit(process_single_file, file, raw["channels"], raw["extraction_parameters"]) for file in raw["file_list"]]
-
-            for future in tqdm(
-                as_completed(futures),
-                total=len(futures),
-                desc="Processing",
-                ncols=100,
-            ):
-                result = future.result()
-                if result is not None:
-                    night_data.append(result)
-
+        night_data = _extract_files(
+            raw["file_list"],
+            raw["channels"],
+            raw["extraction_parameters"],
+        )
 
         results = {
             "files": [],
