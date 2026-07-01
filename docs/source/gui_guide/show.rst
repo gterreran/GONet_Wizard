@@ -86,7 +86,8 @@ If the field is left blank, no PDF is written and the viewer simply opens
 interactively.
 
 If a path is provided, GONet Wizard attempts to export the visualization to
-the specified PDF file.
+the specified PDF file. Static Plotly export uses Kaleido. With Kaleido v1,
+Chrome or Chromium must be available on the machine running the GUI.
 
 Running the Viewer
 ------------------

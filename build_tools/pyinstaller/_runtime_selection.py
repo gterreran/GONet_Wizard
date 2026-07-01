@@ -46,6 +46,8 @@ RUNTIME_HIDDENIMPORT_PACKAGES = [
     "dash_extensions",
     "dash_daq",
     "plotly",
+    # Plotly imports Kaleido dynamically when saving static images/PDFs.
+    "kaleido",
     "flask",
     "webview",
 ]

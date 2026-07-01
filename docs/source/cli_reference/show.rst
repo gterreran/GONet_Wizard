@@ -28,7 +28,9 @@ Options
 -------
 
 ``--save SAVE``
-   Save the generated visualization as a PDF.
+   Save the generated visualization as a PDF. Static Plotly export uses
+   Kaleido. With Kaleido v1, Chrome or Chromium must be available on the
+   machine running the command.
 
 ``--blue``
    Display the blue channel.
