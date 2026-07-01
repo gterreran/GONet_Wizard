@@ -23,8 +23,6 @@ dependencies = [
   "dash==2.18.2",
   "flask",
   "plotly>=6.1.1",
-  "kaleido>=1.0.0",
-  "reportlab",
   "dash-extensions",
   "dash_daq",
   "python-dotenv",

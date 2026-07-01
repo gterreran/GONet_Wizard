@@ -46,12 +46,23 @@ RUNTIME_HIDDENIMPORT_PACKAGES = [
     "dash_extensions",
     "dash_daq",
     "plotly",
-    # Plotly imports Kaleido dynamically when saving static images/PDFs.
-    "kaleido",
-    # ReportLab is imported lazily when show_meta saves metadata tables to PDF.
-    "reportlab",
     "flask",
     "webview",
+]
+
+# The ``show`` command writes static PDF/PNG/JPEG/SVG exports through
+# Matplotlib's non-interactive Agg renderer. Some file-format backends are
+# imported dynamically by ``Figure.savefig(...)`` and are therefore not always
+# discovered by PyInstaller analysis. Keep these targeted hidden imports rather
+# than collecting all of Matplotlib.
+RUNTIME_HIDDENIMPORT_MODULES = [
+    "matplotlib.backends.backend_agg",
+    "matplotlib.backends.backend_mixed",
+    "matplotlib.backends.backend_pdf",
+    "matplotlib.backends.backend_svg",
+    "PIL.Image",
+    "PIL.JpegImagePlugin",
+    "PIL.PngImagePlugin",
 ]
 
 # Modules that were observed to bloat the frozen app or produce irrelevant
@@ -156,7 +167,7 @@ def collect_runtime_hiddenimports(
     packages: Iterable[str] = RUNTIME_HIDDENIMPORT_PACKAGES,
 ) -> list[str]:
     """Collect filtered hidden imports for all runtime packages."""
-    hiddenimports: list[str] = []
+    hiddenimports: list[str] = list(RUNTIME_HIDDENIMPORT_MODULES)
     for package in packages:
         hiddenimports += collect_runtime_submodules(package)
     return unique(hiddenimports)

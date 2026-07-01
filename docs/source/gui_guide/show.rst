@@ -22,8 +22,8 @@ Overview
 --------
 
 The Show Image form is used to select one or more GONet files and choose the
-channels to display. Figure export is handled from inside the interactive
-viewer with the **Save figure** button.
+channels to display. export is handled from inside the interactive viewer
+with the **Save figure** button.
 
 After the form is submitted, GONet Wizard opens the image inspection viewer in
 a dedicated window.
@@ -86,14 +86,12 @@ have inspected or zoomed the figure.
 
 When **Save figure** is clicked, GONet Wizard opens the operating-system save
 dialog. After you choose a path, the viewer window closes immediately and the
-export continues in the command feedback terminal on the form page.
-
-Supported export extensions are ``.pdf``, ``.png``, ``.jpg``, ``.jpeg``,
-``.webp``, ``.svg``, ``.html``, and ``.htm``. If no extension is provided,
-``.pdf`` is appended automatically. Static image formats use Plotly/Kaleido.
-With Kaleido v1, Chrome or Chromium must be available on the machine running
-the GUI. ``.html`` export is a fast, self-contained interactive export that
-does not require Kaleido.
+export continues in the command feedback terminal on the form page. Static PDF, PNG, JPG, and SVG exports are rendered with GONet Wizard's
+Matplotlib-based static exporter, not Plotly/Kaleido. This keeps packaged desktop
+apps independent from a separate Chrome/Chromium backend. These static exports
+include the same essential context as the viewer, including filenames, channel
+labels, and the show grid arrangement. Save with an ``.html`` extension when you
+want to preserve the fully interactive Plotly viewer.
 
 Use **Exit** inside the viewer to close it without saving.
 
@@ -107,7 +105,8 @@ To launch the image inspection viewer:
 #. Click **Run show**.
 
 The image inspection viewer opens in a separate window. Use **Save figure** in
-that window to export the figure, or **Exit** to close without saving.
+that window to export a PDF, image, SVG, or interactive HTML file, or **Exit** to
+close without saving.
 
 Navigation Buttons
 ------------------

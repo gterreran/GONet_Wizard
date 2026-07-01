@@ -171,9 +171,7 @@ When providing output paths, use explicit filenames:
 For extraction outputs, if the requested file already exists, GONet Wizard
 creates a new filename with a numeric suffix rather than overwriting the
 existing file. For ``show`` export, open the viewer and use **Save figure**;
-the output path is selected through the operating-system save dialog. Supported
-show export extensions are ``.pdf``, ``.png``, ``.jpg``, ``.jpeg``, ``.webp``,
-``.svg``, ``.html``, and ``.htm``.
+the output path is selected through the operating-system save dialog.
 
 GUI-Backed Commands from the CLI
 --------------------------------

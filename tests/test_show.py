@@ -354,6 +354,9 @@ def test_build_show_figure_single_channel_adds_panel_titles(monkeypatch, dummy_a
     assert meta["per_file_rows"] is False
     assert meta["cols"] >= 1
     assert meta["rows"] >= 1
+    assert meta["filenames"] == ["a.jpg", "b.jpg", "c.jpg"]
+    assert meta["channels"] == ["blue"]
+    assert meta["panel_titles"] == ["a.jpg", "b.jpg", "c.jpg"]
 
 
 def test_build_show_figure_multi_channel_adds_row_frames(monkeypatch, dummy_arr):
@@ -394,6 +397,9 @@ def test_build_show_figure_multi_channel_adds_row_frames(monkeypatch, dummy_arr)
     assert meta["per_file_rows"] is True
     assert meta["rows"] == 2
     assert meta["cols"] == 3
+    assert meta["filenames"] == ["a.jpg", "b.jpg"]
+    assert meta["channels"] == ["blue", "green1", "red"]
+    assert meta["row_titles"] == ["cam — a.jpg — t", "cam — b.jpg — t"]
 
 
 def test_load_gonet_file_for_show_uses_processed_loader_for_tiff(monkeypatch):
@@ -436,39 +442,73 @@ def test_channel_for_loaded_file_falls_back_to_green_for_processed_files():
 from GONet_Wizard.commands.show.io import save_figure_plotly
 
 
+def _simple_show_export_figure() -> go.Figure:
+    fig = go.Figure(go.Heatmap(z=np.arange(9).reshape(3, 3), zmin=0, zmax=8, showscale=False))
+    fig.update_layout(width=300, height=250, meta={"show": {"rows": 1, "cols": 1}})
+    return fig
+
+
+def test_show_static_export_title_data_uses_show_metadata():
+    import GONet_Wizard.commands.show.io as show_io
+
+    fig = go.Figure([
+        go.Heatmap(z=np.ones((2, 2))),
+        go.Heatmap(z=np.ones((2, 2))),
+        go.Heatmap(z=np.ones((2, 2))),
+    ])
+    fig.update_layout(
+        meta={
+            "show": {
+                "rows": 1,
+                "cols": 3,
+                "per_file_rows": True,
+                "row_titles": ["cam — file.jpg — 2026"],
+                "channels": ["blue", "green1", "red"],
+            }
+        }
+    )
+
+    per_file_rows, row_titles, panel_titles, channel_labels = show_io._static_title_data(fig)
+    assert per_file_rows is True
+    assert row_titles == ["cam — file.jpg — 2026"]
+    assert panel_titles == []
+    assert channel_labels == ["Blue", "Green", "Red"]
+
+
 def test_save_figure_plotly_appends_pdf(tmp_path: Path):
-    calls = {"path": None}
-
-    def write_image(path: str):
-        calls["path"] = path
-        Path(path).write_text("pdf", encoding="utf-8")
-
-    fig = SimpleNamespace(write_image=write_image)
+    fig = _simple_show_export_figure()
     out = save_figure_plotly(fig, str(tmp_path / "out"))
     assert out.endswith(".pdf")
     assert Path(out).exists()
-    assert calls["path"] == out
 
 
 def test_save_figure_plotly_avoids_overwrite(tmp_path: Path):
     # Pre-create out.pdf so the function must pick out_1.pdf
     (tmp_path / "out.pdf").write_text("existing", encoding="utf-8")
 
-    def write_image(path: str):
-        Path(path).write_text("pdf", encoding="utf-8")
-
-    fig = SimpleNamespace(write_image=write_image)
+    fig = _simple_show_export_figure()
     out = save_figure_plotly(fig, str(tmp_path / "out.pdf"))
     assert out.endswith("_1.pdf")
     assert Path(out).exists()
 
 
-def test_save_figure_plotly_kaleido_failure_raises(tmp_path: Path):
-    def write_image(_path: str):
-        raise Exception("no kaleido")
+def test_save_figure_plotly_html_export_avoids_static_renderer(tmp_path: Path):
+    fig = _simple_show_export_figure()
+    out = save_figure_plotly(fig, str(tmp_path / "out.html"))
+    assert out.endswith(".html")
+    assert "plotly" in Path(out).read_text(encoding="utf-8").lower()
 
-    fig = SimpleNamespace(write_image=write_image)
+
+def test_save_figure_plotly_static_failure_raises(monkeypatch, tmp_path: Path):
+    import GONet_Wizard.commands.show.io as show_io
+
+    def fail_static_export(_fig, _path):
+        raise Exception("cannot write")
+
+    monkeypatch.setattr(show_io, "_save_static_matplotlib", fail_static_export)
+
+    fig = _simple_show_export_figure()
     with pytest.raises(RuntimeError) as e:
         save_figure_plotly(fig, str(tmp_path / "out.pdf"))
 
-    assert "kaleido" in str(e.value).lower()
+    assert "failed to export" in str(e.value).lower()

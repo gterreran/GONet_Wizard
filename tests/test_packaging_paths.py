@@ -130,8 +130,10 @@ def test_pyinstaller_scaffolding_filters_development_modules_from_runtime_import
 
     assert "excludedimports = EXCLUDES" in hook
     assert "EXCLUDED_MODULE_PREFIXES" in shared
-    assert '"kaleido"' in shared
-    assert '"reportlab"' in shared
+    assert '"kaleido"' not in shared
+    assert '"matplotlib.backends.backend_pdf"' in shared
+    assert '"matplotlib.backends.backend_svg"' in shared
+    assert '"PIL.JpegImagePlugin"' in shared
     for module_name in [
         '"dash.testing"',
         '"dash.development.build_process"',
