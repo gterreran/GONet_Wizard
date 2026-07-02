@@ -71,3 +71,14 @@ def test_extract_page_lists_interactive_shape_once():
     assert response.status_code == 200
     assert html.count('value="interactive"') == 1
     assert 'value="">Interactive</option>' not in html
+
+
+def test_preview_shell_proxies_save_dialog_requests_to_pywebview():
+    template_dir = Path(web.__file__).with_name("templates")
+    html = (template_dir / "preview_shell.html").read_text(encoding="utf-8")
+
+    assert "gonet-pick-save-path" in html
+    assert "gonet-save-path-result" in html
+    assert "pick_save_path" in html
+    assert "sourceWindow.postMessage" in html
+    assert html.count("gonet-close-window") == 1

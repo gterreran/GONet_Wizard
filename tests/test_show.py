@@ -228,6 +228,11 @@ def test_cli_handler_includes_explicit_show_action_buttons(monkeypatch, minimal_
     assert 'Save figure' in html
     assert 'Exit' in html
     assert '/show/session/' in html
+    assert 'gonet-pick-save-path' in html
+    assert 'showSaveFileTypes' in html
+    assert 'PDF files (*.pdf)' in html
+    assert 'window.prompt' not in html
+    assert 'setTimeout' not in html
 
 from GONet_Wizard.commands.show.layout import (
     _axis_name,

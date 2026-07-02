@@ -302,6 +302,14 @@ def cli_handler(args: argparse.Namespace) -> Optional[str]:
     const divId = {json.dumps(div_id)};
     const payloads = {payloads_json};
     const closeUrl = {close_url_json};
+    const showSaveFileTypes = [
+      'PDF files (*.pdf)',
+      'PNG files (*.png)',
+      'JPEG files (*.jpg;*.jpeg)',
+      'SVG files (*.svg)',
+      'HTML files (*.html;*.htm)',
+      'All files (*.*)',
+    ];
     let actionSubmitted = false;
 
     function getGraphDiv() {{
@@ -355,15 +363,56 @@ def cli_handler(args: argparse.Namespace) -> Optional[str]:
       window.close();
     }}
 
+    async function directPickSavePath(defaultName, fileTypes) {{
+      try {{
+        if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.pick_save_path === 'function') {{
+          return await window.pywebview.api.pick_save_path(defaultName, fileTypes);
+        }}
+      }} catch (err) {{}}
+      return '';
+    }}
+
+    async function pickSavePath(defaultName, fileTypes) {{
+      if (!window.parent || window.parent === window) {{
+        return await directPickSavePath(defaultName, fileTypes);
+      }}
+
+      const requestId = `show-save-${{Date.now()}}-${{Math.random().toString(16).slice(2)}}`;
+      const parentResult = await new Promise(resolve => {{
+        let settled = false;
+        function done(path) {{
+          if (settled) return;
+          settled = true;
+          window.removeEventListener('message', onMessage);
+          resolve(path || '');
+        }}
+        function onMessage(event) {{
+          const data = event.data || {{}};
+          if (data.type !== 'gonet-save-path-result' || data.request_id !== requestId) return;
+          done(data.path || '');
+        }}
+        window.addEventListener('message', onMessage);
+        try {{
+          window.parent.postMessage({{
+            type: 'gonet-pick-save-path',
+            request_id: requestId,
+            default_name: defaultName,
+            file_types: fileTypes,
+          }}, '*');
+        }} catch (err) {{
+          done('');
+          return;
+        }}
+      }});
+
+      return parentResult;
+    }}
+
     async function handleSave() {{
       if (actionSubmitted) return;
       let savePath = '';
       try {{
-        if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.pick_save_path === 'function') {{
-          savePath = await window.pywebview.api.pick_save_path('gonet_figure.pdf');
-        }} else {{
-          savePath = window.prompt('Save figure as', 'gonet_figure.pdf') || '';
-        }}
+        savePath = await pickSavePath('gonet_figure.pdf', showSaveFileTypes);
       }} catch (err) {{
         savePath = '';
       }}

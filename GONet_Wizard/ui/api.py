@@ -27,7 +27,7 @@ from __future__ import annotations
 import json
 import threading
 import time
-from typing import List, Any
+from typing import List, Any, Sequence
 from GONet_Wizard.logging_utils import get_logger
 
 logger = get_logger(__name__)
@@ -70,6 +70,21 @@ class WebviewAPI:
         """
         import webview
         return webview
+
+    def _save_dialog_kind(self):
+        """
+        Return the pywebview save-dialog enum with backward compatibility.
+
+        Returns
+        -------
+        object
+            ``webview.FileDialog.SAVE`` on modern pywebview versions, falling
+            back to the deprecated ``webview.SAVE_DIALOG`` constant when needed.
+        """
+        webview = self._webview()
+        file_dialog = getattr(webview, "FileDialog", None)
+        save_kind = getattr(file_dialog, "SAVE", None) if file_dialog is not None else None
+        return save_kind if save_kind is not None else webview.SAVE_DIALOG
 
     def _window0(self):
         """
@@ -198,7 +213,42 @@ class WebviewAPI:
         from GONet_Wizard.ui.windows import WINDOWS
         threading.Timer(0.05, lambda: WINDOWS.close(str(key))).start()
 
-    def pick_save_path(self, default_name: str = "gonet_figure.pdf") -> str:
+    def _normalize_file_types(self, file_types: Any | None) -> tuple[str, ...]:
+        """
+        Normalize JavaScript-provided file type filters for a save dialog.
+
+        Parameters
+        ----------
+        file_types : object or None
+            A string or sequence of strings accepted by pywebview's
+            ``create_file_dialog(..., file_types=...)`` argument.
+
+        Returns
+        -------
+        tuple of str
+            File type filters suitable for :mod:`pywebview`.
+        """
+        if not file_types:
+            return (
+                "PDF files (*.pdf)",
+                "PNG files (*.png)",
+                "JPEG files (*.jpg;*.jpeg)",
+                "SVG files (*.svg)",
+                "HTML files (*.html;*.htm)",
+                "All files (*.*)",
+            )
+        if isinstance(file_types, str):
+            return (file_types,)
+        if isinstance(file_types, Sequence):
+            normalized = tuple(str(item) for item in file_types if str(item))
+            return normalized or ("All files (*.*)",)
+        return ("All files (*.*)",)
+
+    def pick_save_path(
+        self,
+        default_name: str = "gonet_figure.pdf",
+        file_types: Any | None = None,
+    ) -> str:
         """
         Open a native save dialog and return the selected output path.
 
@@ -206,6 +256,9 @@ class WebviewAPI:
         ----------
         default_name : :class:`str`, optional
             Suggested filename shown by the OS save dialog.
+        file_types : object, optional
+            Optional pywebview file type filters. JavaScript callers may pass a
+            list such as ``["PDF files (*.pdf)", "All files (*.*)"]``.
 
         Returns
         -------
@@ -229,15 +282,9 @@ class WebviewAPI:
                 return ""
 
             result = win.create_file_dialog(
-                webview.SAVE_DIALOG,
+                self._save_dialog_kind(),
                 save_filename=default_name,
-                file_types=(
-                    "PDF files (*.pdf)",
-                    "PNG files (*.png)",
-                    "SVG files (*.svg)",
-                    "HTML files (*.html)",
-                    "All files (*.*)",
-                ),
+                file_types=self._normalize_file_types(file_types),
             )
             paths = self._as_list(result)
             return paths[0] if paths else ""
@@ -272,7 +319,7 @@ class WebviewAPI:
             return
 
         path = window.create_file_dialog(
-            webview.SAVE_DIALOG,
+            self._save_dialog_kind(),
             file_types=("JSON files (*.json)", "All files (*.*)"),
         )
 

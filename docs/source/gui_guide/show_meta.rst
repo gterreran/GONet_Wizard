@@ -82,7 +82,7 @@ Saving Metadata to PDF
 ----------------------
 
 The metadata viewer includes a **Save PDF** button at the bottom of the window.
-Clicking this button opens the operating system save dialog. After a path is
+Clicking this button opens the operating system save dialog so you can choose both the folder and filename. After a path is
 selected, the metadata viewer closes and the PDF is written in the background.
 Progress and the final saved path are shown in the Show Metadata feedback panel.
 

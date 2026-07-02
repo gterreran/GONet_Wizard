@@ -3,8 +3,38 @@
 {% block footer %}
   <!-- Empty block - footer content from base.html will not be rendered -->
   <script>
+    async function gonetPickSavePath(data) {
+      let path = '';
+      try {
+        if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.pick_save_path === 'function') {
+          path = await window.pywebview.api.pick_save_path(
+            data.default_name || 'gonet_output.pdf',
+            data.file_types || null
+          );
+        }
+      } catch (err) {
+        path = '';
+      }
+
+      try {
+        if (data.sourceWindow) {
+          data.sourceWindow.postMessage({
+            type: 'gonet-save-path-result',
+            request_id: data.request_id || '',
+            path: path || '',
+          }, '*');
+        }
+      } catch (err) {}
+    }
+
     window.addEventListener('message', function(event) {
       const data = event.data || {};
+
+      if (data.type === 'gonet-pick-save-path') {
+        gonetPickSavePath({ ...data, sourceWindow: event.source });
+        return;
+      }
+
       if (data.type !== 'gonet-close-window') return;
       try {
         if (window.pywebview && window.pywebview.api) {
@@ -52,22 +82,5 @@
     ></iframe>
   </div>
 
-  <script>
-    window.addEventListener('message', function(event) {
-      const data = event.data || {};
-      if (data.type !== 'gonet-close-window') return;
-      try {
-        if (window.pywebview && window.pywebview.api) {
-          if (typeof window.pywebview.api.close_named_window === 'function') {
-            window.pywebview.api.close_named_window(data.key || '{{ channel }}');
-            return;
-          }
-          if (typeof window.pywebview.api.close_window === 'function') {
-            window.pywebview.api.close_window();
-          }
-        }
-      } catch (err) {}
-    });
-  </script>
 
 {% endblock %}

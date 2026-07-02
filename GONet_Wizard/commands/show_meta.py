@@ -519,6 +519,10 @@ def _append_interactive_actions(html_output: str, session_id: str) -> str:
 <script>
 (function() {{
   const closeUrl = {close_url!r};
+  const metadataSaveFileTypes = [
+    'PDF files (*.pdf)',
+    'All files (*.*)',
+  ];
   let actionSubmitted = false;
 
   function postClose(savePath) {{
@@ -551,15 +555,56 @@ def _append_interactive_actions(html_output: str, session_id: str) -> str:
     window.close();
   }}
 
+  async function directPickSavePath(defaultName, fileTypes) {{
+    try {{
+      if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.pick_save_path === 'function') {{
+        return await window.pywebview.api.pick_save_path(defaultName, fileTypes);
+      }}
+    }} catch (err) {{}}
+    return '';
+  }}
+
+  async function pickSavePath(defaultName, fileTypes) {{
+    if (!window.parent || window.parent === window) {{
+      return await directPickSavePath(defaultName, fileTypes);
+    }}
+
+    const requestId = `show-meta-save-${{Date.now()}}-${{Math.random().toString(16).slice(2)}}`;
+    const parentResult = await new Promise(resolve => {{
+      let settled = false;
+      function done(path) {{
+        if (settled) return;
+        settled = true;
+        window.removeEventListener('message', onMessage);
+        resolve(path || '');
+      }}
+      function onMessage(event) {{
+        const data = event.data || {{}};
+        if (data.type !== 'gonet-save-path-result' || data.request_id !== requestId) return;
+        done(data.path || '');
+      }}
+      window.addEventListener('message', onMessage);
+      try {{
+        window.parent.postMessage({{
+          type: 'gonet-pick-save-path',
+          request_id: requestId,
+          default_name: defaultName,
+          file_types: fileTypes,
+        }}, '*');
+      }} catch (err) {{
+        done('');
+        return;
+      }}
+    }});
+
+    return parentResult;
+  }}
+
   async function handleSave() {{
     if (actionSubmitted) return;
     let savePath = '';
     try {{
-      if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.pick_save_path === 'function') {{
-        savePath = await window.pywebview.api.pick_save_path('gonet_metadata.pdf');
-      }} else {{
-        savePath = window.prompt('Save metadata PDF as', 'gonet_metadata.pdf') || '';
-      }}
+      savePath = await pickSavePath('gonet_metadata.pdf', metadataSaveFileTypes);
     }} catch (err) {{
       savePath = '';
     }}

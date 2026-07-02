@@ -19,6 +19,11 @@ def test_show_meta_html_adds_save_pdf_and_exit_actions(monkeypatch):
     assert "Save PDF" in html
     assert "Exit" in html
     assert "/show_meta/session/" in html
+    assert "gonet-pick-save-path" in html
+    assert "metadataSaveFileTypes" in html
+    assert "PDF files (*.pdf)" in html
+    assert "window.prompt" not in html
+    assert "setTimeout" not in html
 
 
 def test_save_metadata_pdf_adds_pdf_extension_and_avoids_overwrite(monkeypatch, tmp_path):
