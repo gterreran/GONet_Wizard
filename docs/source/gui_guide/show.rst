@@ -21,8 +21,9 @@ the graphical interface.
 Overview
 --------
 
-The Show Image form is used to select one or more GONet files, choose the
-channels to display, and optionally export the resulting visualization to PDF.
+The Show Image form is used to select one or more GONet files and choose the
+channels to display. export is handled from inside the interactive viewer
+with the **Save figure** button.
 
 After the form is submitted, GONet Wizard opens the image inspection viewer in
 a dedicated window.
@@ -76,17 +77,23 @@ making it easier to compare equivalent channels across observations.
 
 For more information about GONet channels, see :doc:`channels user guide <../user_guide/channels>`.
 
-Optional PDF Export
--------------------
+Export from the Viewer
+----------------------
 
-The **Optional output PDF** field can be used to save the generated
-visualization.
+The show form no longer asks for an output path before the viewer opens.
+Instead, use the **Save figure** button inside the interactive viewer after you
+have inspected or zoomed the figure.
 
-If the field is left blank, no PDF is written and the viewer simply opens
-interactively.
+When **Save figure** is clicked, GONet Wizard opens the operating-system save
+dialog. After you choose a path, the viewer window closes immediately and the
+export continues in the command feedback terminal on the form page. Static PDF, PNG, JPG, and SVG exports are rendered with GONet Wizard's
+Matplotlib-based static exporter, not Plotly/Kaleido. This keeps packaged desktop
+apps independent from a separate Chrome/Chromium backend. These static exports
+include the same essential context as the viewer, including filenames, channel
+labels, and the show grid arrangement. Save with an ``.html`` extension when you
+want to preserve the fully interactive Plotly viewer.
 
-If a path is provided, GONet Wizard attempts to export the visualization to
-the specified PDF file.
+Use **Exit** inside the viewer to close it without saving.
 
 Running the Viewer
 ------------------
@@ -95,10 +102,11 @@ To launch the image inspection viewer:
 
 #. Select one or more files or folders.
 #. Choose the channels to display.
-#. Optionally provide a PDF output path.
 #. Click **Run show**.
 
-The image inspection viewer opens in a separate window.
+The image inspection viewer opens in a separate window. Use **Save figure** in
+that window to export a PDF, image, SVG, or interactive HTML file, or **Exit** to
+close without saving.
 
 Navigation Buttons
 ------------------

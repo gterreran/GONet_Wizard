@@ -166,12 +166,12 @@ When providing output paths, use explicit filenames:
 
 .. code-block:: bash
 
-   GONet_Wizard show image.jpg --save preview.pdf
    GONet_Wizard extract image.jpg --shape circle --center 1000,800 --radius 50 --output counts.json
 
 For extraction outputs, if the requested file already exists, GONet Wizard
 creates a new filename with a numeric suffix rather than overwriting the
-existing file.
+existing file. For ``show`` export, open the viewer and use **Save figure**;
+the output path is selected through the operating-system save dialog.
 
 GUI-Backed Commands from the CLI
 --------------------------------

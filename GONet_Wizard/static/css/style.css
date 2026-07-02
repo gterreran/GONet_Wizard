@@ -762,6 +762,82 @@ table.meta-table tr:nth-child(even) td.meta-val {
   white-space: nowrap;
 }
 
+
+/* ---------------------------------- */
+/* Command terminal feedback          */
+/* ---------------------------------- */
+
+.command-terminal {
+  margin-top: 22px;
+  background: #111;
+  border: 1px solid rgba(158,248,253, 0.25);
+  border-radius: 8px;
+  box-shadow: 0 0 8px #000 inset;
+  overflow: hidden;
+}
+
+.command-terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #1e1e1e;
+  border-bottom: 1px solid rgba(158,248,253, 0.2);
+  color: var(--accent-color);
+  font-weight: 700;
+}
+
+.command-terminal-status {
+  border: 1px solid rgba(158,248,253, 0.35);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #dffcff;
+  background: rgba(158,248,253, 0.08);
+}
+
+.command-terminal-status.is-running {
+  color: #ffe9a6;
+  border-color: rgba(255, 214, 102, 0.45);
+  background: rgba(255, 214, 102, 0.12);
+}
+
+.command-terminal-status.is-success {
+  color: #b9ffcf;
+  border-color: rgba(97, 255, 150, 0.45);
+  background: rgba(97, 255, 150, 0.12);
+}
+
+.command-terminal-status.is-error {
+  color: #ffb4b4;
+  border-color: rgba(255, 110, 110, 0.55);
+  background: rgba(255, 110, 110, 0.12);
+}
+
+.command-terminal-output {
+  min-height: 140px;
+  max-height: 360px;
+  overflow: auto;
+  margin: 0;
+  padding: 12px;
+  color: #d6ffd6;
+  cursor: text;
+  font-family: "Fira Code", "Consolas", "Menlo", monospace;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  -webkit-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+.command-output {
+  margin-top: 16px;
+}
+
 /* ---------------------------------- */
 /* Extract command form               */
 /* ---------------------------------- */

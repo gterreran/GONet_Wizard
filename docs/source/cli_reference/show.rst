@@ -4,8 +4,8 @@
 The ``show`` command opens one or more GONet images in the image inspection
 viewer.
 
-It can display selected Bayer channels and optionally export the visualization
-to PDF.
+It can display selected Bayer channels. Static export is available from
+inside the interactive viewer with the **Save figure** button.
 
 For the conceptual tool guide, see :doc:`image inspection tool guide <../tools/inspect_images>`.
 
@@ -14,7 +14,7 @@ Usage
 
 .. code-block:: bash
 
-   GONet_Wizard show [-h] [--save SAVE] [--blue] [--green] [--red] filenames [filenames ...]
+   GONet_Wizard show [-h] [--blue] [--green] [--red] filenames [filenames ...]
 
 Arguments
 ---------
@@ -26,9 +26,6 @@ Arguments
 
 Options
 -------
-
-``--save SAVE``
-   Save the generated visualization as a PDF.
 
 ``--blue``
    Display the blue channel.
@@ -74,11 +71,14 @@ Inspect blue and green channels:
 
    GONet_Wizard show image.jpg --blue --green
 
-Save the visualization to PDF:
+Save the visualization:
 
-.. code-block:: bash
-
-   GONet_Wizard show image.jpg --save preview.pdf
+   Open the viewer, adjust the figure if needed, then click **Save figure**.
+   GONet Wizard opens the operating-system save dialog and writes the selected
+   file after the viewer window closes. Static PDF, PNG, JPG, and SVG exports
+   are rendered with GONet Wizard's Matplotlib-based static exporter, not
+   Plotly/Kaleido. They include filenames, channel labels, and the show grid
+   arrangement; save as ``.html`` to preserve the fully interactive Plotly viewer.
 
 GUI Equivalent
 --------------

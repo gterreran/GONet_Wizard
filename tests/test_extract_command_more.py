@@ -202,10 +202,14 @@ def test_cli_handler_noninteractive_filters_files_and_delegates(monkeypatch, tmp
     files = [tmp_path / "a.jpg", tmp_path / "b.txt"]
 
     monkeypatch.setattr(extract_command, "filter_by_ext", lambda values, exts: [values[0]])
+    def fake_extract_counts_from_gonet(**kwargs):
+        calls.append(kwargs)
+        return str(tmp_path / "out.json")
+
     monkeypatch.setattr(
         extract_command,
         "extract_counts_from_GONet",
-        lambda **kwargs: calls.append(kwargs),
+        fake_extract_counts_from_gonet,
     )
 
     args = SimpleNamespace(
@@ -246,6 +250,7 @@ def test_cli_handler_interactive_returns_window_request(monkeypatch, tmp_path):
         channels=None,
         output=None,
         output_type=None,
+        terminal_stream=None,
     ):
         launch_calls.append({
             "data_files": data_files,
@@ -254,6 +259,7 @@ def test_cli_handler_interactive_returns_window_request(monkeypatch, tmp_path):
             "channels": channels,
             "output": output,
             "output_type": output_type,
+            "terminal_stream": terminal_stream,
         })
         return "http://127.0.0.1:8051"
 
@@ -290,4 +296,5 @@ def test_cli_handler_interactive_returns_window_request(monkeypatch, tmp_path):
         "channels": ["red", "green", "blue"],
         "output": None,
         "output_type": None,
+        "terminal_stream": None,
     }]

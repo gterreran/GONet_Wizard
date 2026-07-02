@@ -209,6 +209,30 @@ To run an extraction:
 Depending on the selected workflow, GONet Wizard either opens the interactive
 extraction GUI or starts the extraction directly.
 
+Extraction Feedback Terminal
+----------------------------
+
+The Extract form includes an **Extraction feedback** terminal panel below the
+form controls.  This panel is the primary place to watch extraction progress
+when running from the GUI, especially when using a packaged desktop app where no
+separate terminal window is visible.
+
+The terminal panel shows:
+
+* the command equivalent submitted by the form;
+* live progress output while files are processed;
+* warnings and informational messages from GONet Wizard;
+* error messages and traceback details when extraction fails;
+* the full path to the JSON or CSV file written at the end of a successful run.
+
+Terminal text is selectable, so paths, warnings, and tracebacks can be copied
+for debugging or reporting issues.
+
+For **Interactive** extraction, the region-selection window closes as soon as
+**Extract** is clicked.  Processing then continues in the main Extract form's
+feedback terminal so the user has a single place to follow progress and confirm
+where the output file was saved.
+
 Navigation Buttons
 ------------------
 

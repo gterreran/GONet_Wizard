@@ -44,11 +44,13 @@ import argparse
 import html
 import os
 import pprint
+import uuid
 from dataclasses import dataclass, field
 from typing import List, Optional, Sequence, Union
 
 from GONet_Wizard.GONet_utils import GONetFile
 from GONet_Wizard.commands.cli_core import CommandSpec, ExpandFilenames, filter_by_ext
+from GONet_Wizard.commands.show_meta_session import ShowMetaSession, show_meta_session_registry
 
 
 COMMAND = CommandSpec(
@@ -362,6 +364,267 @@ def show_metadata(
     return emit.render()
 
 
+
+def _ensure_pdf_extension(save_path: str) -> str:
+    """Return ``save_path`` with a ``.pdf`` suffix if no suffix was provided."""
+    root, ext = os.path.splitext(save_path)
+    if ext.lower() != ".pdf":
+        return save_path + ".pdf" if not ext else root + ".pdf"
+    return save_path
+
+
+def _avoid_overwrite(save_path: str) -> str:
+    """Return a non-existing path by adding a numeric suffix if necessary."""
+    final_path = _ensure_pdf_extension(save_path)
+    base, ext = os.path.splitext(final_path)
+    counter = 1
+    while os.path.exists(final_path):
+        final_path = f"{base}_{counter}{ext}"
+        counter += 1
+    return final_path
+
+
+def _flatten_metadata_rows(value: object, prefix: str = "") -> list[tuple[str, str]]:
+    """Flatten nested metadata into ``(key, value)`` rows suitable for PDF tables."""
+    rows: list[tuple[str, str]] = []
+    if isinstance(value, dict):
+        for key, item in value.items():
+            key_text = str(key)
+            child_prefix = f"{prefix}.{key_text}" if prefix else key_text
+            rows.extend(_flatten_metadata_rows(item, child_prefix))
+        return rows
+    if isinstance(value, (list, tuple)):
+        if all(_is_primitive(item) for item in value):
+            rows.append((prefix or "value", pprint.pformat(list(value), width=100)))
+        else:
+            for idx, item in enumerate(value):
+                child_prefix = f"{prefix}[{idx}]" if prefix else f"[{idx}]"
+                rows.extend(_flatten_metadata_rows(item, child_prefix))
+        return rows
+    rows.append((prefix or "value", pprint.pformat(value, width=100)))
+    return rows
+
+
+def save_metadata_pdf(files: Union[str, Sequence[str]], save_path: str) -> str:
+    """Save the metadata shown by ``show_meta`` to a PDF file.
+
+    Parameters
+    ----------
+    files : :class:`str` or sequence of :class:`str`
+        Input GONet files whose metadata should be written.
+    save_path : :class:`str`
+        Requested PDF output path. ``.pdf`` is added automatically when omitted.
+
+    Returns
+    -------
+    :class:`str`
+        Final path written to disk.
+
+    Raises
+    ------
+    :class:`RuntimeError`
+        If the ReportLab PDF backend is unavailable or the PDF cannot be written.
+    """
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+        from xml.sax.saxutils import escape as xml_escape
+    except Exception as exc:  # pragma: no cover - exercised only without dependency
+        raise RuntimeError(
+            "Saving show_meta output to PDF requires the 'reportlab' package. "
+            "Try: pip install -U reportlab"
+        ) from exc
+
+    if isinstance(files, str):
+        files_list = [files]
+    else:
+        files_list = list(files)
+
+    final_path = _avoid_overwrite(str(save_path))
+    styles = getSampleStyleSheet()
+    body = styles["BodyText"]
+    body.fontName = "Helvetica"
+    body.fontSize = 8
+    body.leading = 10
+
+    story = [Paragraph("GONet metadata", styles["Title"]), Spacer(1, 12)]
+
+    for path in files_list:
+        story.append(Paragraph(f"File: {xml_escape(str(path))}", styles["Heading2"]))
+        try:
+            go = GONetFile.from_file(path)
+            if not os.path.isfile(path):
+                rows = [("Status", "File does not exist.")]
+            elif getattr(go, "meta", None) is None:
+                rows = [("Status", "No metadata associated with this file.")]
+            else:
+                rows = _flatten_metadata_rows(go.meta)
+                if not rows:
+                    rows = [("Status", "Metadata is empty.")]
+        except Exception as exc:
+            rows = [("Error", f"Error reading metadata: {exc}")]
+
+        table_data = [[Paragraph("Key", body), Paragraph("Value", body)]]
+        for key, value in rows:
+            table_data.append([
+                Paragraph(xml_escape(str(key)), body),
+                Paragraph(xml_escape(str(value)).replace("\n", "<br/>") , body),
+            ])
+
+        table = Table(table_data, colWidths=[180, 340], repeatRows=1)
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#333333")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#999999")),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ]
+            )
+        )
+        story.extend([table, Spacer(1, 12)])
+
+    try:
+        SimpleDocTemplate(
+            final_path,
+            pagesize=letter,
+            rightMargin=36,
+            leftMargin=36,
+            topMargin=36,
+            bottomMargin=36,
+        ).build(story)
+    except Exception as exc:
+        raise RuntimeError(f"Failed to write metadata PDF: {exc}") from exc
+
+    return final_path
+
+
+def _append_interactive_actions(html_output: str, session_id: str) -> str:
+    """Append Save PDF and Exit buttons to the interactive metadata HTML."""
+    close_url = f"/show_meta/session/{session_id}/close"
+    return f"""
+{html_output}
+<div class="gw-controls-row" style="justify-content: flex-end; margin-top: 10px;">
+  <div class="gw-controls" role="group" aria-label="Show metadata actions">
+    <button type="button" id="gw-save-meta-btn">Save PDF</button>
+    <button type="button" id="gw-exit-meta-btn">Exit</button>
+  </div>
+</div>
+<script>
+(function() {{
+  const closeUrl = {close_url!r};
+  const metadataSaveFileTypes = [
+    'PDF files (*.pdf)',
+    'All files (*.*)',
+  ];
+  let actionSubmitted = false;
+
+  function postClose(savePath) {{
+    if (actionSubmitted) return;
+    actionSubmitted = true;
+    fetch(closeUrl, {{
+      method: 'POST',
+      headers: {{ 'Content-Type': 'application/json' }},
+      body: JSON.stringify({{ save_path: savePath || '' }}),
+      keepalive: true,
+    }}).catch(() => {{}});
+  }}
+
+  function closeMetaWindow() {{
+    try {{
+      window.parent && window.parent.postMessage({{ type: 'gonet-close-window', key: 'show_meta' }}, '*');
+    }} catch (err) {{}}
+    try {{
+      if (window.pywebview && window.pywebview.api) {{
+        if (typeof window.pywebview.api.close_named_window === 'function') {{
+          window.pywebview.api.close_named_window('show_meta');
+          return;
+        }}
+        if (typeof window.pywebview.api.close_window === 'function') {{
+          window.pywebview.api.close_window();
+          return;
+        }}
+      }}
+    }} catch (err) {{}}
+    window.close();
+  }}
+
+  async function directPickSavePath(defaultName, fileTypes) {{
+    try {{
+      if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.pick_save_path === 'function') {{
+        return await window.pywebview.api.pick_save_path(defaultName, fileTypes);
+      }}
+    }} catch (err) {{}}
+    return '';
+  }}
+
+  async function pickSavePath(defaultName, fileTypes) {{
+    if (!window.parent || window.parent === window) {{
+      return await directPickSavePath(defaultName, fileTypes);
+    }}
+
+    const requestId = `show-meta-save-${{Date.now()}}-${{Math.random().toString(16).slice(2)}}`;
+    const parentResult = await new Promise(resolve => {{
+      let settled = false;
+      function done(path) {{
+        if (settled) return;
+        settled = true;
+        window.removeEventListener('message', onMessage);
+        resolve(path || '');
+      }}
+      function onMessage(event) {{
+        const data = event.data || {{}};
+        if (data.type !== 'gonet-save-path-result' || data.request_id !== requestId) return;
+        done(data.path || '');
+      }}
+      window.addEventListener('message', onMessage);
+      try {{
+        window.parent.postMessage({{
+          type: 'gonet-pick-save-path',
+          request_id: requestId,
+          default_name: defaultName,
+          file_types: fileTypes,
+        }}, '*');
+      }} catch (err) {{
+        done('');
+        return;
+      }}
+    }});
+
+    return parentResult;
+  }}
+
+  async function handleSave() {{
+    if (actionSubmitted) return;
+    let savePath = '';
+    try {{
+      savePath = await pickSavePath('gonet_metadata.pdf', metadataSaveFileTypes);
+    }} catch (err) {{
+      savePath = '';
+    }}
+    if (!savePath) return;
+    postClose(savePath);
+    closeMetaWindow();
+  }}
+
+  function handleExit() {{
+    if (actionSubmitted) return;
+    postClose('');
+    closeMetaWindow();
+  }}
+
+  document.getElementById('gw-save-meta-btn').addEventListener('click', handleSave);
+  document.getElementById('gw-exit-meta-btn').addEventListener('click', handleExit);
+}})();
+</script>
+"""
+
 def cli_handler(args: argparse.Namespace) -> Optional[str]:
     """
     CLI handler for the ``show_meta`` command.
@@ -390,10 +653,19 @@ def cli_handler(args: argparse.Namespace) -> Optional[str]:
     """
     files = filter_by_ext(args.filenames, [".jpg", ".tiff"])
 
-    output = show_metadata(files, as_html=bool(getattr(args, "html", False)))
+    as_html = bool(getattr(args, "html", False))
+    output = show_metadata(files, as_html=as_html)
 
-    if getattr(args, "html", False):
-        return output
+    if as_html:
+        session_id = uuid.uuid4().hex
+        show_meta_session_registry.register(
+            ShowMetaSession(
+                session_id=session_id,
+                files=[str(path) for path in files],
+                terminal_stream=getattr(args, "_gonet_terminal_stream", None),
+            )
+        )
+        return _append_interactive_actions(output, session_id)
 
     print(output)
     return None

@@ -22,7 +22,7 @@ dependencies = [
   "python-dateutil",
   "dash==2.18.2",
   "flask",
-  "plotly",
+  "plotly>=6.1.1",
   "dash-extensions",
   "dash_daq",
   "python-dotenv",
@@ -34,6 +34,7 @@ dependencies = [
   "pywebview",
   "astroplan",
   "meteostat==1.7.6",
+  "reportlab",
   "tqdm"
 ]
 

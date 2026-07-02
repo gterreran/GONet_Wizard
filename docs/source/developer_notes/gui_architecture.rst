@@ -271,6 +271,44 @@ Examples include:
 This result-handling layer allows command handlers to remain reusable while
 still supporting a polished GUI experience.
 
+Live Command Feedback Terminal
+------------------------------
+
+The extraction form uses a terminal-style feedback panel so packaged desktop
+builds can show the same information a user would normally expect in a real
+terminal.  This is implemented in ``GONet_Wizard/gui/web.py`` through two
+execution paths:
+
+``/run``
+   Executes a GUI-submitted command and returns captured feedback in a single
+   JSON response.  This remains useful for simple command forms and tests.
+
+``/run/stream``
+   Executes a GUI-submitted command while streaming feedback as server-sent
+   events.  The Extract form uses this endpoint so progress bars, log records,
+   stdout, stderr, and traceback output appear while the command is still
+   running.
+
+The streaming path converts the submitted payload into the same argparse
+``argv`` used by the CLI, starts the command handler in a worker thread, and
+then drains a queue of terminal events back to the browser.  ``_QueueTextWriter``
+provides a minimal file-like interface for ``stdout`` and ``stderr``
+redirection, while a temporary package logger handler forwards GONet Wizard log
+records into the same stream.
+
+Interactive extraction needs one additional bridge.  The first command handler
+opens the Dash-based extraction window, but the real extraction does not begin
+until the user clicks **Extract** in that secondary window.  In this case,
+``_TerminalStreamBridge`` is attached to the parsed arguments and stored in the
+Dash server config.  The Dash callback then uses the bridge to append progress
+and emit the final completion event through the original Extract form terminal.
+This lets the region-selection window close immediately while processing
+continues visibly in the main form.
+
+The terminal stream is intentionally a presentation layer only.  Scientific
+extraction logic still lives in the command and extractor modules; the GUI layer
+only captures, forwards, and displays command feedback.
+
 Preview Windows
 ---------------
 

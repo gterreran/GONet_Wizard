@@ -320,7 +320,7 @@ layout = dcc.Loading(
                             html.Div(
                                 className="extract-action-bar",
                                 children=[
-                                    html.Button("Extract", id="extract-button"),
+                                    html.Button("Extract", id="extract-button", disabled=True),
                                     html.Button("Exit", id="exit-button", className="danger-button"),
                                 ],
                             ),

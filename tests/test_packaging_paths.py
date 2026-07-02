@@ -86,6 +86,13 @@ def test_resource_path_supports_macos_app_resources_layout(monkeypatch, tmp_path
     assert resources.static_dir("css", "style.css") == css
 
 
+
+def test_project_dependencies_include_pdf_export_runtime_backend():
+    root = Path(__file__).resolve().parents[1]
+    pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
+
+    assert '"reportlab"' in pyproject
+
 def test_pyinstaller_build_scaffolding_files_exist():
     root = Path(__file__).resolve().parents[1]
     build_root = root / "build_tools" / "pyinstaller"
@@ -130,6 +137,10 @@ def test_pyinstaller_scaffolding_filters_development_modules_from_runtime_import
 
     assert "excludedimports = EXCLUDES" in hook
     assert "EXCLUDED_MODULE_PREFIXES" in shared
+    assert '"kaleido"' not in shared
+    assert '"matplotlib.backends.backend_pdf"' in shared
+    assert '"matplotlib.backends.backend_svg"' in shared
+    assert '"PIL.JpegImagePlugin"' in shared
     for module_name in [
         '"dash.testing"',
         '"dash.development.build_process"',

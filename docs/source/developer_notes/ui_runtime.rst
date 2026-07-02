@@ -483,11 +483,16 @@ The current API supports operations such as:
 
 * opening native file-selection dialogs,
 * opening native folder-selection dialogs,
-* closing the active window,
+* opening native save dialogs that return a full output path,
+* closing the active or named preview window,
 * saving JSON data through a native dialog.
 
-File and folder dialogs are guarded by a lock and debounced to avoid duplicate
-dialogs from rapid clicks.
+File, folder, and save dialogs are guarded by a lock and debounced to avoid
+duplicate dialogs from rapid clicks. Preview content rendered inside
+``preview_shell.html`` iframes cannot always access ``window.pywebview`` directly,
+so save actions such as ``show`` **Save figure** and ``show_meta`` **Save PDF**
+request the native save dialog through a ``postMessage`` bridge handled by the
+preview shell.
 
 Adding a Runtime-Backed UI Feature
 ----------------------------------

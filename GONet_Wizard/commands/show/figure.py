@@ -488,13 +488,18 @@ def build_show_figure(
 
     apply_aspect_ratio_lock(fig, rows=rows, cols=cols)
 
-    # Expose layout info for the external HTML controls.
+    # Expose layout/export info for the external HTML controls and static exporter.
     fig.update_layout(
         meta={
             "show": {
                 "rows": rows,
                 "cols": cols,
                 "per_file_rows": per_file_rows,
+                "files": [str(lf.path) for lf in loaded],
+                "filenames": [lf.path.name for lf in loaded],
+                "channels": list(channels),
+                "row_titles": list(row_titles),
+                "panel_titles": list(panel_titles),
             }
         }
     )
