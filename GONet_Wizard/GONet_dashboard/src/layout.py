@@ -127,7 +127,10 @@ def layout(all_columns: list) -> dcc.Loading:
             dcc.Store(id='data-json'),
             dcc.Store(id='active-filters', data=[]),
             dcc.Store(id='status-data'),
-            html.Div(id='dummy-div'),
+            dcc.Store(id='export-epoch-indices'),
+            dcc.Store(id='export-data-json'),
+            html.Div(id='status-save-dummy'),
+            html.Div(id='export-save-dummy'),
             html.Div(id='title-container', children=[
                 html.H1("GONet Wizard", className="main-title"),
                 html.Img(id='logo', src=r'/assets/img/logo/logo_1024.png', alt='logo'),
@@ -162,7 +165,6 @@ def layout(all_columns: list) -> dcc.Loading:
                     ]),
                     html.Div(id = "export-button-container", children=[
                         html.Button('Export current data', id='export-data', n_clicks=0),
-                        dcc.Download(id="download-json")
                     ])
                 ],
                 id = 'graph-selector-container'

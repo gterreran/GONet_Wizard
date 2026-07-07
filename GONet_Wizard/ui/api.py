@@ -25,12 +25,33 @@ Classes
 from __future__ import annotations
 
 import json
+from pathlib import Path
+import shutil
 import threading
 import time
-from typing import List, Any, Sequence
+from typing import Any, List, Sequence
+from urllib.parse import urlsplit
+from urllib.request import urlopen
 from GONet_Wizard.logging_utils import get_logger
 
 logger = get_logger(__name__)
+
+
+def _ensure_json_extension(path: str) -> str:
+    """Return *path* with its final suffix normalized to ``.json``.
+
+    Existing suffixes are replaced rather than appended, so a user-entered
+    name such as ``dashboard.csv`` becomes ``dashboard.json``.
+    """
+    clean_path = str(path).strip()
+    if not clean_path:
+        return ""
+
+    output_path = Path(clean_path)
+    name = output_path.name.rstrip(".")
+    suffix = Path(name).suffix
+    stem = name[: -len(suffix)] if suffix else name
+    return str(output_path.with_name(f"{stem}.json"))
 
 
 class WebviewAPI:
@@ -69,6 +90,7 @@ class WebviewAPI:
             Imported :mod:`webview` module.
         """
         import webview
+
         return webview
 
     def _save_dialog_kind(self):
@@ -83,7 +105,9 @@ class WebviewAPI:
         """
         webview = self._webview()
         file_dialog = getattr(webview, "FileDialog", None)
-        save_kind = getattr(file_dialog, "SAVE", None) if file_dialog is not None else None
+        save_kind = (
+            getattr(file_dialog, "SAVE", None) if file_dialog is not None else None
+        )
         return save_kind if save_kind is not None else webview.SAVE_DIALOG
 
     def _window0(self):
@@ -196,7 +220,6 @@ class WebviewAPI:
         finally:
             self._dialog_lock.release()
 
-
     def close_named_window(self, key: str) -> None:
         """
         Close a registered pywebview window by key.
@@ -211,6 +234,7 @@ class WebviewAPI:
         None
         """
         from GONet_Wizard.ui.windows import WINDOWS
+
         threading.Timer(0.05, lambda: WINDOWS.close(str(key))).start()
 
     def _normalize_file_types(self, file_types: Any | None) -> tuple[str, ...]:
@@ -275,7 +299,6 @@ class WebviewAPI:
 
         self._last_dialog_t = now
         try:
-            webview = self._webview()
             win = self._window0()
             if not hasattr(win, "create_file_dialog"):
                 logger.warning("Save dialog not supported in current backend.")
@@ -291,18 +314,26 @@ class WebviewAPI:
         finally:
             self._dialog_lock.release()
 
-    def download_json(self, data: dict) -> None:
-        """
-        Save a dictionary as a JSON file using a native save dialog.
+    def download_json(
+        self,
+        data: Any,
+        default_name: str = "data.json",
+    ) -> str:
+        """Save JSON-serializable data through the native save dialog.
 
         Parameters
         ----------
-        data : :class:`dict`
-            JSON-serializable dictionary to write.
+        data : object
+            JSON-serializable data to write.
+        default_name : str, optional
+            Suggested filename shown by the operating-system save dialog. Its
+            suffix is normalized to ``.json`` before display.
 
         Returns
         -------
-        None
+        str
+            The final path written, or an empty string when the dialog is
+            canceled or unavailable.
 
         Raises
         ------
@@ -310,19 +341,76 @@ class WebviewAPI:
             If the selected output path cannot be written.
         TypeError
             If ``data`` is not JSON serializable.
+
+        Notes
+        -----
+        The selected filename is normalized again after the dialog closes, so
+        entering another extension cannot produce a non-JSON output file.
         """
-        webview = self._webview()
-        window = webview.windows[0]
-
-        if not hasattr(window, "create_file_dialog"):
-            logger.warning("File dialog not supported in current backend.")
-            return
-
-        path = window.create_file_dialog(
-            self._save_dialog_kind(),
-            file_types=("JSON files (*.json)", "All files (*.*)"),
+        path = self.pick_save_path(
+            default_name=_ensure_json_extension(default_name),
+            file_types=("JSON files (*.json)",),
         )
+        if not path:
+            return ""
 
-        if path:
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4)
+        json_path = _ensure_json_extension(path)
+        with open(json_path, "w", encoding="utf-8") as stream:
+            json.dump(data, stream, indent=4)
+
+        return json_path
+
+    def download_json_url(
+        self,
+        url: str,
+        default_name: str = "data.json",
+    ) -> str:
+        """Save a JSON payload exposed by the local Dash server.
+
+        Only loopback HTTP(S) URLs are accepted. This keeps the pywebview API
+        narrowly scoped to files staged by GONet Wizard rather than turning it
+        into a general-purpose downloader.
+
+        Parameters
+        ----------
+        url : str
+            One-time local URL serving the staged JSON bytes.
+        default_name : str, optional
+            Suggested filename shown by the operating-system save dialog.
+
+        Returns
+        -------
+        str
+            The final path written, or an empty string when the dialog is
+            canceled.
+
+        Raises
+        ------
+        ValueError
+            If *url* is not a loopback HTTP(S) URL.
+        OSError
+            If the staged payload cannot be fetched or written.
+        """
+        parsed = urlsplit(str(url))
+        if parsed.scheme not in {"http", "https"} or parsed.hostname not in {
+            "127.0.0.1",
+            "localhost",
+            "::1",
+        }:
+            raise ValueError("Only local GONet Wizard download URLs are allowed.")
+
+        path = self.pick_save_path(
+            default_name=_ensure_json_extension(default_name),
+            file_types=("JSON files (*.json)",),
+        )
+        if not path:
+            return ""
+
+        json_path = _ensure_json_extension(path)
+        with urlopen(url, timeout=60) as response, open(
+            json_path,
+            "wb",
+        ) as stream:
+            shutil.copyfileobj(response, stream)
+
+        return json_path

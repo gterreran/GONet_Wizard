@@ -242,27 +242,52 @@ For crowded plots, the **Show filtered data** toggle can be switched off. When
 this toggle is off, filtered-out points disappear from the plot, making the
 remaining selected subset easier to inspect.
 
-Saving and Loading Filter Sets
-------------------------------
+Saving and Loading Dashboard Status
+-----------------------------------
 
-The dashboard can save and reload filter configurations.
+The dashboard can save its current configuration and restore it in a later
+session.
 
-Use **Save status** to store the current dashboard state, including the active
-filter setup.
+Click **Save status** to open a **Save As** dialog. The suggested filename is
+``dashboard_status.json``, but it can be changed before saving. Status files
+always use the JSON format. If the chosen name has no extension, or has an
+extension other than ``.json``, the filename is normalized to end in
+``.json``.
 
-Use **Load status** to restore a previously saved state.
+The saved status includes:
 
-This makes it easier to repeat an analysis or reuse a useful filter selection
+* the selected X- and Y-axis quantities,
+* the selected color channels,
+* the **Show filtered data** setting,
+* enabled and disabled value filters,
+* optional OR conditions, and
+* selection filters created from points on the plot.
+
+Use **Load status** to select a previously saved status file. The dashboard
+restores the saved plotting choices and reconstructs the saved filters. The
+status file stores the dashboard configuration, not a copy of the underlying
+extraction data, so the relevant data products must still be loaded separately.
+
+Saving a status is useful for repeating an analysis or reusing a filter setup
 across dashboard sessions.
 
 Exporting Filtered Data
 -----------------------
 
-The **Export current data** button writes a new JSON file containing the current
-filtered subset.
+Click **Export current data** to open a **Save As** dialog for the current
+filtered subset. The suggested filename is ``filtered_data.json``, and the
+chosen destination is shown before the file is written. Export files always use
+the JSON format. If the chosen name has no extension, or has an extension other
+than ``.json``, the filename is normalized to end in ``.json``.
 
-The exported file includes all stored quantities for the observations that pass
-the active filters, not only the quantities currently shown on the plot.
+The exported file contains the observations that pass all active filters. This
+is independent of the **Show filtered data** setting: filtered-out points may
+remain visible with reduced opacity in the plot, but they are not included in
+the export.
+
+For each exported observation, the file includes all stored quantities
+available to the dashboard, not only the X- and Y-axis quantities currently
+shown on the plot.
 
 This is the intended bridge between dashboard exploration and more advanced
 analysis. Users can use the dashboard to identify a useful subset of
