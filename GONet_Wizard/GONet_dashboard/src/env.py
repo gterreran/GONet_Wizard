@@ -49,11 +49,6 @@ DEFAULT_FILTER_VALUES : :class:`dict`
         - 'moon_illumination': maximum Moon illumination
         - 'condition_code': maximum weather condition index
 
-LABELS : :class:`dict`
-    Dictionary storing metadata field categories:
-        - 'gen': General, non-channel-specific metadata fields.
-        - 'fit': Fit-derived, channel-specific metadata fields.
-
 OP : :class:`dict`
     Dictionary mapping string-based logical operators to Python equivalents.
     Supports basic comparison operations for filtering logic.
@@ -72,7 +67,8 @@ Notes
 - The geolocation constants define the fixed position of the GONet camera system at Adler.
 - Filtering logic and color styling are centralized here for consistent UI behavior.
 """
-import datetime, operator
+import datetime
+import operator
 from dateutil import tz
 import astropy.units as u
 

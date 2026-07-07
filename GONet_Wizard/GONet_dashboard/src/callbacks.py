@@ -59,7 +59,7 @@ This ensures compatibility with Dash's output constraints and avoids runtime err
 
 """
 
-import json
+import math
 
 from dash import no_update, ctx, html
 from dash.dependencies import Input, Output, State, ALL, MATCH
@@ -68,7 +68,177 @@ from GONet_Wizard.GONet_dashboard.src.server import app
 from GONet_Wizard.GONet_dashboard.src import env
 from GONet_Wizard.GONet_dashboard.src import utils
 from GONet_Wizard.GONet_dashboard.src.hood import plot
-from GONet_Wizard.GONet_dashboard.src.load_save_callbacks import register_json_download, load_json
+from GONet_Wizard.GONet_dashboard.src.load_save_callbacks import (
+    load_json,
+    register_json_download,
+    register_staged_json_download,
+    stage_json_download,
+)
+from GONet_Wizard.GONet_utils import DATA_SPEC
+
+
+def _data_spec_keys(field_type):
+    """Return canonical DATA_SPEC keys for one dashboard field category."""
+    keys = []
+    for fallback_key, field in DATA_SPEC.items():
+        if getattr(field, "field_type", "env") != field_type:
+            continue
+
+        key = getattr(field, "key", fallback_key)
+        if key not in keys:
+            keys.append(key)
+    return keys
+
+
+def _json_safe_value(value):
+    """Convert common dataframe scalar values to JSON-friendly objects."""
+    if hasattr(value, "item"):
+        try:
+            value = value.item()
+        except (TypeError, ValueError):
+            pass
+
+    if value is None:
+        return None
+
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+
+    if type(value).__name__ in {"NAType", "NaTType"}:
+        return None
+
+    if hasattr(value, "isoformat"):
+        try:
+            return value.isoformat()
+        except (TypeError, ValueError):
+            pass
+
+    return value
+
+
+def _build_export_records(df, epoch_indices):
+    """Build nested export records from the loaded dashboard dataframe."""
+    if df is None or df.empty or "epoch_idx" not in df.columns:
+        return []
+
+    has_col = df.columns.__contains__
+
+    base_labels = []
+    for label in ["filename", *_data_spec_keys("env")]:
+        if label != "epoch_idx" and has_col(label) and label not in base_labels:
+            base_labels.append(label)
+
+    channel_labels = [
+        label for label in _data_spec_keys("chn") if has_col(label)
+    ]
+
+    requested_indices = [] if epoch_indices is None else list(epoch_indices)
+    if not requested_indices:
+        return []
+
+    required_columns = ["epoch_idx", *base_labels]
+    if "channel" in df.columns:
+        required_columns.append("channel")
+    required_columns.extend(
+        label for label in channel_labels if label not in required_columns
+    )
+
+    # Restrict the dataframe once. The previous implementation scanned the
+    # complete dataframe separately for every epoch and then again for every
+    # channel, which made export time grow rapidly with dataset size.
+    selected = df.loc[
+        df["epoch_idx"].isin(requested_indices),
+        required_columns,
+    ]
+    if selected.empty:
+        return []
+
+    base_rows = selected.drop_duplicates("epoch_idx", keep="first")
+    base_lookup = {
+        row[0]: {
+            label: _json_safe_value(value)
+            for label, value in zip(base_labels, row[1:])
+        }
+        for row in base_rows[["epoch_idx", *base_labels]].itertuples(
+            index=False,
+            name=None,
+        )
+    }
+
+    channel_lookups = {}
+    if "channel" in selected.columns:
+        for channel in env.CHANNELS:
+            channel_rows = selected.loc[
+                selected["channel"] == channel
+            ].drop_duplicates("epoch_idx", keep="first")
+            channel_lookups[channel] = {
+                row[0]: {
+                    label: _json_safe_value(value)
+                    for label, value in zip(channel_labels, row[1:])
+                }
+                for row in channel_rows[
+                    ["epoch_idx", *channel_labels]
+                ].itertuples(index=False, name=None)
+            }
+
+    empty_channel = {label: None for label in channel_labels}
+    records = []
+    for epoch_idx in requested_indices:
+        base_values = base_lookup.get(epoch_idx)
+        if base_values is None:
+            continue
+
+        record = dict(base_values)
+        for channel in env.CHANNELS:
+            channel_values = channel_lookups.get(channel, {}).get(epoch_idx)
+            record[channel] = (
+                dict(channel_values)
+                if channel_values is not None
+                else dict(empty_channel)
+            )
+        records.append(record)
+
+    return records
+
+
+def _build_status_dict(args):
+    """Group dashboard control values into a serializable status dictionary."""
+    status = {}
+    filters_by_index = {}
+    filter_order = []
+
+    for component_ids, values in zip(args[0::2], args[1::2]):
+        if not isinstance(component_ids, list):
+            if isinstance(component_ids, str):
+                status[component_ids] = values
+            continue
+
+        value_list = values if isinstance(values, list) else []
+        for component_id, value in zip(component_ids, value_list):
+            if not isinstance(component_id, dict):
+                continue
+
+            raw_index = component_id.get("index")
+            component_type = component_id.get("type")
+            if raw_index is None or not isinstance(component_type, str):
+                continue
+
+            # Pattern-matching IDs may be integers in older saved layouts and
+            # UUID-bearing strings in the current layout. Normalizing to text
+            # avoids comparisons or sorting across incompatible Python types.
+            index = str(raw_index)
+            if index not in filters_by_index:
+                filters_by_index[index] = {"secondary": {}}
+                filter_order.append(index)
+
+            filter_data = filters_by_index[index]
+            if component_type.startswith("second-"):
+                filter_data["secondary"][component_type] = value
+            else:
+                filter_data[component_type] = value
+
+    status["filters"] = [filters_by_index[index] for index in filter_order]
+    return status
 
 
 @utils.gonet_callback(
@@ -515,18 +685,42 @@ def update_filters(
     else:
         return no_update, no_update, no_update
 
+app.clientside_callback(
+    """
+    function(nClicks, figure) {
+        if (!nClicks || !figure) {
+            return window.dash_clientside.no_update;
+        }
+
+        const traces = Array.isArray(figure.data) ? figure.data : [];
+        const visibleTrace = traces.find(
+            trace => !trace.filtered && !trace.big_point
+        );
+        const epochIndices = visibleTrace && Array.isArray(visibleTrace.epoch_idx)
+            ? visibleTrace.epoch_idx
+            : [];
+
+        return {
+            request_id: nClicks,
+            epoch_indices: epochIndices
+        };
+    }
+    """,
+    Output("export-epoch-indices", "data"),
+    Input("export-data", "n_clicks"),
+    State("main-plot", "figure"),
+    prevent_initial_call=True,
+)
 
 
 @utils.gonet_callback(
-    Output("download-json", 'data'),
-    #---------------------
-    Input("export-data", 'n_clicks'),
-    #---------------------
-    State("main-plot",'figure'),
-    #---------------------
-    prevent_initial_call=True
+    Output("export-data-json", "data"),
+    # ---------------------
+    Input("export-epoch-indices", "data"),
+    # ---------------------
+    prevent_initial_call=True,
 )
-def export_data(_, fig):#, channels):
+def export_data(export_request):
     """
     Export filtered data from the plot to a downloadable JSON file.
 
@@ -537,113 +731,41 @@ def export_data(_, fig):#, channels):
 
     Parameters
     ----------
-    _ : :class:`Any`
-        Unused placeholder for the n_clicks input from the export button.
-    fig : :class:`dict`
-        The Plotly figure dictionary containing plotted data and metadata.
-    data : :class:`dict`
-        The full dataset loaded into the application, including all measurements
-        and metadata for each point.
-
+    export_request : :class:`dict`
+        Small client-generated request containing the visible ``epoch_idx``
+        values and a monotonically increasing request identifier.
     Returns
     -------
     :class:`dict`
-        A dictionary containing:
-
-        - 'content': JSON string representing the filtered and formatted dataset.
-        - 'filename': Suggested filename for the download ("filtered_data.json").
+        Descriptor for the staged JSON payload. The clientside save callback
+        uses the one-time local URL without sending the full export through a
+        Dash store or the pywebview bridge.
 
     """
 
-    df = app.server.config["data"]  # pandas DataFrame
-    json_out = []
+    df = app.server.config["data"]
 
-    # Take the epoch_idx list from one of the traces (same logic as before)
-    idx_list = [img['epoch_idx'] for img in fig['data']
-                if not img.get('filtered') and not img.get('big_point')][0]
+    epoch_indices = (export_request or {}).get("epoch_indices", [])
+    json_out = _build_export_records(df, epoch_indices)
 
-    # Pre-pull columns we’ll need
-    has_col = df.columns.__contains__
-    base_labels = (['filename'] + env.LABELS['gen'])
-    # skip the epoch key if it’s in gen labels
-    base_labels = [lbl for lbl in base_labels if lbl != 'epoch_idx' and has_col(lbl)]
+    return stage_json_download(json_out, "filtered_data.json")
 
-    fit_labels = [lbl for lbl in env.LABELS['fit'] if has_col(lbl)]
 
-    for i in idx_list:
-        # all rows for this epoch (typically 3: red/green/blue)
-        block = df.loc[df['epoch_idx'] == i]
-
-        if block.empty:
-            # nothing for this epoch; skip
-            continue
-
-        # take any row (channel-agnostic fields)
-        base_row = block.iloc[0]
-
-        out_dict = {}
-        for lbl in base_labels:
-            val = base_row[lbl]
-            # make JSON-serializable (e.g., Timestamp -> isoformat)
-            if hasattr(val, "isoformat"):
-                val = val.isoformat()
-            out_dict[lbl] = val
-
-        # add per-channel sub-dicts
-        for ch in env.CHANNELS:
-            ch_rows = block.loc[block['channel'] == ch]
-            if ch_rows.empty:
-                # channel missing for this epoch: put Nones
-                out_dict[ch] = {lbl: None for lbl in fit_labels}
-            else:
-                r = ch_rows.iloc[0]
-                ch_dict = {}
-                for lbl in fit_labels:
-                    v = r[lbl]
-                    if hasattr(v, "isoformat"):
-                        v = v.isoformat()
-                    ch_dict[lbl] = v
-                out_dict[ch] = ch_dict
-
-        json_out.append(out_dict)
-
-    # default=str handles any leftover non-JSON types (e.g., Path, Timestamp)
-    return dict(content=json.dumps(json_out, indent=4, default=str),
-                filename="filtered_data.json")
+register_staged_json_download(
+    app,
+    Output("export-save-dummy", 'children'),
+    #---------------------
+    Input("export-data-json", 'data'),
+    default_filename="filtered_data.json",
+)
 
 register_json_download(
     app,
-    Output("dummy-div", 'children'),
+    Output("status-save-dummy", 'children'),
     #---------------------
     Input("status-data", 'data'),
+    default_filename="dashboard_status.json",
 )
-
-# """
-#     async function(data) {
-#         if (data) {
-#             try {
-#                 const jsonString = JSON.stringify(data, null, 2);
-#                 const blob = new Blob([jsonString], { type: 'application/json' });
-
-#                 // Let showSaveFilePicker handle the prompt:
-#                 const handle = await window.showSaveFilePicker({ suggestedName: "data.json" }); // Suggested filename
-#                 const writable = await handle.createWritable();
-#                 await writable.write(blob);
-#                 await writable.close();
-
-#                 // Explicitly set handle to null to release access:
-#                 handle = null; // Important: Release the handle!
-
-#                 return "downloaded";
-#             } catch (err) {
-#                 console.error("Download error:", err);
-#                 alert("Download failed. Please try again. Check the console for more details.");
-#                 return window.dash_clientside.no_update;
-#             }
-#         }
-#         return window.dash_clientside.no_update;
-#     }
-# """
 
 
 @utils.gonet_callback(
@@ -663,6 +785,8 @@ register_json_download(
     State({"type": "filter-operator", "index": ALL}, 'value'),
     State({"type": "filter-value", "index": ALL}, 'id'),
     State({"type": "filter-value", "index": ALL}, 'value'),
+    State({"type": "filter-selection-data", "index": ALL}, 'id'),
+    State({"type": "filter-selection-data", "index": ALL}, 'data'),
     State({"type": "second-filter-dropdown", "index": ALL}, 'id'),
     State({"type": "second-filter-dropdown", "index": ALL}, 'value'),
     State({"type": "second-filter-operator", "index": ALL}, 'id'),
@@ -704,23 +828,7 @@ def save_status(_,*args):
         The structure is compatible with later reloading via the :func:`load_status` function.
     """
 
-    out_dict = {'filters':[]}
-    for i,el in enumerate(args):
-        if i%2==1: continue
-        if type(args[i]) == list:
-            for f,flt in enumerate(args[i]):
-                while True:
-                    if flt['index'] < len(out_dict['filters']):
-                        break
-                    else:
-                        out_dict['filters'].append({'secondary':{}})
-                if flt['type'].split('-')[0] == 'second':
-                    out_dict['filters'][flt['index']]['secondary'][flt['type']] = args[i+1][f]
-                else:
-                    out_dict['filters'][flt['index']][flt['type']] = args[i+1][f]
-        else:
-            out_dict[args[i]] = args[i+1]
-    return out_dict
+    return _build_status_dict(args)
 
 @utils.gonet_callback(
     Output("x-axis-dropdown",'value', allow_duplicate=True),
@@ -770,23 +878,49 @@ def load_status(contents, filter_div, labels):
     status_dict = load_json(contents)
 
     n_filter = len(filter_div)
-    for f,flt in enumerate(status_dict['filters']):
-        new_empty_filter = utils.new_empty_filter(n_filter+f, labels)
+    for offset, saved_filter in enumerate(status_dict.get("filters", [])):
+        new_index = n_filter + offset
+        selection_data = saved_filter.get("filter-selection-data")
 
-        filter_div.append(new_empty_filter)
-        filter_div[-1].children[0].children[0].on = flt['filter-switch']
-        filter_div[-1].children[0].children[1].value = flt['filter-dropdown']
-        filter_div[-1].children[0].children[2].value = flt['filter-operator']
-        filter_div[-1].children[0].children[3].value = flt['filter-value']
+        if selection_data is not None:
+            new_filter = utils.new_selection_filter(new_index, selection_data)
+            new_filter.children[0].children[0].children.on = saved_filter.get(
+                "filter-switch", False
+            )
+            new_filter.children[0].children[3].value = saved_filter.get(
+                "filter-operator", "in"
+            )
+            filter_div.append(new_filter)
+            continue
 
-        if len(flt['secondary']) > 0:
-            filter_div[-1].children[1].children = utils.new_empty_second_filter(n_filter+f, labels)
+        new_filter = utils.new_empty_filter(new_index, labels)
+        first_row = new_filter.children[0].children
+        first_row[0].children.on = saved_filter.get("filter-switch", False)
+        first_row[1].value = saved_filter.get("filter-dropdown")
+        first_row[2].value = saved_filter.get("filter-operator", env.DEFAULT_OP)
+        first_row[3].value = saved_filter.get("filter-value")
 
-            filter_div[-1].children[1].children[1].value = flt['secondary']['second-filter-dropdown']
-            filter_div[-1].children[1].children[2].value = flt['secondary']['second-filter-operator']
-            filter_div[-1].children[1].children[3].value = flt['secondary']['second-filter-value']
+        secondary = saved_filter.get("secondary") or {}
+        if secondary:
+            new_filter.children[1].children = utils.new_empty_second_filter(
+                new_filter.id["index"], labels
+            )
+            second_row = new_filter.children[1].children
+            second_row[1].value = secondary.get("second-filter-dropdown")
+            second_row[2].value = secondary.get(
+                "second-filter-operator", env.DEFAULT_OP
+            )
+            second_row[3].value = secondary.get("second-filter-value")
 
-    return status_dict["x-axis-dropdown"], status_dict["y-axis-dropdown"], status_dict["channels"], status_dict["show-filtered-data-switch"], filter_div
+        filter_div.append(new_filter)
+
+    return (
+        status_dict.get("x-axis-dropdown"),
+        status_dict.get("y-axis-dropdown"),
+        status_dict.get("channels", list(env.CHANNELS)),
+        status_dict.get("show-filtered-data-switch", True),
+        filter_div,
+    )
 
 
 @utils.gonet_callback(
