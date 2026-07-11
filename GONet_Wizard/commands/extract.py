@@ -506,13 +506,22 @@ def cli_handler(args: argparse.Namespace):
             channels.append("blue")
 
     if args.shape in {None, "interactive"}:
-        from GONet_Wizard.GONet_utils.src.extract_app.extract_gui import (
-            ensure_extraction_gui_running,
-        )
+        import importlib
+
         from GONet_Wizard.commands.ui_bridge import WindowRequest
         from GONet_Wizard.ui.windows import WindowSpec
 
-        url = ensure_extraction_gui_running(
+        extract_gui = importlib.import_module(
+            "GONet_Wizard.GONet_utils.src.extract_app.extract_gui"
+        )
+        window_key = getattr(extract_gui, "EXTRACT_GUI_WINDOW_KEY", "extract-gui")
+        on_closed = getattr(
+            extract_gui,
+            "cancel_interactive_extraction_if_unsubmitted",
+            None,
+        )
+
+        url = extract_gui.ensure_extraction_gui_running(
             data_files=[str(p) for p in files],
             debug=bool(args.debug),
             port=int(args.port),
@@ -523,12 +532,13 @@ def cli_handler(args: argparse.Namespace):
         )
 
         return WindowRequest(
-            key="extract-gui",
+            key=window_key,
             spec=WindowSpec(
                 title="GONet Wizard Extraction GUI",
                 url=url,
                 width=1250,
                 height=750,
+                on_closed=on_closed,
             ),
         )
 

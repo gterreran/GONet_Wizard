@@ -82,6 +82,11 @@ from GONet_Wizard.GONet_utils.src.extractors import extract_all
 from GONet_Wizard.GONet_utils.src.extractors.core import extraction_output
 from GONet_Wizard.GONet_dashboard.src.load_save_callbacks import register_json_download, load_json
 from GONet_Wizard.GONet_utils.src.extract_app.extract_server import app
+from GONet_Wizard.GONet_utils.src.extract_app.extract_gui import (
+    EXTRACT_GUI_WINDOW_KEY,
+    cancel_interactive_extraction_if_unsubmitted,
+    mark_interactive_extraction_submitted,
+)
 import GONet_Wizard.GONet_utils.src.extract_app.shapes.base as base
 from GONet_Wizard.GONet_utils.src.extract_app.extract_layout import files_path
 from GONet_Wizard.logging_utils import PACKAGE_LOGGER_NAME
@@ -1181,6 +1186,8 @@ def extraction_button(_, extraction_params, path, selected_shape, n):
             _clear_terminal_stream_if_current(terminal_stream)
         return no_update, f"Extraction failed: {e}", "extract-error-banner is-visible"
 
+    mark_interactive_extraction_submitted()
+
     if terminal_stream is not None:
         terminal_stream.append(
             "Interactive extraction submitted. Closing setup window; "
@@ -1198,7 +1205,7 @@ def extraction_button(_, extraction_params, path, selected_shape, n):
     worker.start()
 
     from GONet_Wizard.ui import WINDOWS
-    WINDOWS.close("extract-gui")
+    WINDOWS.close(EXTRACT_GUI_WINDOW_KEY)
     return no_update, "", "extract-error-banner"
 
 
@@ -1226,14 +1233,8 @@ def exit_app(_):
     :class:`bool`
         Always returns ``True`` to disable the "Exit" button after it has been clicked.
     """
-    terminal_stream = app.server.config.get("terminal_stream")
-    if terminal_stream is not None and not terminal_stream.is_done:
-        terminal_stream.finish(
-            status="error",
-            message="Interactive extraction cancelled before output was written.",
-        )
-        _clear_terminal_stream_if_current(terminal_stream)
+    cancel_interactive_extraction_if_unsubmitted()
 
     from GONet_Wizard.ui import WINDOWS
-    WINDOWS.close("extract-gui")
+    WINDOWS.close(EXTRACT_GUI_WINDOW_KEY)
     return True

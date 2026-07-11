@@ -35,6 +35,43 @@ from typing import Any, List, Optional
 from GONet_Wizard.GONet_utils.src.extract_app.extract_server import app
 from GONet_Wizard.ui.dash_runner import DashLaunchSpec, ensure_dash_running
 
+
+EXTRACT_GUI_WINDOW_KEY = "extract-gui"
+_INTERACTIVE_EXTRACTION_SUBMITTED_KEY = "interactive_extraction_submitted"
+
+
+def mark_interactive_extraction_submitted() -> None:
+    """Mark the active interactive extraction session as intentionally submitted."""
+    app.server.config[_INTERACTIVE_EXTRACTION_SUBMITTED_KEY] = True
+
+
+def _clear_terminal_stream_if_current(terminal_stream: Optional[Any]) -> None:
+    """Clear ``terminal_stream`` from app config if it is still active."""
+    if terminal_stream is not None and app.server.config.get("terminal_stream") is terminal_stream:
+        app.server.config["terminal_stream"] = None
+
+
+def cancel_interactive_extraction_if_unsubmitted() -> None:
+    """Finish the form stream when the extraction window closes without Extract.
+
+    Closing the pywebview window via the title-bar X bypasses Dash callbacks.
+    The launcher form is still waiting on its original streaming response, so
+    this window-close hook emits the same final status that the explicit Exit
+    button would have emitted.  If the user clicked Extract, the worker thread
+    owns the stream and this hook deliberately does nothing.
+    """
+    if app.server.config.get(_INTERACTIVE_EXTRACTION_SUBMITTED_KEY):
+        return
+
+    terminal_stream = app.server.config.get("terminal_stream")
+    if terminal_stream is not None and not terminal_stream.is_done:
+        terminal_stream.finish(
+            status="error",
+            message="Interactive extraction cancelled before output was written.",
+        )
+    _clear_terminal_stream_if_current(terminal_stream)
+
+
 def _configure_extract_gui(
     data_files: List[str],
     channels: Optional[List[str]] = None,
@@ -75,6 +112,7 @@ def _configure_extract_gui(
         output_type=output_type,
         terminal_stream=terminal_stream,
     )
+    app.server.config[_INTERACTIVE_EXTRACTION_SUBMITTED_KEY] = False
 
 
 def _layout(_app):
