@@ -1,4 +1,52 @@
 <!-- insertion marker -->
+## [v0.15.0](https://github.com/gterreran/GONet_Wizard/releases/tag/v0.15.0) - 2026-07-12
+
+<small>[Compare with v0.14.1](https://github.com/gterreran/GONet_Wizard/compare/v0.14.1...v0.15.0)</small>
+
+## [v0.14.1](https://github.com/gterreran/GONet_Wizard/releases/tag/v0.14.1) - 2026-07-07
+
+<small>[Compare with v0.14.0](https://github.com/gterreran/GONet_Wizard/compare/v0.14.0...v0.14.1)</small>
+
+## [v0.14.0](https://github.com/gterreran/GONet_Wizard/releases/tag/v0.14.0) - 2026-07-02
+
+<small>[Compare with v0.13.0](https://github.com/gterreran/GONet_Wizard/compare/v0.13.0...v0.14.0)</small>
+
+## [v0.13.0](https://github.com/gterreran/GONet_Wizard/releases/tag/v0.13.0) - 2026-06-25
+
+<small>[Compare with v0.12.0](https://github.com/gterreran/GONet_Wizard/compare/v0.12.0...v0.13.0)</small>
+
+## [v0.12.0](https://github.com/gterreran/GONet_Wizard/releases/tag/v0.12.0) - 2025-12-02
+
+<small>[Compare with v0.11.1](https://github.com/gterreran/GONet_Wizard/compare/v0.11.1...v0.12.0)</small>
+
+## [v0.11.1](https://github.com/gterreran/GONet_Wizard/releases/tag/v0.11.1) - 2025-07-12
+
+<small>[Compare with v0.10.0](https://github.com/gterreran/GONet_Wizard/compare/v0.10.0...v0.11.1)</small>
+
+## [v0.10.0](https://github.com/gterreran/GONet_Wizard/releases/tag/v0.10.0) - 2025-04-19
+
+<small>[Compare with v0.9.0](https://github.com/gterreran/GONet_Wizard/compare/v0.9.0...v0.10.0)</small>
+
+## [v0.9.0](https://github.com/gterreran/GONet_Wizard/releases/tag/v0.9.0) - 2025-04-10
+
+<small>[Compare with v0.7.0](https://github.com/gterreran/GONet_Wizard/compare/v0.7.0...v0.9.0)</small>
+
+## [v0.7.0](https://github.com/gterreran/GONet_Wizard/releases/tag/v0.7.0) - 2025-03-25
+
+<small>[Compare with v0.6.0](https://github.com/gterreran/GONet_Wizard/compare/v0.6.0...v0.7.0)</small>
+
+## [v0.6.0](https://github.com/gterreran/GONet_Wizard/releases/tag/v0.6.0) - 2025-03-15
+
+<small>[Compare with v0.5.0](https://github.com/gterreran/GONet_Wizard/compare/v0.5.0...v0.6.0)</small>
+
+## [v0.5.0](https://github.com/gterreran/GONet_Wizard/releases/tag/v0.5.0) - 2025-02-14
+
+<small>[Compare with v0.4.4](https://github.com/gterreran/GONet_Wizard/compare/v0.4.4...v0.5.0)</small>
+
+## [v0.4.4](https://github.com/gterreran/GONet_Wizard/releases/tag/v0.4.4) - 2025-02-05
+
+<small>[Compare with first commit](https://github.com/gterreran/GONet_Wizard/compare/ab20ff3837e5383f60878289f6ab3ea9ddfe1881...v0.4.4)</small>
+
 ## [0.15.0](https://github.com/gterreran/GONet_Wizard/releases/tag/0.15.0) - 2026-07-11
 
 <small>[Compare with v0.14.1](https://github.com/gterreran/GONet_Wizard/compare/v0.14.1...0.15.0)</small>
