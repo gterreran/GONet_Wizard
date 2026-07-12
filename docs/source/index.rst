@@ -4,8 +4,9 @@ GONet Wizard
 
 GONet Wizard is a command-line and graphical toolkit for working with GONet
 camera data. It includes utilities for inspecting GONet images, reading
-metadata, extracting measurements from regions of interest, building derived
-array products, and launching interactive GUI workflows.
+metadata, extracting measurements from regions of interest, converting RAW
+images into standard TIFF/JPEG products, building derived array products, and
+launching interactive GUI workflows.
 
 The documentation is organized by reader need. Start with the User Guide for
 concepts, the Tools section for task-oriented explanations, the GUI Guide or

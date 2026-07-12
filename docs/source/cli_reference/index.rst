@@ -63,6 +63,9 @@ Available Commands
    * - ``extract``
      - Extract pixel-count measurements from selected image regions.
      - :doc:`Extract GUI guide <../gui_guide/extract>`
+   * - ``split_raw``
+     - Convert original RAW GONet ``.jpg`` files into standard TIFF/JPEG products.
+     - :doc:`Split RAW Images GUI guide <../gui_guide/split_raw>`
    * - ``dashboard``
      - Launch the interactive dashboard from JSON or CSV data products.
      - :doc:`Dashboard GUI guide <../gui_guide/dashboard>`
@@ -116,6 +119,7 @@ Command Pages
    show
    show_meta
    extract
+   split_raw
    dashboard
    build_full_array
    gui
@@ -142,6 +146,9 @@ Most commands correspond directly to a user-facing tool page.
    * - ``extract``
      - :doc:`extraction tool guide <../tools/extract_measurements>`
      - Runs direct extraction or launches the interactive extraction app.
+   * - ``split_raw``
+     - :doc:`split RAW images tool guide <../tools/split_raw_images>`
+     - Converts RAW GONet ``.jpg`` files into standard TIFF/JPEG products.
    * - ``dashboard``
      - :doc:`dashboard tool guide <../tools/dashboard>`
      - Launches a Dash application from JSON/CSV products.

@@ -74,6 +74,19 @@ Extract Command
    :members:
    :show-inheritance:
 
+Split RAW Command
+-----------------
+
+.. automodule:: GONet_Wizard.commands.split_raw
+   :members: COMMAND, output_paths_for_raw, split_raw_file, split_raw_files, cli_handler
+   :exclude-members: SplitRawOutput
+   :show-inheritance:
+
+   The ``SplitRawOutput`` helper is a small return container used internally by
+   the command implementation. The public API documentation focuses on the
+   command specification and conversion helpers because those are the stable
+   integration points.
+
 Show Metadata Command
 ---------------------
 
