@@ -17,6 +17,7 @@ The launcher provides access to the primary GONet Wizard tools:
 * Show Image
 * Show Metadata
 * Extract Region
+* Split RAW Images
 * Dashboard
 
 Each button opens a dedicated form used to configure and launch the
@@ -38,6 +39,7 @@ central access point to the underlying GONet Wizard command system.
    * :doc:`image inspection tool guide <../tools/inspect_images>`
    * :doc:`metadata inspection tool guide <../tools/inspect_metadata>`
    * :doc:`extraction tool guide <../tools/extract_measurements>`
+   * :doc:`split RAW images tool guide <../tools/split_raw_images>`
 
 Launcher Sections
 -----------------
@@ -69,6 +71,13 @@ user-defined regions of interest.
 
 See :doc:`Extract GUI guide <extract>`.
 
+**Split RAW Images**
+
+Launches the RAW splitting tool used to convert original GONet RAW ``.jpg``
+files into standard TIFF and JPEG products.
+
+See :doc:`Split RAW Images GUI guide <split_raw>`.
+
 Dashboard
 ~~~~~~~~~
 
@@ -87,6 +96,7 @@ Many users interact with GONet Wizard through a workflow similar to:
 #. Inspect images using **Show Image**.
 #. Review acquisition information using **Show Metadata**.
 #. Define measurement regions using **Extract Region**.
+#. Convert RAW files to TIFF/JPEG products with **Split RAW Images** when portable image outputs are needed.
 #. Analyze extracted products using the dashboard.
 
 Depending on the task, users may skip some of these steps or move directly to
@@ -103,6 +113,7 @@ GUI                CLI
 Show Image         ``show``
 Show Metadata      ``show_meta``
 Extract Region     ``extract``
+Split RAW Images   ``split_raw``
 Dashboard          ``dashboard``
 ================== ===================
 

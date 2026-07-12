@@ -32,7 +32,10 @@ The JPEG component is the image that ordinary viewers open. It is useful for:
 - checking framing, clouds, gross image quality, or obvious acquisition issues.
 
 Because the JPEG is processed and compressed, it should not be treated as the
-most reliable source for quantitative sensor-level measurements.
+most reliable source for quantitative sensor-level measurements. When a
+standard display-oriented JPEG product is needed outside the original GONet RAW
+container, use the :doc:`split RAW images tool <../tools/split_raw_images>` to
+write a converted ``.jpeg`` file.
 
 Raw Bayer component
 -------------------
@@ -44,7 +47,8 @@ split into channels.
 
 GONet Wizard parses this raw block and exposes the resulting data through
 channel arrays. Those arrays are the basis for channel display, full-array
-construction, and extraction workflows.
+construction, extraction workflows, and conversion to standard TIFF/JPEG
+products through the :doc:`split RAW images tool <../tools/split_raw_images>`.
 
 Metadata
 --------
@@ -60,6 +64,25 @@ context, this can include information such as:
 
 The exact available fields may vary between files. GONet Wizard therefore uses a
 structured metadata model rather than assuming every file contains every field.
+
+Converted TIFF and JPEG products
+--------------------------------
+
+Original GONet RAW files normally use the ``.jpg`` extension because the file
+contains a JPEG component. Converted products should be treated differently:
+
+``.tiff``
+    A standard TIFF image written from the parsed RAW data. GONet Wizard keeps
+    TIFF white balance disabled by default in the split RAW workflow so the
+    output remains better suited to quantitative follow-up.
+
+``.jpeg``
+    A standard JPEG image written for display. GONet Wizard uses the ``.jpeg``
+    extension for converted JPEGs to distinguish them from the original RAW
+    ``.jpg`` containers. JPEG white balance is enabled by default because these
+    products are usually intended for visual inspection.
+
+For conversion instructions, see :doc:`split RAW images tool guide <../tools/split_raw_images>`.
 
 How GONet Wizard reads image files
 ----------------------------------
@@ -79,5 +102,6 @@ Where to Go Next
 * :doc:`GONetFile user guide <gonetfile>`
 * :doc:`channels user guide <channels>`
 * :doc:`metadata inspection tool guide <../tools/inspect_metadata>`
+* :doc:`split RAW images tool guide <../tools/split_raw_images>`
 * :doc:`GONetFile API reference <../api_reference/gonet>`
 

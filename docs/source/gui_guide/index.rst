@@ -40,6 +40,9 @@ GUI Pages
    * - :doc:`Extract GUI guide <extract>`
      - Launch direct or interactive extraction from the GUI.
      - :doc:`extraction tool guide <../tools/extract_measurements>`
+   * - :doc:`Split RAW Images GUI guide <split_raw>`
+     - Convert RAW GONet ``.jpg`` files into standard TIFF/JPEG products.
+     - :doc:`split RAW images tool guide <../tools/split_raw_images>`
    * - :doc:`Dashboard GUI guide <dashboard>`
      - Launch the dashboard from a data directory.
      - :doc:`dashboard tool guide <../tools/dashboard>`
@@ -51,6 +54,7 @@ GUI Pages
    show
    show_meta
    extract
+   split_raw
    dashboard
 
 GUI Labels and CLI Commands
@@ -74,6 +78,9 @@ Each GUI page is a form-based frontend over a command-line command.
    * - :doc:`Extract GUI guide <extract>`
      - ``extract``
      - :doc:`extraction tool guide <../tools/extract_measurements>`
+   * - :doc:`Split RAW Images GUI guide <split_raw>`
+     - ``split_raw``
+     - :doc:`split RAW images tool guide <../tools/split_raw_images>`
    * - :doc:`Dashboard GUI guide <dashboard>`
      - ``dashboard``
      - :doc:`dashboard tool guide <../tools/dashboard>`

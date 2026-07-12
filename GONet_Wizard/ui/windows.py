@@ -41,7 +41,7 @@ Constants
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Optional, Dict, Union, TYPE_CHECKING
+from typing import Any, Callable, Optional, Dict, Union, TYPE_CHECKING
 import threading
 
 from GONet_Wizard.ui.api import WebviewAPI
@@ -69,12 +69,15 @@ class WindowSpec:
         Window height in pixels.
     resizable : :class:`bool`
         Whether the window is resizable.
+    on_closed : callable, optional
+        Callback invoked after the window is closed and removed from the registry.
     """
     title: str
     url: UrlLike
     width: int = 1200
     height: int = 800
     resizable: bool = True
+    on_closed: Optional[Callable[[], None]] = None
 
 
 class WindowManager:
@@ -146,7 +149,12 @@ class WindowManager:
         except Exception:
             return False
 
-    def _watch_close(self, key: str, win: Any) -> None:
+    def _watch_close(
+        self,
+        key: str,
+        win: Any,
+        on_closed: Optional[Callable[[], None]] = None,
+    ) -> None:
         """
         Wait for a window to close and remove it from the registry.
 
@@ -156,11 +164,14 @@ class WindowManager:
             Registry key associated with the window.
         win : :class:`object`
             pywebview window object to watch.
+        on_closed : callable, optional
+            Callback invoked after ``win`` is closed and unregistered.
 
         Returns
         -------
         None
         """
+        should_notify = False
         try:
             win.events.closed.wait()  # blocks until closed
         finally:
@@ -168,6 +179,13 @@ class WindowManager:
                 cur = self._windows.get(key)
                 if cur is win:
                     self._windows.pop(key, None)
+                    should_notify = True
+
+            if should_notify and on_closed is not None:
+                try:
+                    on_closed()
+                except Exception:
+                    pass
 
     def ensure(self, key: str, spec: WindowSpec) -> Any:
         """
@@ -224,7 +242,11 @@ class WindowManager:
 
             self._windows[key] = win
 
-            t = threading.Thread(target=self._watch_close, args=(key, win), daemon=True)
+            t = threading.Thread(
+                target=self._watch_close,
+                args=(key, win, spec.on_closed),
+                daemon=True,
+            )
             t.start()
 
             return win

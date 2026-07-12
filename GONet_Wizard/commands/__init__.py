@@ -76,6 +76,8 @@ Available Commands
     Launch the interactive Dash-based GONet Wizard dashboard in a managed window.
 :mod:`GONet_Wizard.commands.build_full_array`
     Build or process full-array products from GONet inputs.
+:mod:`GONet_Wizard.commands.split_raw`
+    Convert RAW GONet JPEG files into standard TIFF and JPEG images.
 :mod:`GONet_Wizard.commands.gui`
     Launch the unified GUI launcher window.
 
@@ -92,11 +94,11 @@ Constants
 # a separate package or optional extension later.
 # "GONet_Wizard.commands.connect_commands",
 
-from GONet_Wizard.commands import show, show_meta, extract, run_dashboard, build_full_array, gui
+from GONet_Wizard.commands import show, show_meta, extract, run_dashboard, build_full_array, split_raw, gui
 #from GONet_Wizard.commands import connect_commands
 from .cli_core import ParserSpec
 
-COMMANDS = (show, show_meta, extract, run_dashboard, build_full_array, gui)
+COMMANDS = (show, show_meta, extract, run_dashboard, build_full_array, split_raw, gui)
 
 PARSER = ParserSpec(
     dest="command",
