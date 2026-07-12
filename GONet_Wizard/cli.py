@@ -76,6 +76,7 @@ Available Commands
 - ``dashboard`` (:mod:`GONet_Wizard.commands.run_dashboard`) — Launch the interactive dashboard.
 - ``gui`` (:mod:`GONet_Wizard.commands.gui`) — Open the unified GUI launcher window.
 - ``build_full_array`` (:mod:`GONet_Wizard.commands.build_full_array`) — Build/process full-array products.
+- ``split_raw`` (:mod:`GONet_Wizard.commands.split_raw`) — Convert RAW GONet JPEG files to standard TIFF/JPEG products.
 
 Experimental remote-camera commands live under :mod:`GONet_Wizard.commands.connect_commands`,
 but they are intentionally not registered in the public command tree yet.

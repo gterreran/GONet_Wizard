@@ -82,3 +82,23 @@ def test_preview_shell_proxies_save_dialog_requests_to_pywebview():
     assert "pick_save_path" in html
     assert "sourceWindow.postMessage" in html
     assert html.count("gonet-close-window") == 1
+
+
+def test_split_raw_page_uses_terminal_and_lists_options():
+    app = _template_app()
+
+    with app.test_client() as client:
+        response = client.get("/cmd/split_raw")
+
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert 'id="command-terminal"' in html
+    assert 'id="terminal-output"' in html
+    assert 'name="input"' in html
+    assert 'name="outdir"' in html
+    assert 'name="format"' in html
+    assert 'name="overwrite"' in html
+    assert 'name="tiff_white_balance"' in html
+    assert 'name="no_jpeg_white_balance"' in html
+    assert 'id="output"' not in html

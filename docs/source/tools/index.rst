@@ -30,6 +30,10 @@ Tool Overview
      - Measure counts in user-defined image regions and save JSON/CSV products.
      - :doc:`Extract GUI guide <../gui_guide/extract>`
      - :doc:`extract CLI reference <../cli_reference/extract>`
+   * - :doc:`split RAW images tool guide <split_raw_images>`
+     - Convert original RAW GONet ``.jpg`` files into standard TIFF/JPEG products.
+     - :doc:`Split RAW Images GUI guide <../gui_guide/split_raw>`
+     - :doc:`split_raw CLI reference <../cli_reference/split_raw>`
    * - :doc:`dashboard tool guide <dashboard>`
      - Explore extracted JSON/CSV products in an interactive dashboard.
      - :doc:`Dashboard GUI guide <../gui_guide/dashboard>`
@@ -41,6 +45,7 @@ Tool Overview
    inspect_images
    inspect_metadata
    extract_measurements
+   split_raw_images
    dashboard
 
 Tool Names and Command Names
@@ -70,6 +75,10 @@ command name.
      - Extract
      - ``extract``
      - :doc:`extractor architecture developer notes <../developer_notes/extractor_architecture>`
+   * - :doc:`split RAW images tool guide <split_raw_images>`
+     - Split RAW Images
+     - ``split_raw``
+     - :doc:`command-system developer notes <../developer_notes/command_system>`
    * - :doc:`dashboard tool guide <dashboard>`
      - Dashboard
      - ``dashboard``

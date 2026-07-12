@@ -23,7 +23,8 @@ A GONet image file can contain several kinds of information:
 
 Rather than passing these pieces around separately, GONet Wizard loads them into
 a structured object. This gives the rest of the package a consistent way to ask
-for channels, metadata, filenames, and output representations.
+for channels, metadata, filenames, and output representations, including the
+standard TIFF and JPEG products written by the ``split_raw`` command.
 
 Conceptual structure
 --------------------
@@ -125,9 +126,9 @@ Relationship to commands and the GUI
 ------------------------------------
 
 Both the CLI and the GUI ultimately operate on GONet file objects. For example,
-when the user asks GONet Wizard to show an image, inspect metadata, or extract
-measurements, the input file is first normalized into one of these internal
-representations.
+when the user asks GONet Wizard to show an image, inspect metadata, extract
+measurements, or split a RAW ``.jpg`` into standard image products, the input
+file is first normalized into one of these internal representations.
 
 This design is one of the reasons the GUI and CLI can share the same processing
 engine: they both work with the same internal model of a GONet image.
@@ -137,5 +138,6 @@ Where to Go Next
 
 * :doc:`GONetFile API reference <../api_reference/gonet>`
 * :doc:`GONet parsers and writers API reference <../api_reference/gonet_parsers_writers>`
+* :doc:`split RAW images tool guide <../tools/split_raw_images>`
 * :doc:`command-system developer notes <../developer_notes/command_system>`
 

@@ -19,7 +19,7 @@ GONet Wizard
    :alt: License
 
 A modular toolkit for handling, visualizing, and analyzing GONet camera data.  
-Includes an interactive Dash dashboard, CLI utilities, and tools for remote interaction with GONet devices.
+Includes a graphical launcher, image inspection, metadata review, region extraction, RAW-to-TIFF/JPEG conversion, an interactive Dash dashboard, and CLI utilities.
 
 📖 Documentation: https://gterreran.github.io/GONet_Wizard/
 
@@ -43,7 +43,8 @@ tools into your shell ``PATH``.
 **Python package for CLI users**
 
 If you want to run terminal commands such as ``GONet_Wizard show``,
-``GONet_Wizard extract``, or ``GONet_Wizard gui``, install the Python package:
+``GONet_Wizard extract``, ``GONet_Wizard split_raw``, or ``GONet_Wizard gui``,
+install the Python package:
 
 .. code-block:: bash
 

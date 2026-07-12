@@ -1,0 +1,49 @@
+{% set input_id = "split-raw-input" %}
+{% set name = "input" %}
+{% set label = "RAW GONet JPG files or folders" %}
+{% set placeholder = "Type a path/pattern (e.g. /data/*.jpg) or use Browse…" %}
+{% set pick_mode = "files" %}
+{% set help = "You can type wildcards and comma-separated entries. Browse will insert selected paths." %}
+{% include "components/path_picker.html" %}
+
+{% set input_id = "split-raw-outdir" %}
+{% set name = "outdir" %}
+{% set label = "Optional output directory" %}
+{% set placeholder = "Leave blank to write next to each input…" %}
+{% set pick_mode = "folder" %}
+{% set help = "If set, TIFF files are written to a tiffs subfolder and JPEG files are written to a jpegs subfolder." %}
+{% include "components/path_picker.html" %}
+
+<div class="form-group">
+  <label class="form-label" for="split-raw-format">Output products</label>
+  <select id="split-raw-format" name="format" data-cache="1">
+    <option value="both">TIFF and JPEG</option>
+    <option value="tiff">TIFF only</option>
+    <option value="jpeg">JPEG only</option>
+  </select>
+  <div class="form-help">
+    TIFF is written as a 16-bit standard image. JPEG is written as a standard 8-bit image.
+  </div>
+</div>
+
+<div class="form-group">
+  <div class="checkbox-row">
+    <label class="check">
+      <input type="checkbox" name="overwrite" data-cache="1">
+      <span>Overwrite existing outputs</span>
+    </label>
+    <label class="check">
+      <input type="checkbox" name="tiff_white_balance" data-cache="1">
+      <span>Apply white balance to TIFF outputs</span>
+    </label>
+    <label class="check">
+      <input type="checkbox" name="no_jpeg_white_balance" data-cache="1">
+      <span>Disable white balance for JPEG outputs</span>
+    </label>
+  </div>
+  <div class="form-help">
+    TIFF white balance is off by default to preserve scientific pixel counts. JPEG white balance is on by default for visual inspection.
+  </div>
+</div>
+
+<button type="submit">Split raw</button>

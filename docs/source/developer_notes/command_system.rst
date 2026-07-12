@@ -36,6 +36,8 @@ The command system is implemented primarily in these files:
      - ``CommandSpec``, ``ParserSpec``
    * - ``GONet_Wizard/commands/__init__.py``
      - ``COMMANDS``, root ``PARSER``
+   * - ``GONet_Wizard/commands/split_raw.py``
+     - ``split_raw`` command declaration, output path handling, conversion orchestration
    * - ``GONet_Wizard/commands/parser_builder.py``
      - ``build_subparser()``, ``register_simple_subcommand()``
    * - ``GONet_Wizard/commands/ui_bridge.py``
@@ -222,6 +224,7 @@ Conceptually:
        extract,
        run_dashboard,
        build_full_array,
+       split_raw,
        gui,
    )
 
@@ -573,6 +576,28 @@ paths stored in the loaded extraction products.
 
 This is a good example of a command that launches an external interactive app
 through the shared UI runtime.
+
+``split_raw``
+~~~~~~~~~~~~~
+
+``commands/split_raw.py`` defines the ``split_raw`` command.
+
+Its ``COMMAND`` includes:
+
+* RAW GONet ``.jpg`` inputs,
+* an optional output directory,
+* product selection with ``--format``,
+* overwrite protection,
+* independent TIFF and JPEG white-balance flags.
+
+The handler filters inputs to original RAW ``.jpg`` files, resolves output paths,
+creates product subfolders when an output directory is supplied, and delegates
+image parsing/writing to ``GONetFile``. It prints a terminal summary and returns
+``None`` so the GUI form reports progress in its feedback terminal without
+opening a redundant result window.
+
+This is a good example of a file-writing command that is available from both the
+terminal and GUI forms while remaining non-interactive.
 
 ``gui``
 ~~~~~~~
