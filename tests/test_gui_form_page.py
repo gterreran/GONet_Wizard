@@ -26,6 +26,9 @@ def test_extract_page_uses_terminal_without_duplicate_feedback_div():
     assert 'id="command-terminal"' in html
     assert 'id="terminal-output"' in html
     assert 'id="output"' not in html
+    assert 'Input files or folder paths' in html
+    assert 'Browse files…' in html
+    assert 'To process a folder, type or paste the folder path manually.' in html
 
 
 def test_show_page_uses_terminal_without_regular_feedback_div():
@@ -42,6 +45,9 @@ def test_show_page_uses_terminal_without_regular_feedback_div():
     assert 'id="output"' not in html
     assert 'name="save"' not in html
     assert 'show-save' not in html
+    assert 'Input files or folder paths' in html
+    assert 'Browse files…' in html
+    assert 'To process a folder, type or paste the folder path manually.' in html
 
 
 def test_show_meta_page_uses_terminal_without_regular_feedback_div():
@@ -58,6 +64,9 @@ def test_show_meta_page_uses_terminal_without_regular_feedback_div():
     assert 'id="output"' not in html
     assert 'name="html"' in html
     assert 'name="save"' not in html
+    assert 'Input files or folder paths' in html
+    assert 'Browse files…' in html
+    assert 'To process a folder, type or paste the folder path manually.' in html
 
 
 def test_extract_page_lists_interactive_shape_once():
@@ -102,3 +111,21 @@ def test_split_raw_page_uses_terminal_and_lists_options():
     assert 'name="tiff_white_balance"' in html
     assert 'name="no_jpeg_white_balance"' in html
     assert 'id="output"' not in html
+    assert 'Input RAW JPG files or folder paths' in html
+    assert 'Browse files…' in html
+    assert 'To process a folder, type or paste the folder path manually.' in html
+
+
+def test_dashboard_page_keeps_folder_picker_wording():
+    app = _template_app()
+
+    with app.test_client() as client:
+        response = client.get("/cmd/dashboard")
+
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert 'Data directory' in html
+    assert 'data-pick-mode="folder"' in html
+    assert 'Browse files…' not in html
+    assert 'Pick a folder containing JSON/CSV files.' in html

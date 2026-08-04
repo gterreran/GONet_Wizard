@@ -9,6 +9,7 @@ from GONet_Wizard.GONet_utils.src.extractors.core import Extractor, sort_extract
 from GONet_Wizard.GONet_utils.src.extractors.extraction_values import extract_counts_from_region
 from GONet_Wizard.GONet_utils.src.extractors.merge import merge_extractor_into_data
 from GONet_Wizard.GONet_utils.src.extractors.runner import convert_to_serializable, extract_all
+from GONet_Wizard.GONet_utils.src.extractors.shape_info import ShapeInfo
 
 
 @dataclass(eq=False)
@@ -90,6 +91,14 @@ def test_convert_to_serializable_handles_common_numpy_scalars_and_arrays():
     assert convert_to_serializable(np.float64(1.5)) == 1.5
     assert convert_to_serializable(np.int64(2)) == 2
     assert convert_to_serializable(np.str_("x")) == "x"
+    assert convert_to_serializable(np.bool_(True)) is True
+
+
+def test_convert_to_serializable_handles_nested_containers():
+    assert convert_to_serializable({
+        "values": np.array([np.int64(1), np.int64(2)]),
+        "stats": {"mean": np.float64(1.5)},
+    }) == {"values": [1, 2], "stats": {"mean": 1.5}}
 
 
 def test_run_extractors_merges_results_into_records():
@@ -114,3 +123,85 @@ def test_run_extractors_merges_results_into_records():
     )
 
     assert records == [{"filename": "b", "x": 2, "y": 20, "global": "same"}]
+
+
+def test_run_extractors_broadcasts_json_scalar_metadata_types():
+    extractor = DummyExtractor(
+        "metadata",
+        [],
+        [],
+        {
+            "files": ["a", "b"],
+            "filename": ["a", "b"],
+            "shape": "rectangle",
+            "x0": 10,
+            "y0": np.int64(20),
+            "selected": True,
+            "optional": None,
+        },
+    )
+
+    records = extract_all(
+        file_list=["a", "b"],
+        channels=["red"],
+        extraction_params={"shape": "rectangle"},
+        extractors=[extractor],
+    )
+
+    assert records == [
+        {
+            "filename": "a",
+            "shape": "rectangle",
+            "x0": 10,
+            "y0": 20,
+            "selected": True,
+            "optional": None,
+        },
+        {
+            "filename": "b",
+            "shape": "rectangle",
+            "x0": 10,
+            "y0": 20,
+            "selected": True,
+            "optional": None,
+        },
+    ]
+
+
+def test_rectangle_shape_metadata_from_form_values_is_serializable():
+    files = ["image.jpg"]
+    file_info = DummyExtractor(
+        "file-info",
+        [],
+        [],
+        {"files": files, "filename": files},
+    )
+
+    records = extract_all(
+        file_list=files,
+        channels=["red"],
+        extraction_params={
+            "shape": "rectangle",
+            "x0": 10,
+            "y0": 20,
+            "param1": 4,
+            "param2": 6,
+            "start_angle": -180,
+            "end_angle": 180,
+            "path": None,
+        },
+        extractors=[file_info, ShapeInfo()],
+    )
+
+    assert records == [
+        {
+            "filename": "image.jpg",
+            "shape": "rectangle",
+            "x0": 10.0,
+            "y0": 20.0,
+            "side1": 4.0,
+            "side2": 6.0,
+            "start_angle": 180.0,
+            "end_angle": 180.0,
+        }
+    ]

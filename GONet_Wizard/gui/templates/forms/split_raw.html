@@ -1,9 +1,11 @@
 {% set input_id = "split-raw-input" %}
 {% set name = "input" %}
-{% set label = "RAW GONet JPG files or folders" %}
-{% set placeholder = "Type a path/pattern (e.g. /data/*.jpg) or use Browse…" %}
+{% set label = "Input RAW JPG files or folder paths" %}
+{% set placeholder = "Type RAW JPG files, folders, or patterns (e.g. /data/*.jpg)" %}
 {% set pick_mode = "files" %}
-{% set help = "You can type wildcards and comma-separated entries. Browse will insert selected paths." %}
+{% set browse_label = "Browse files…" %}
+{% set browse_title = "Browse for one or more RAW JPG files" %}
+{% set help = "Use Browse files… to select one or more files. To process a folder, type or paste the folder path manually. Wildcards and comma-separated entries are also supported." %}
 {% include "components/path_picker.html" %}
 
 {% set input_id = "split-raw-outdir" %}

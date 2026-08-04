@@ -7,15 +7,25 @@ used by callbacks.  It is intentionally limited to structure and component IDs;
 visual presentation belongs in the shared CSS assets so the extraction GUI stays
 consistent with the rest of the GONet Wizard desktop interface.
 
-The layout reads the initial file list from the Flask server configuration that
-is prepared by :mod:`.extract_server` before the Dash app is launched.
+The module-level :data:`layout` keeps a compatibility default, while
+:func:`create_layout` returns a fresh copy with the latest file list from the
+Flask server configuration. Rebuilding the session-specific parts this way
+prevents a reused Dash server from showing stale files after a previous
+interactive extraction was closed.
+
+Functions
+---------
+create_layout
+    Return a fresh Dash layout using the currently configured extraction files.
 
 Attributes
 ----------
 layout : :class:`dash.development.base_component.Component`
-    Root Dash component assigned to the extraction app.
+    Compatibility layout assigned at import time. Runtime launches use
+    :func:`create_layout` so repeated extraction sessions receive fresh inputs.
 """
 
+import copy
 import os
 
 from dash import dcc, html
@@ -331,3 +341,58 @@ layout = dcc.Loading(
         ],
     ),
 )
+
+def _configured_file_options() -> tuple[list[dict[str, str]], str | None]:
+    """Return dropdown options for the currently configured extraction files.
+
+    The option value stores the full path instead of only the basename. This
+    keeps callbacks independent of stale module-level directory state and also
+    handles multiple files with the same basename in different directories.
+
+    Returns
+    -------
+    tuple
+        ``(options, selected_file)`` where ``options`` is suitable for a Dash
+        dropdown and ``selected_file`` is the first configured file path, or
+        ``None`` when no files are configured.
+    """
+    data_files = [str(path) for path in app.server.config.get("data_files") or []]
+    file_options = [
+        {"label": os.path.basename(path), "value": path}
+        for path in data_files
+    ]
+    selected_file = data_files[0] if data_files else None
+    return file_options, selected_file
+
+
+def _find_component(component, component_id):
+    """Return the first Dash component with ``component_id`` in ``component``."""
+    if getattr(component, "id", None) == component_id:
+        return component
+
+    children = getattr(component, "children", None)
+    if children is None:
+        return None
+    if not isinstance(children, (list, tuple)):
+        children = [children]
+
+    for child in children:
+        found = _find_component(child, component_id)
+        if found is not None:
+            return found
+    return None
+
+
+def create_layout():
+    """Return a fresh Dash layout for the current extraction session.
+
+    Returns
+    -------
+    :class:`dash.development.base_component.Component`
+        Root Dash component tree for the interactive extraction GUI.
+    """
+    current_layout = copy.deepcopy(layout)
+    file_selector = _find_component(current_layout, "file-selector")
+    if file_selector is not None:
+        file_selector.options, file_selector.value = _configured_file_options()
+    return current_layout

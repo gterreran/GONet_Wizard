@@ -67,7 +67,6 @@ configuration changes.
 
 """
 
-import os
 import json
 from pathlib import Path
 import logging
@@ -75,6 +74,7 @@ import threading
 import traceback
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from dash import Input, Output, State, ctx, no_update
+from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import Serverside
 from GONet_Wizard.GONet_utils import GONetFile
 from GONet_Wizard.GONet_utils.src.extractors.extraction_values import extract_counts_from_region
@@ -88,7 +88,6 @@ from GONet_Wizard.GONet_utils.src.extract_app.extract_gui import (
     mark_interactive_extraction_submitted,
 )
 import GONet_Wizard.GONet_utils.src.extract_app.shapes.base as base
-from GONet_Wizard.GONet_utils.src.extract_app.extract_layout import files_path
 from GONet_Wizard.logging_utils import PACKAGE_LOGGER_NAME
 import numpy as np
 
@@ -198,7 +197,10 @@ def _capture_terminal_stream(terminal_stream):
     package_logger.handlers = [capture_handler]
     package_logger.propagate = False
     try:
-        with redirect_stdout(terminal_stream.stdout_writer()), redirect_stderr(terminal_stream.stderr_writer()):
+        with (
+            redirect_stdout(terminal_stream.stdout_writer()),
+            redirect_stderr(terminal_stream.stderr_writer()),
+        ):
             yield
     finally:
         package_logger.handlers = previous_handlers
@@ -215,8 +217,51 @@ def _clear_terminal_stream_if_current(terminal_stream) -> None:
     terminal_stream : object or None
         Stream bridge to clear only if it is still the active bridge.
     """
-    if terminal_stream is not None and app.server.config.get("terminal_stream") is terminal_stream:
+    if (
+        terminal_stream is not None
+        and app.server.config.get("terminal_stream") is terminal_stream
+    ):
         app.server.config["terminal_stream"] = None
+
+
+def _resolve_selected_file(selected_file: str | None) -> Path:
+    """Resolve the selected dropdown value to a configured image path.
+
+    New layouts store the full path as the dropdown value so repeated launches
+    can safely reuse the same Dash server with a fresh file list. This helper
+    also accepts the older basename-only value used by earlier layouts, which
+    keeps the callback tolerant of browser-side state during development.
+
+    Parameters
+    ----------
+    selected_file : str or None
+        Current value of the file selector dropdown.
+
+    Returns
+    -------
+    pathlib.Path
+        Path to the selected GONet image.
+
+    Raises
+    ------
+    dash.exceptions.PreventUpdate
+        If no file has been selected.
+    """
+    if not selected_file:
+        raise PreventUpdate
+
+    selected_path = Path(selected_file)
+    if selected_path.exists():
+        return selected_path
+
+    configured_files = [
+        Path(path) for path in app.server.config.get("data_files") or []
+    ]
+    for candidate in configured_files:
+        if selected_file in {str(candidate), candidate.name}:
+            return candidate
+
+    return selected_path
 
 
 @app.callback(
@@ -229,15 +274,14 @@ def load_gonet_file(selected_file):
     """
     Load the GONet file for the selected file.
 
-    The GONet file is loaded server-side, for faster access.
-    This callback runs automatically when the app loads. This ensures that the
-    file is loaded properly and spawns all other necessary initializing
-    callbacks.
+    The GONet file is loaded server-side, for faster access. This callback runs
+    automatically when the app loads, ensuring that the selected file is ready
+    for the heatmap and extraction callbacks.
 
     Parameters
     ----------
     selected_file : :class:`str`
-        The name of the file selected in the file dropdown.
+        Path or basename selected in the file dropdown.
 
     Returns
     -------
@@ -251,7 +295,7 @@ def load_gonet_file(selected_file):
 
     """
 
-    gof = GONetFile.from_file(os.path.join(files_path,selected_file))
+    gof = GONetFile.from_file(_resolve_selected_file(selected_file))
     return Serverside(gof, key="gonet_file"), ''
 
 

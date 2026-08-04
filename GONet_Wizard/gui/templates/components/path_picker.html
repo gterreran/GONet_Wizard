@@ -21,9 +21,9 @@
       class="browse-button"
       data-pick-mode="{{ pick_mode or 'files' }}"
       data-target-id="{{ input_id }}"
-      title="Browse…"
+      title="{{ browse_title or browse_label or 'Browse…' }}"
     >
-      Browse…
+      {{ browse_label or 'Browse…' }}
     </button>
   </div>
 

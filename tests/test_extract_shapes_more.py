@@ -196,15 +196,34 @@ def test_path_from_rectangle_creates_full_rectangle_with_metadata():
     assert shape.shape_name == "rectangle"
     assert shape.path_str.startswith("M 3.0,5.0 L 7.0,5.0")
     assert fields[DATA_SPEC["shape"].key] == "rectangle"
-    assert fields[DATA_SPEC["x0"].key] == 5
-    assert fields[DATA_SPEC["side1"].key] == 4
+    assert fields[DATA_SPEC["x0"].key] == 5.0
+    assert fields[DATA_SPEC["side1"].key] == 4.0
+
+
+def test_path_from_rectangle_accepts_numeric_strings_and_serializes_fields():
+    shape = Path.from_rectangle(
+        x0="5",
+        y0="6",
+        side1="4",
+        side2="2",
+        start_angle="0",
+        end_angle="90",
+    )
+    fields = shape.get_extractor_field()
+
+    assert fields[DATA_SPEC["x0"].key] == 5.0
+    assert fields[DATA_SPEC["y0"].key] == 6.0
+    assert fields[DATA_SPEC["side1"].key] == 4.0
+    assert fields[DATA_SPEC["side2"].key] == 2.0
+    assert fields[DATA_SPEC["start_angle"].key] == 0.0
+    assert fields[DATA_SPEC["end_angle"].key] == 90.0
 
 
 def test_path_from_rectangle_can_make_sector_and_mask_it():
     shape = Path.from_rectangle(x0=5, y0=5, side1=6, side2=6, start_angle=-45, end_angle=45)
     mask = shape.mask(np.zeros((11, 11)))
 
-    assert shape.path_str.startswith("M 5,5 L")
+    assert shape.path_str.startswith("M 5.0,5.0 L")
     assert mask[5, 7]
     assert not mask[5, 3]
 

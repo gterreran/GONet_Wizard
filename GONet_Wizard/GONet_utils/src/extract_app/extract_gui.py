@@ -132,8 +132,8 @@ def _layout(_app):
     object
         A Dash-compatible layout component tree.
     """
-    from GONet_Wizard.GONet_utils.src.extract_app.extract_layout import layout
-    return layout
+    from GONet_Wizard.GONet_utils.src.extract_app.extract_layout import create_layout
+    return create_layout()
 
 
 def _register_callbacks() -> None:

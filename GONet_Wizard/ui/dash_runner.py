@@ -306,7 +306,8 @@ def ensure_dash_running(
     """
     Ensure a Dash server is running for the given spec and port, and return its URL.
 
-    If a server is already running for ``(spec.app_key, port)``, it is reused.
+    If a server is already running for ``(spec.app_key, port)``, it is reused
+    after reapplying the launch-specific configuration and rebuilding the layout.
 
     Parameters
     ----------
@@ -334,6 +335,15 @@ def ensure_dash_running(
 
     existing = _RUNNERS.get(key)
     if existing is not None and existing.thread.is_alive():
+        # The Dash server process is reusable, but each GUI launch may carry
+        # different runtime inputs (file lists, output settings, terminal
+        # streams, etc.). Re-apply the app-specific configuration and rebuild
+        # the layout before returning the existing URL so a second launch does
+        # not inherit stale state from the previous session.
+        spec.configure(spec.app)
+        spec.app.layout = spec.layout(spec.app)
+        if spec.index_string is not None:
+            spec.app.index_string = spec.index_string()
         return f"http://127.0.0.1:{port}"
 
     startup_errors: Queue[BaseException] = Queue()

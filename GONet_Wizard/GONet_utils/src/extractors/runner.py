@@ -137,17 +137,34 @@ def extract_all(file_list: List[str], channels: List[str], extraction_params: Di
 
     for key, value in data.items():
         if isinstance(value, (list, np.ndarray)):
-            # Distribute list/array values across the final dictionaries
+            # Distribute list/array values across the final dictionaries.
             for i in range(num_observations):
                 final_data[i][key] = convert_to_serializable(value[i])
-        elif isinstance(value, (str, float)):
-            # Distribute float values across all dictionaries
+        elif _is_broadcast_scalar(value):
+            # Shape metadata and other run-level fields are returned once by
+            # their extractor.  Broadcast those JSON scalar values to every
+            # retained observation row.
             for i in range(num_observations):
                 final_data[i][key] = convert_to_serializable(value)
         else:
-            raise ValueError(f"Unsupported data type for key '{key}': {type(value)}")
+            raise ValueError(
+                f"Unsupported data type for key '{key}': {type(value)}. "
+                "Extractor outputs must be per-file lists/arrays or JSON scalar values."
+            )
 
     return final_data
+
+
+def _is_broadcast_scalar(value: Any) -> bool:
+    """Return whether an extractor result value can be copied to each row.
+
+    Extractors may emit run-level metadata, such as the selected shape name and
+    shape parameters, as scalar values rather than one value per file.  Those
+    values should be broadcast across the final row dictionaries as long as they
+    are JSON-style scalars.  Lists and arrays are intentionally excluded because
+    they are handled as per-file vectors above.
+    """
+    return value is None or isinstance(value, (str, int, float, bool, np.generic))
 
 
 def convert_to_serializable(obj: Any) -> Any:
@@ -166,12 +183,14 @@ def convert_to_serializable(obj: Any) -> Any:
 
     """
     if isinstance(obj, np.ndarray):
-        return obj.tolist()  # Convert numpy arrays to lists
-    elif isinstance(obj, (np.float64, np.float32)):
-        return float(obj)  # Convert numpy floats to Python floats
-    elif isinstance(obj, (np.int64, np.int32)):
-        return int(obj)  # Convert numpy integers to Python integers
-    elif isinstance(obj, np.str_):
-        return str(obj)  # Convert numpy strings to Python strings
-    else:
-        return obj  # Return the object as is if it's already serializable
+        return convert_to_serializable(obj.tolist())
+    if isinstance(obj, np.generic):
+        return convert_to_serializable(obj.item())
+    if isinstance(obj, dict):
+        return {
+            convert_to_serializable(key): convert_to_serializable(value)
+            for key, value in obj.items()
+        }
+    if isinstance(obj, (list, tuple)):
+        return [convert_to_serializable(value) for value in obj]
+    return obj

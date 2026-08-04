@@ -51,6 +51,27 @@ def test_cancel_unsubmitted_interactive_extraction_does_not_finish_after_submit(
     assert extract_app.server.config.get("terminal_stream") is terminal_stream
 
 
+def test_reconfigure_resets_submitted_state_for_next_interactive_session() -> None:
+    first_stream = DummyTerminalStream()
+    second_stream = DummyTerminalStream()
+
+    _configure_extract_gui(["first.jpg"], terminal_stream=first_stream)
+    mark_interactive_extraction_submitted()
+
+    _configure_extract_gui(["second.jpg"], terminal_stream=second_stream)
+    cancel_interactive_extraction_if_unsubmitted()
+
+    assert first_stream.calls == []
+    assert second_stream.calls == [
+        {
+            "status": "error",
+            "message": "Interactive extraction cancelled before output was written.",
+        }
+    ]
+    assert extract_app.server.config.get("data_files") == ["second.jpg"]
+    assert extract_app.server.config.get("terminal_stream") is None
+
+
 def test_window_close_watcher_invokes_on_closed_callback() -> None:
     manager = WindowManager()
     closed_event = threading.Event()

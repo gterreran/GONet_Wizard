@@ -151,16 +151,28 @@ class Path(base.Shape):
         ValueError
             If side lengths are not positive or angles are invalid.
         """
-    # Validate and convert numeric parameters
-        for par, label in [(x0, "x0"), (y0, "y0"), (start_angle, "start_angle"), (end_angle, "end_angle")]:
+        # Validate and convert numeric parameters.  The conversion must be
+        # assigned back to the local variables; otherwise rectangles created
+        # from integer or string form inputs keep mixed scalar types in their
+        # extractor metadata.
+        for par, label in [
+            (x0, "x0"),
+            (y0, "y0"),
+            (start_angle, "start_angle"),
+            (end_angle, "end_angle"),
+        ]:
             cls._validate_numeric(par, label)
-            par = float(par)  # Convert to float
 
-        # Validate and convert side lengths
         for par, label in [(side1, "side1"), (side2, "side2")]:
             cls._validate_numeric(par, label)
             cls._validate_positive(par, label)
-            par = float(par)  # Convert to float
+
+        x0 = float(x0)
+        y0 = float(y0)
+        side1 = float(side1)
+        side2 = float(side2)
+        start_angle = float(start_angle)
+        end_angle = float(end_angle)
 
         # Normalize angles
         start_angle = base.normalize_angle_deg(start_angle)
