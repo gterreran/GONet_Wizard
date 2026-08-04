@@ -1,4 +1,8 @@
 <!-- insertion marker -->
+## [v0.16.0](https://github.com/gterreran/GONet_Wizard/releases/tag/v0.16.0) - 2026-08-04
+
+<small>[Compare with v0.15.0](https://github.com/gterreran/GONet_Wizard/compare/v0.15.0...v0.16.0)</small>
+
 ## [v0.15.0](https://github.com/gterreran/GONet_Wizard/releases/tag/v0.15.0) - 2026-07-12
 
 <small>[Compare with v0.14.1](https://github.com/gterreran/GONet_Wizard/compare/v0.14.1...v0.15.0)</small>
