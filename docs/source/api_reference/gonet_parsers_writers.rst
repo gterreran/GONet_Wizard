@@ -46,6 +46,16 @@ FITS Writer
    :members:
    :show-inheritance:
 
+Writer white balance
+--------------------
+
+The JPEG and TIFF writers can apply white balance using gains stored in RAW
+JPEG metadata. TIFF-loaded ``GONetFile`` objects normally do not have that
+metadata, so callers that enable white balance for metadata-free images should
+pass both ``red_gain`` and ``blue_gain`` explicitly. If neither metadata nor a
+complete manual gain pair is available, the writers raise ``ValueError`` with a
+recovery hint.
+
 JPEG Writer
 -----------
 

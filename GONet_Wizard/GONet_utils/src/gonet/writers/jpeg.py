@@ -8,8 +8,8 @@ instance as a standard 8-bit JPEG image.
 
 The function automatically handles both single-green (averaged) and dual-green
 (BGGR) channel configurations, applies optional white balance corrections from
-metadata, rescales pixel values from 16-bit to 8-bit, and ensures the output is
-clipped and properly formatted for JPEG encoding.
+metadata or explicit manual gains, rescales pixel values from 16-bit to 8-bit,
+and ensures the output is clipped and properly formatted for JPEG encoding.
 
 **Functions**
 
@@ -18,10 +18,23 @@ clipped and properly formatted for JPEG encoding.
 
 """
 
+from __future__ import annotations
+
 import numpy as np
 from PIL import Image
 
-def write_to_jpeg(self, output_filename: str, white_balance: bool = True) -> None:
+from GONet_Wizard.GONet_utils.src.gonet.writers._white_balance import (
+    resolve_white_balance_gains,
+)
+
+
+def write_to_jpeg(
+    self,
+    output_filename: str,
+    white_balance: bool = True,
+    red_gain: float | None = None,
+    blue_gain: float | None = None,
+) -> None:
     """
     Write the RGB image data to a JPEG file.
 
@@ -31,22 +44,29 @@ def write_to_jpeg(self, output_filename: str, white_balance: bool = True) -> Non
     and the data is converted to 8-bit for JPEG compatibility.
 
     If ``white_balance`` is True, the method applies red and blue channel gains
-    from ``self.meta['JPEG']['WB']`` prior to conversion, in order to produce a 
-    more natural-looking image. The white balance is expected to be a list 
-    or tuple of two floats: [R_gain, B_gain].
+    before conversion. By default, gains are read from ``self.meta['JPEG']['WB']``.
+    For metadata-free inputs such as TIFF-loaded ``GONetFile`` objects,
+    pass both ``red_gain`` and ``blue_gain`` explicitly. Explicit gains take
+    precedence over metadata when supplied.
 
     Parameters
     ----------
     output_filename : :class:`str`
         Path where the resulting JPEG file will be saved.
-
     white_balance : :class:`bool`, optional
-        Whether to apply white balance using gains from metadata (default is False).
+        Whether to apply white balance (default is True).
+    red_gain : :class:`float`, optional
+        Manual gain applied to the red channel when white balance is enabled.
+        Must be supplied together with ``blue_gain``.
+    blue_gain : :class:`float`, optional
+        Manual gain applied to the blue channel when white balance is enabled.
+        Must be supplied together with ``red_gain``.
 
     Raises
     ------
     :class:`ValueError`
-        If ``white_balance`` is True but the WB metadata is missing or invalid.
+        If ``white_balance`` is True and neither valid metadata gains nor a
+        complete pair of manual gains is available.
     """
     def convert_to_uint8(arr: np.ndarray) -> np.ndarray:
         """
@@ -73,15 +93,15 @@ def write_to_jpeg(self, output_filename: str, white_balance: bool = True) -> Non
         green = self.green.astype(np.float32)
     red   = self.red.astype(np.float32)
 
-    # Apply white balance if requested
     if white_balance:
-        try:
-            r_gain, b_gain = self.meta["JPEG"]["WB"]
-            red   *= r_gain
-            blue  *= b_gain
-            # green *= 1.0 (implicitly)
-        except Exception as e:
-            raise ValueError("White balance metadata 'WB' is missing or invalid.") from e
+        r_gain, b_gain = resolve_white_balance_gains(
+            self,
+            red_gain=red_gain,
+            blue_gain=blue_gain,
+        )
+        red *= r_gain
+        blue *= b_gain
+        # green *= 1.0 (implicitly)
 
     # Convert to uint8 and stack
     rgb = np.stack([

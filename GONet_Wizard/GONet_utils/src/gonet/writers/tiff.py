@@ -7,9 +7,9 @@ or :class:`~GONet_Wizard.GONet_utils.src.gonet.gonet_file_raw.GONetFileRaw`
 instance to a standard 16-bit TIFF file.
 
 The function automatically handles both averaged-green and dual-green
-(BGGR) inputs, applies optional white balance corrections from metadata,
-and ensures values are safely clipped and cast to ``uint16`` for
-TIFF compatibility.
+(BGGR) inputs, applies optional white balance corrections from metadata or
+explicit manual gains, and ensures values are safely clipped and cast to
+``uint16`` for TIFF compatibility.
 
 **Functions**
 
@@ -17,10 +17,23 @@ TIFF compatibility.
     Write GONet RGB data to a 16-bit TIFF file
 """
 
+from __future__ import annotations
+
 import numpy as np
 import tifffile
 
-def write_to_tiff(self, output_filename: str, white_balance: bool = True) -> None:
+from GONet_Wizard.GONet_utils.src.gonet.writers._white_balance import (
+    resolve_white_balance_gains,
+)
+
+
+def write_to_tiff(
+    self,
+    output_filename: str,
+    white_balance: bool = True,
+    red_gain: float | None = None,
+    blue_gain: float | None = None,
+) -> None:
     """
     Write the RGB image data to a TIFF file.
 
@@ -29,22 +42,29 @@ def write_to_tiff(self, output_filename: str, white_balance: bool = True) -> Non
     the data is cast to uint16 for TIFF compatibility.
 
     If ``white_balance`` is True, the method applies red and blue channel gains
-    from ``self.meta['JPEG']['WB']`` prior to writing, in order to produce a 
-    more natural-looking image. The white balance is expected to be a list 
-    or tuple of two floats: [R_gain, B_gain].
+    before writing. By default, gains are read from ``self.meta['JPEG']['WB']``.
+    For metadata-free inputs such as TIFF-loaded ``GONetFile`` objects,
+    pass both ``red_gain`` and ``blue_gain`` explicitly. Explicit gains take
+    precedence over metadata when supplied.
 
     Parameters
     ----------
     output_filename : :class:`str`
         Path where the resulting TIFF file will be saved.
-
     white_balance : :class:`bool`, optional
-        Whether to apply white balance using gains from metadata (default is True).
+        Whether to apply white balance (default is True).
+    red_gain : :class:`float`, optional
+        Manual gain applied to the red channel when white balance is enabled.
+        Must be supplied together with ``blue_gain``.
+    blue_gain : :class:`float`, optional
+        Manual gain applied to the blue channel when white balance is enabled.
+        Must be supplied together with ``red_gain``.
 
     Raises
     ------
-    ValueError
-        If ``white_balance`` is True but the WB metadata is missing or invalid.
+    :class:`ValueError`
+        If ``white_balance`` is True and neither valid metadata gains nor a
+        complete pair of manual gains is available.
     """
     blue  = self.blue.astype(np.float32)
     if hasattr(self, 'green1') and hasattr(self, 'green2'):
@@ -52,16 +72,16 @@ def write_to_tiff(self, output_filename: str, white_balance: bool = True) -> Non
     else:
         green = self.green.astype(np.float32)
     red   = self.red.astype(np.float32)
-    
 
     if white_balance:
-        try:
-            r_gain, b_gain = self.meta["JPEG"]["WB"]
-            red *= r_gain
-            blue *= b_gain
-            # green remains unchanged
-        except Exception as e:
-            raise ValueError("White balance metadata 'WB' is missing or invalid.") from e
+        r_gain, b_gain = resolve_white_balance_gains(
+            self,
+            red_gain=red_gain,
+            blue_gain=blue_gain,
+        )
+        red *= r_gain
+        blue *= b_gain
+        # green remains unchanged
 
     rgb_stack = np.stack([
         np.clip(red, 0, 2**16 - 1).astype(np.uint16),

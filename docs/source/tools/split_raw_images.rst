@@ -51,6 +51,11 @@ visual channel gains.
 
 Use TIFF products when the output may remain part of a measurement workflow.
 
+Note that TIFF products do not preserve the original GONet RAW JPEG metadata. If
+a TIFF is later loaded as a ``GONetFile`` and written back out with white
+balance enabled, provide manual ``red_gain`` and ``blue_gain`` values or disable
+white balance.
+
 JPEG Products
 ~~~~~~~~~~~~~
 

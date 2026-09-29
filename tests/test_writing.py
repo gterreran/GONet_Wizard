@@ -223,3 +223,81 @@ def test_write_to_fits_with_no_metadata(tmp_path):
         expected_keys = {"SIMPLE", "BITPIX", "NAXIS", "EXTEND", "NAXIS1", "NAXIS2"}  # these are always added by astropy
         # Allow the header to include exactly those keys (and END, which is implicit)
         assert set(primary_keys).issubset(expected_keys)
+
+@pytest.fixture
+def gonetfile_no_metadata():
+    """GONetFile loaded from a metadata-free source such as TIFF."""
+    return GONetFile(
+        filename="dummy.tiff",
+        blue=np.full((4, 4), 1200, dtype=np.uint16),
+        green=np.full((4, 4), 2400, dtype=np.uint16),
+        red=np.full((4, 4), 3600, dtype=np.uint16),
+        meta=None,
+        filetype=None,
+    )
+
+
+def test_write_to_jpeg_accepts_manual_white_balance_gains_without_metadata(
+    tmp_path,
+    gonetfile_no_metadata,
+):
+    """Metadata-free images can still be JPEG white-balanced with manual gains."""
+    output_path = tmp_path / "manual_wb.jpg"
+
+    gonetfile_no_metadata.write_to_jpeg(
+        str(output_path),
+        white_balance=True,
+        red_gain=1.5,
+        blue_gain=0.5,
+    )
+
+    assert output_path.exists()
+    with Image.open(output_path) as img:
+        assert img.mode == "RGB"
+        assert np.array(img).shape == (4, 4, 3)
+
+
+def test_write_to_tiff_accepts_manual_white_balance_gains_without_metadata(
+    tmp_path,
+    gonetfile_no_metadata,
+):
+    """Metadata-free images can still be TIFF white-balanced with manual gains."""
+    output_path = tmp_path / "manual_wb.tiff"
+
+    gonetfile_no_metadata.write_to_tiff(
+        str(output_path),
+        white_balance=True,
+        red_gain=1.5,
+        blue_gain=0.5,
+    )
+
+    image = tifffile.imread(output_path)
+    expected = np.stack([
+        np.full((4, 4), 5400, dtype=np.uint16),
+        np.full((4, 4), 2400, dtype=np.uint16),
+        np.full((4, 4), 600, dtype=np.uint16),
+    ])
+    np.testing.assert_array_equal(image, expected)
+
+
+@pytest.mark.parametrize("writer_name, suffix", [("write_to_jpeg", ".jpg"), ("write_to_tiff", ".tiff")])
+def test_manual_white_balance_requires_red_and_blue_gains(
+    tmp_path,
+    gonetfile_no_metadata,
+    writer_name,
+    suffix,
+):
+    """Supplying only one manual white-balance gain is rejected clearly."""
+    writer = getattr(gonetfile_no_metadata, writer_name)
+
+    with pytest.raises(ValueError, match="Both red_gain and blue_gain"):
+        writer(str(tmp_path / f"missing_gain{suffix}"), red_gain=1.2)
+
+
+def test_missing_metadata_white_balance_error_points_to_manual_gains(
+    tmp_path,
+    gonetfile_no_metadata,
+):
+    """Metadata-free white balance failures tell users how to recover."""
+    with pytest.raises(ValueError, match="Provide both red_gain and blue_gain"):
+        gonetfile_no_metadata.write_to_jpeg(str(tmp_path / "missing_meta.jpg"))

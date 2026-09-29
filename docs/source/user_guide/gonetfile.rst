@@ -122,6 +122,35 @@ in a ``bytes_array`` :mod:`numpy.array`
 
 Each recreated pixel is then stored in each channel following the Bayer pattern. 
 
+Metadata and white balance
+--------------------------
+
+Original GONet RAW ``.jpg`` files can include camera metadata, including the
+red and blue white-balance gains stored under ``meta["JPEG"]["WB"]`` after
+parsing. Converted TIFF files do not carry that GONet metadata. When a TIFF is
+loaded as a ``GONetFile``, ``meta`` is therefore expected to be ``None``.
+
+This means metadata-dependent operations need either metadata or explicit
+replacement values. For JPEG and TIFF writing, white balance is enabled or
+disabled with the ``white_balance`` argument. If white balance is enabled, the
+writer uses metadata gains when they are available. For metadata-free inputs,
+provide both manual gains directly:
+
+.. code-block:: python
+
+   image = GONetFile.from_file("converted/image.tiff")
+   image.write_to_jpeg(
+       "preview.jpg",
+       white_balance=True,
+       red_gain=1.4,
+       blue_gain=1.2,
+   )
+
+Supplying explicit gains is most useful when creating a visually balanced JPEG
+preview from an already converted TIFF. For measurement workflows, especially
+when preserving raw-like counts matters, prefer ``white_balance=False`` so the
+channel values are not rescaled for display.
+
 Relationship to commands and the GUI
 ------------------------------------
 

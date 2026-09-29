@@ -306,6 +306,11 @@ class GONetFile:
         """
         Write the RGB image data to a JPEG file.
 
+        The writer can apply white balance from parsed RAW JPEG metadata or
+        from explicit ``red_gain`` and ``blue_gain`` keyword arguments. Manual
+        gains are useful for TIFF-loaded files, which do not carry GONet EXIF
+        metadata.
+
         See :func:`~GONet_Wizard.GONet_utils.src.gonet.writers.jpeg.write_to_jpeg`
         for full documentation.
         """
@@ -315,6 +320,11 @@ class GONetFile:
     def write_to_tiff(self, *args, **kwargs):
         """
         Write the image data to a multi-page TIFF file.
+
+        The writer can apply white balance from parsed RAW JPEG metadata or
+        from explicit ``red_gain`` and ``blue_gain`` keyword arguments. Manual
+        gains are useful for TIFF-loaded files, which do not carry GONet EXIF
+        metadata.
 
         See :func:`~GONet_Wizard.GONet_utils.src.gonet.writers.tiff.write_to_tiff`
         for full documentation.
